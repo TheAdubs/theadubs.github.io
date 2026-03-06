@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adam — Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #141414;
+      --card: #1a1a1a;
+      --border: #2a2a2a;
+      --gold: #c9a84c;
+      --gold-light: #e8c87a;
+      --text: #e8e4dc;
+      --muted: #7a7570;
+      --accent: #c9a84c;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* --- NOISE TEXTURE OVERLAY --- */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* --- NAV --- */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 4rem;
+      background: rgba(13,13,13,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--gold);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2.5rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      transition: color 0.3s;
+    }
+
+    .nav-links a:hover { color: var(--gold); }
+
+    /* --- HERO --- */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 0 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-bg-line {
+      position: absolute;
+      right: 8%;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1px;
+      height: 60vh;
+      background: linear-gradient(to bottom, transparent, var(--border), transparent);
+    }
+
+    .hero-number {
+      position: absolute;
+      right: 4rem;
+      top: 50%;
+      transform: translateY(-50%) rotate(90deg);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.3em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .hero-content {
+      max-width: 820px;
+      animation: fadeUp 1s ease both;
+    }
+
+    .hero-eyebrow {
+      font-size: 0.75rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 1px;
+      background: var(--gold);
+    }
+
+    h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(3.5rem, 8vw, 7rem);
+      font-weight: 600;
+      line-height: 1.0;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .hero-sub {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 500px;
+      margin-bottom: 3rem;
+      line-height: 1.8;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 2rem;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      text-decoration: none;
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      transition: all 0.3s;
+    }
+
+    .hero-cta:hover {
+      background: var(--gold);
+      color: var(--bg);
+    }
+
+    .hero-cta svg { transition: transform 0.3s; }
+    .hero-cta:hover svg { transform: translateX(4px); }
+
+    /* --- SECTION STRUCTURE --- */
+    section { padding: 7rem 4rem; position: relative; z-index: 1; }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+    }
+
+    .section-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.8rem;
+      color: var(--gold);
+      letter-spacing: 0.1em;
+    }
+
+    h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    /* --- ABOUT --- */
+    #about {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5rem;
+      align-items: start;
+    }
+
+    .about-body p {
+      color: var(--muted);
+      margin-bottom: 1.2rem;
+      font-size: 1rem;
+      line-height: 1.9;
+    }
+
+    .about-body p strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 2rem;
+    }
+
+    .tag {
+      padding: 0.35rem 0.9rem;
+      border: 1px solid var(--border);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      transition: all 0.25s;
+    }
+
+    .tag:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .about-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .stat-item {
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat-item:last-child { border-bottom: none; }
+
+    .stat-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 3.5rem;
+      font-weight: 600;
+      color: var(--gold);
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* --- PROJECTS --- */
+    #projects { background: var(--bg); }
+
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .project-card {
+      background: var(--card);
+      padding: 2.5rem;
+      cursor: default;
+      transition: background 0.3s;
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .project-card::before {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--gold);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
+    }
+
+    .project-card:hover { background: #1f1f1f; }
+    .project-card:hover::before { transform: scaleX(1); }
+
+    .project-type {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.2rem;
+    }
+
+    .project-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.8rem;
+      line-height: 1.25;
+    }
+
+    .project-desc {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.75;
+      margin-bottom: 1.5rem;
+    }
+
+    .project-link {
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.3s;
+    }
+
+    .project-card:hover .project-link { color: var(--gold); }
+
+    .project-icon {
+      font-size: 1.5rem;
+      margin-bottom: 1.2rem;
+      display: block;
+    }
+
+    /* Featured card spans 2 columns */
+    .project-card.featured {
+      grid-column: span 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .featured-badge {
+      display: inline-block;
+      background: var(--gold);
+      color: var(--bg);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      margin-bottom: 0.75rem;
+      font-weight: 500;
+    }
+
+    /* --- SKILLS --- */
+    #skills {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+    }
+
+    .skill-group h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      color: var(--gold);
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .skill-group ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .skill-group li {
+      font-size: 0.88rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      transition: color 0.25s;
+    }
+
+    .skill-group li:hover { color: var(--text); }
+
+    .skill-group li::before {
+      content: '—';
+      color: var(--border);
+      font-size: 0.7rem;
+    }
+
+    /* --- CONTACT --- */
+    #contact { background: var(--bg); }
+
+    .contact-inner {
+      max-width: 640px;
+    }
+
+    .contact-inner p {
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.9;
+      margin-bottom: 2.5rem;
+    }
+
+    .contact-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .contact-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.85rem 1.8rem;
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+
+    .contact-link.primary {
+      background: var(--gold);
+      color: var(--bg);
+      font-weight: 500;
+    }
+
+    .contact-link.primary:hover { background: var(--gold-light); }
+
+    .contact-link.secondary {
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .contact-link.secondary:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    /* --- FOOTER --- */
+    footer {
+      padding: 2rem 4rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg);
+    }
+
+    footer p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    .footer-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      color: var(--gold);
+    }
+
+    /* --- DIVIDER LINE --- */
+    .divider {
+      width: 60px;
+      height: 1px;
+      background: var(--gold);
+      margin-bottom: 3rem;
+      opacity: 0.5;
+    }
+
+    /* --- ANIMATIONS --- */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* --- RESPONSIVE --- */
+    @media (max-width: 900px) {
+      nav { padding: 1.2rem 2rem; }
+      section { padding: 5rem 2rem; }
+      .hero { padding: 0 2rem; }
+      .about-grid { grid-template-columns: 1fr; gap: 3rem; }
+      .projects-grid { grid-template-columns: 1fr; }
+      .project-card.featured { grid-column: span 1; grid-template-columns: 1fr; }
+      .skills-grid { grid-template-columns: repeat(2, 1fr); }
+      footer { padding: 2rem; flex-direction: column; gap: 1rem; text-align: center; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="#">Adam Wertheim</a>
+    <ul class="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#projects">Projects</a></li>
+      <li><a href="#skills">Skills</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg-line"></div>
+    <div class="hero-number">Selected Work — 2024–2026</div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">Navy Veteran · Storyteller · Krav Maga Blue Belt</div>
+      <h1>Strategist.<br/><em>Storyteller.</em><br/>Occasional writer.</h1>
+      <p class="hero-sub">I've navigated ships, boardrooms, and a Sam's Club parking lot that briefly felt like the end of the world. I build things, tell stories, and think hard about how it all fits together.</p>
+      <a href="#projects" class="hero-cta">
+        View My Work
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about">
+    <div class="section-header fade-in">
+      <span class="section-num">01</span>
+      <h2>About Me</h2>
+    </div>
+    <div class="about-grid">
+      <div class="about-body fade-in">
+        <p>I started my career on a Navy ship as an <strong>Information Systems Technician</strong> — responsible for the technology and, apparently, the morale of everyone around me. That combination of discipline, adaptability, and just enough irreverence has followed me everywhere since.</p>
+        <p>I've worked in <strong>television production</strong> (Warner Brothers/Telepictures), built marketing teams, closed deals, written strategies, and somewhere along the way became the person organizations call when they need someone who can <strong>think clearly and communicate even more clearly.</strong></p>
+        <p>I'm a <strong>Catholic</strong>, a <strong>Krav Maga blue belt</strong>, and a deeply invested college basketball fan who applies more analytical rigor to March Madness brackets than most people apply to anything. My faith and my training both remind me of the same thing: stay grounded, stay ready, stay humble.</p>
+        <p>This site is a collection of things I've built, written, and thought about — equal parts professional portfolio and honest self-portrait.</p>
+        <div class="tags">
+          <span class="tag">US Navy Veteran</span>
+          <span class="tag">Catholic</span>
+          <span class="tag">Krav Maga</span>
+          <span class="tag">Storytelling</span>
+          <span class="tag">Strategy</span>
+          <span class="tag">College Basketball</span>
+          <span class="tag">Builder</span>
+        </div>
+      </div>
+      <div class="about-stats fade-in">
+        <div class="stat-item">
+          <div class="stat-num">17+</div>
+          <div class="stat-label">Years in Technology & Strategy</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">∞</div>
+          <div class="stat-label">March Madness Brackets Destroyed</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">1</div>
+          <div class="stat-label">Sam's Club Near-Panic Incident on Record</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section id="projects">
+    <div class="section-header fade-in">
+      <span class="section-num">02</span>
+      <h2>Selected Projects</h2>
+    </div>
+    <div class="projects-grid fade-in">
+
+      <!-- Featured: Dashboard -->
+      <div class="project-card featured">
+        <div>
+          <span class="featured-badge">Featured</span>
+          <div class="project-type">Interactive Tool · HTML/JS</div>
+          <div class="project-title">Priority Management Dashboard</div>
+          <p class="project-desc">A weighted scoring dashboard built to manage a client with three distinct business units. Tracks revenue at risk, deadlines, account health, and active projects — with real-time priority ranking and dollar-weighted task management.</p>
+          <span class="project-link">
+            View Project
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+        </div>
+        <div>
+          <div style="background:#111; border:1px solid #2a2a2a; padding:1.5rem; border-radius:2px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+              <span style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#c9a84c;">Priority Score</span>
+              <span style="font-size:0.7rem;color:#555;">Live</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.6rem;">
+              <div style="display:flex;align-items:center;gap:1rem;">
+                <div style="flex:1;height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;">
+                  <div style="width:88%;height:100%;background:#c9a84c;"></div>
+                </div>
+                <span style="font-size:0.75rem;color:#7a7570;min-width:30px;">88</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:1rem;">
+                <div style="flex:1;height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;">
+                  <div style="width:62%;height:100%;background:#555;"></div>
+                </div>
+                <span style="font-size:0.75rem;color:#7a7570;min-width:30px;">62</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:1rem;">
+                <div style="flex:1;height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;">
+                  <div style="width:41%;height:100%;background:#555;"></div>
+                </div>
+                <span style="font-size:0.75rem;color:#7a7570;min-width:30px;">41</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trivia Quiz -->
+      <div class="project-card">
+        <span class="project-icon">🎮</span>
+        <div class="project-type">Interactive App · HTML/JS</div>
+        <div class="project-title">History Trivia Quiz Games</div>
+        <p class="project-desc">Two 20-question interactive HTML quiz games covering British Imperialism in India and Empire Building in Africa. Built for a 9th-grade honors history class — randomized questions, detailed answer explanations, and grade-based feedback.</p>
+        <span class="project-link">
+          View Project
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+
+      <!-- Salesforce Risk Doc -->
+      <div class="project-card">
+        <span class="project-icon">📄</span>
+        <div class="project-type">Professional Document · DOCX</div>
+        <div class="project-title">Salesforce Transition Risk Assessment</div>
+        <p class="project-desc">A stakeholder-ready Word document mapping risks across six categories for an abrupt mid-project handoff — covering knowledge transfer, technical gaps, delivery timelines, contractual exposure, and recommended mitigations.</p>
+        <span class="project-link">
+          View Project
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+
+      <!-- March Madness -->
+      <div class="project-card">
+        <span class="project-icon">🏀</span>
+        <div class="project-type">Analysis · Strategy</div>
+        <div class="project-title">March Madness Bracket Framework</div>
+        <p class="project-desc">A data-informed bracket-building methodology covering seed trust thresholds, mid-major sleepers, conference tournament momentum, and pool-winning upset theory. Spoiler: Duke was involved.</p>
+        <span class="project-link">
+          Read Analysis
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+
+      <!-- Creative Writing -->
+      <div class="project-card">
+        <span class="project-icon">✍️</span>
+        <div class="project-type">Creative Writing · Narrative</div>
+        <div class="project-title">The Sam's Club Incident</div>
+        <p class="project-desc">A personal anecdote rewritten as suspenseful literary fiction — in which an early-morning parking lot crowd triggers apocalyptic dread, only to reveal a Pokémon card expansion pack release. A study in dramatic irony and anticlimactic revelation.</p>
+        <span class="project-link">
+          Read Story
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+
+      <!-- Flight Tool -->
+      <div class="project-card">
+        <span class="project-icon">✈️</span>
+        <div class="project-type">Tool Use · AI Connectors</div>
+        <div class="project-title">Real-Time Travel Research</div>
+        <p class="project-desc">Leveraging Kiwi.com and Trivago MCP connectors to find optimized flight and hotel combinations in real time. Includes bundle vs. direct booking cost analysis and price alert strategies.</p>
+        <span class="project-link">
+          View Demo
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SKILLS -->
+  <section id="skills">
+    <div class="section-header fade-in">
+      <span class="section-num">03</span>
+      <h2>Skills & Tools</h2>
+    </div>
+    <div class="skills-grid fade-in">
+      <div class="skill-group">
+        <h3>Storytelling</h3>
+        <ul>
+          <li>Narrative & voice</li>
+          <li>Creative nonfiction</li>
+          <li>Messaging & positioning</li>
+          <li>Proposals & SOWs</li>
+          <li>Suspense (situational)</li>
+        </ul>
+      </div>
+      <div class="skill-group">
+        <h3>Building</h3>
+        <ul>
+          <li>Interactive tools & apps</li>
+          <li>HTML / CSS / JavaScript</li>
+          <li>AI-assisted workflows</li>
+          <li>Go-to-market strategy</li>
+          <li>Team & delivery systems</li>
+        </ul>
+      </div>
+      <div class="skill-group">
+        <h3>Background</h3>
+        <ul>
+          <li>US Navy Veteran</li>
+          <li>TV & Broadcasting</li>
+          <li>Krav Maga Blue Belt</li>
+          <li>Catholic</li>
+          <li>Overland Park, KS</li>
+        </ul>
+      </div>
+      <div class="skill-group">
+        <h3>Currently Into</h3>
+        <ul>
+          <li>March Madness analytics</li>
+          <li>AI tools & workflows</li>
+          <li>Personal site building</li>
+          <li>Sports culture writing</li>
+          <li>Pokémon card market panic</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact">
+    <div class="section-header fade-in">
+      <span class="section-num">04</span>
+      <h2>Get In Touch</h2>
+    </div>
+    <div class="contact-inner fade-in">
+      <div class="divider"></div>
+      <p>Whether you want to talk strategy, swap bracket takes, debate the finer points of Krav Maga, or just say hello — I'm easy to reach. No Navy ship required.</p>
+      <div class="contact-links">
+        <a href="mailto:APWertheim@gmail.com" class="contact-link primary">
+          Send a Message
+        </a>
+        <a href="https://linkedin.com/in/adam-wertheim" target="_blank" class="contact-link secondary">
+          LinkedIn
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7 2h3v3M10 2L5.5 6.5M5 3H2v7h7V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <span class="footer-logo">Adam Wertheim</span>
+    <p>Built with intention. Hosted on GitHub Pages.</p>
+    <p>© 2026</p>
+  </footer>
+
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    // Scroll-triggered fade-in
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          observer.unobserve(e.target);
+        
