@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Adam — Portfolio</title>
+  <title>Adam Wertheim</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
@@ -18,7 +18,6 @@
       --gold-light: #e8c87a;
       --text: #e8e4dc;
       --muted: #7a7570;
-      --accent: #c9a84c;
     }
 
     html { scroll-behavior: smooth; }
@@ -32,7 +31,6 @@
       overflow-x: hidden;
     }
 
-    /* --- NOISE TEXTURE OVERLAY --- */
     body::before {
       content: '';
       position: fixed;
@@ -43,7 +41,6 @@
       opacity: 0.4;
     }
 
-    /* --- NAV --- */
     nav {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -66,11 +63,7 @@
       text-decoration: none;
     }
 
-    .nav-links {
-      display: flex;
-      gap: 2.5rem;
-      list-style: none;
-    }
+    .nav-links { display: flex; gap: 2.5rem; list-style: none; }
 
     .nav-links a {
       color: var(--muted);
@@ -83,7 +76,6 @@
 
     .nav-links a:hover { color: var(--gold); }
 
-    /* --- HERO --- */
     .hero {
       min-height: 100vh;
       display: flex;
@@ -148,10 +140,7 @@
       margin-bottom: 1.5rem;
     }
 
-    h1 em {
-      font-style: italic;
-      color: var(--gold);
-    }
+    h1 em { font-style: italic; color: var(--gold); }
 
     .hero-sub {
       font-size: 1.05rem;
@@ -175,15 +164,10 @@
       transition: all 0.3s;
     }
 
-    .hero-cta:hover {
-      background: var(--gold);
-      color: var(--bg);
-    }
-
+    .hero-cta:hover { background: var(--gold); color: var(--bg); }
     .hero-cta svg { transition: transform 0.3s; }
     .hero-cta:hover svg { transform: translateX(4px); }
 
-    /* --- SECTION STRUCTURE --- */
     section { padding: 7rem 4rem; position: relative; z-index: 1; }
 
     .section-header {
@@ -207,7 +191,6 @@
       letter-spacing: -0.01em;
     }
 
-    /* --- ABOUT --- */
     #about {
       background: var(--surface);
       border-top: 1px solid var(--border);
@@ -228,17 +211,9 @@
       line-height: 1.9;
     }
 
-    .about-body p strong {
-      color: var(--text);
-      font-weight: 500;
-    }
+    .about-body p strong { color: var(--text); font-weight: 500; }
 
-    .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 2rem;
-    }
+    .tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 2rem; }
 
     .tag {
       padding: 0.35rem 0.9rem;
@@ -250,22 +225,11 @@
       transition: all 0.25s;
     }
 
-    .tag:hover {
-      border-color: var(--gold);
-      color: var(--gold);
-    }
+    .tag:hover { border-color: var(--gold); color: var(--gold); }
 
-    .about-stats {
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-    }
+    .about-stats { display: flex; flex-direction: column; gap: 2rem; }
 
-    .stat-item {
-      padding-bottom: 2rem;
-      border-bottom: 1px solid var(--border);
-    }
-
+    .stat-item { padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
     .stat-item:last-child { border-bottom: none; }
 
     .stat-num {
@@ -284,7 +248,6 @@
       color: var(--muted);
     }
 
-    /* --- PROJECTS --- */
     #projects { background: var(--bg); }
 
     .projects-grid {
@@ -298,7 +261,6 @@
     .project-card {
       background: var(--card);
       padding: 2.5rem;
-      cursor: default;
       transition: background 0.3s;
       position: relative;
       overflow: hidden;
@@ -320,6 +282,7 @@
 
     .project-card:hover { background: #1f1f1f; }
     .project-card:hover::before { transform: scaleX(1); }
+    .project-card.no-link { cursor: default; }
 
     .project-type {
       font-size: 0.7rem;
@@ -357,19 +320,15 @@
 
     .project-card:hover .project-link { color: var(--gold); }
 
-    .project-icon {
-      font-size: 1.5rem;
-      margin-bottom: 1.2rem;
-      display: block;
-    }
+    .project-icon { font-size: 1.5rem; margin-bottom: 1.2rem; display: block; }
 
-    /* Featured card spans 2 columns */
     .project-card.featured {
       grid-column: span 2;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 2rem;
       align-items: start;
+      cursor: pointer;
     }
 
     .featured-badge {
@@ -384,7 +343,6 @@
       font-weight: 500;
     }
 
-    /* --- SKILLS --- */
     #skills {
       background: var(--surface);
       border-top: 1px solid var(--border);
@@ -406,12 +364,7 @@
       border-bottom: 1px solid var(--border);
     }
 
-    .skill-group ul {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
+    .skill-group ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
 
     .skill-group li {
       font-size: 0.88rem;
@@ -423,19 +376,10 @@
     }
 
     .skill-group li:hover { color: var(--text); }
+    .skill-group li::before { content: '—'; color: var(--border); font-size: 0.7rem; }
 
-    .skill-group li::before {
-      content: '—';
-      color: var(--border);
-      font-size: 0.7rem;
-    }
-
-    /* --- CONTACT --- */
     #contact { background: var(--bg); }
-
-    .contact-inner {
-      max-width: 640px;
-    }
+    .contact-inner { max-width: 640px; }
 
     .contact-inner p {
       color: var(--muted);
@@ -444,10 +388,7 @@
       margin-bottom: 2.5rem;
     }
 
-    .contact-links {
-      display: flex;
-      gap: 1.5rem;
-    }
+    .contact-links { display: flex; gap: 1.5rem; }
 
     .contact-link {
       display: inline-flex;
@@ -461,25 +402,11 @@
       transition: all 0.3s;
     }
 
-    .contact-link.primary {
-      background: var(--gold);
-      color: var(--bg);
-      font-weight: 500;
-    }
-
+    .contact-link.primary { background: var(--gold); color: var(--bg); font-weight: 500; }
     .contact-link.primary:hover { background: var(--gold-light); }
+    .contact-link.secondary { border: 1px solid var(--border); color: var(--muted); }
+    .contact-link.secondary:hover { border-color: var(--gold); color: var(--gold); }
 
-    .contact-link.secondary {
-      border: 1px solid var(--border);
-      color: var(--muted);
-    }
-
-    .contact-link.secondary:hover {
-      border-color: var(--gold);
-      color: var(--gold);
-    }
-
-    /* --- FOOTER --- */
     footer {
       padding: 2rem 4rem;
       border-top: 1px solid var(--border);
@@ -489,11 +416,7 @@
       background: var(--bg);
     }
 
-    footer p {
-      font-size: 0.78rem;
-      color: var(--muted);
-      letter-spacing: 0.05em;
-    }
+    footer p { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.05em; }
 
     .footer-logo {
       font-family: 'Cormorant Garamond', serif;
@@ -501,7 +424,6 @@
       color: var(--gold);
     }
 
-    /* --- DIVIDER LINE --- */
     .divider {
       width: 60px;
       height: 1px;
@@ -510,7 +432,6 @@
       opacity: 0.5;
     }
 
-    /* --- ANIMATIONS --- */
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(30px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -522,12 +443,8 @@
       transition: opacity 0.7s ease, transform 0.7s ease;
     }
 
-    .fade-in.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
 
-    /* --- RESPONSIVE --- */
     @media (max-width: 900px) {
       nav { padding: 1.2rem 2rem; }
       section { padding: 5rem 2rem; }
@@ -543,7 +460,6 @@
 </head>
 <body>
 
-  <!-- NAV -->
   <nav>
     <a class="nav-logo" href="#">Adam Wertheim</a>
     <ul class="nav-links">
@@ -554,12 +470,12 @@
     </ul>
   </nav>
 
-  <!-- HERO -->
   <section class="hero">
     <div class="hero-bg-line"></div>
+    <div class="hero-number">Selected Work — 2024–2026</div>
     <div class="hero-content">
-      <div class="hero-eyebrow"> Storyteller · Krav Maga Blue Belt</div>
-      <h1>Strategist.<br/><em>Storyteller.</em><br/>Occasional artist and writer.</h1>
+      <div class="hero-eyebrow">Builder · Krav Maga Blue Belt</div>
+      <h1>Strategist.<br/><em>Occasional</em><br/>artist and writer.</h1>
       <p class="hero-sub">I've navigated ships, boardrooms, and a Sam's Club parking lot that briefly felt like the end of the world. I build things, tell stories, and think hard about how it all fits together.</p>
       <a href="#projects" class="hero-cta">
         View My Work
@@ -570,7 +486,6 @@
     </div>
   </section>
 
-  <!-- ABOUT -->
   <section id="about">
     <div class="section-header fade-in">
       <span class="section-num">01</span>
@@ -609,7 +524,6 @@
     </div>
   </section>
 
-  <!-- PROJECTS -->
   <section id="projects">
     <div class="section-header fade-in">
       <span class="section-num">02</span>
@@ -617,13 +531,13 @@
     </div>
     <div class="projects-grid fade-in">
 
-      <!-- Featured: Dashboard -->
-      <div class="project-card featured">
+      <!-- FEATURED: KMU Tracker — full card is a link -->
+      <a href="kmu.html" class="project-card featured">
         <div>
           <span class="featured-badge">Featured</span>
-          <div class="project-type">Interactive Tool · HTML/JS</div>
-          <div class="project-title">Priority Management Dashboard</div>
-          <p class="project-desc">A weighted scoring dashboard built to manage a client with three distinct business units. Tracks revenue at risk, deadlines, account health, and active projects — with real-time priority ranking and dollar-weighted task management.</p>
+          <div class="project-type">Interactive Tool · HTML / JavaScript</div>
+          <div class="project-title">KMU Tracker</div>
+          <p class="project-desc">A full Krav Maga Worldwide curriculum tracker — rate your confidence on every technique from Yellow through Blue belt, surface your weak spots before test day, log instructor notes, and track progression across 300+ techniques.</p>
           <span class="project-link">
             View Project
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -632,109 +546,99 @@
         <div>
           <div style="background:#111; border:1px solid #2a2a2a; padding:1.5rem; border-radius:2px;">
             <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
-              <span style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#c9a84c;">Priority Score</span>
-              <span style="font-size:0.7rem;color:#555;">Live</span>
+              <span style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#c9a84c;">Belt Progress</span>
+              <span style="font-size:0.7rem;color:#555;">🥋 Blue</span>
             </div>
-            <div style="display:flex;flex-direction:column;gap:0.6rem;">
-              <div style="display:flex;align-items:center;gap:1rem;">
-                <div style="flex:1;height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;">
-                  <div style="width:88%;height:100%;background:#c9a84c;"></div>
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:0.3rem;">
+                  <span style="font-size:0.7rem;color:#7a7570;letter-spacing:0.08em;">YELLOW</span>
+                  <span style="font-size:0.7rem;color:#c9a84c;">92%</span>
                 </div>
-                <span style="font-size:0.75rem;color:#7a7570;min-width:30px;">88</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:1rem;">
-                <div style="flex:1;height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;">
-                  <div style="width:62%;height:100%;background:#555;"></div>
+                <div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;">
+                  <div style="width:92%;height:100%;background:#c9a84c;"></div>
                 </div>
-                <span style="font-size:0.75rem;color:#7a7570;min-width:30px;">62</span>
               </div>
-              <div style="display:flex;align-items:center;gap:1rem;">
-                <div style="flex:1;height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;">
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:0.3rem;">
+                  <span style="font-size:0.7rem;color:#7a7570;letter-spacing:0.08em;">ORANGE</span>
+                  <span style="font-size:0.7rem;color:#c9a84c;">78%</span>
+                </div>
+                <div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;">
+                  <div style="width:78%;height:100%;background:#c9a84c;"></div>
+                </div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:0.3rem;">
+                  <span style="font-size:0.7rem;color:#7a7570;letter-spacing:0.08em;">BLUE</span>
+                  <span style="font-size:0.7rem;color:#555;">41%</span>
+                </div>
+                <div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;">
                   <div style="width:41%;height:100%;background:#555;"></div>
                 </div>
-                <span style="font-size:0.75rem;color:#7a7570;min-width:30px;">41</span>
               </div>
             </div>
           </div>
         </div>
+      </a>
+
+      <!-- Priority Dashboard -->
+      <div class="project-card no-link">
+        <span class="project-icon">📊</span>
+        <div class="project-type">Interactive Tool · HTML/JS</div>
+        <div class="project-title">Priority Management Dashboard</div>
+        <p class="project-desc">A weighted scoring dashboard built to manage a client with three distinct business units. Tracks revenue at risk, deadlines, account health, and active projects — with real-time priority ranking and dollar-weighted task management.</p>
+        <span class="project-link">Coming Soon</span>
       </div>
 
       <!-- Trivia Quiz -->
-      <div class="project-card">
+      <div class="project-card no-link">
         <span class="project-icon">🎮</span>
         <div class="project-type">Interactive App · HTML/JS</div>
         <div class="project-title">History Trivia Quiz Games</div>
         <p class="project-desc">Two 20-question interactive HTML quiz games covering British Imperialism in India and Empire Building in Africa. Built for a 9th-grade honors history class — randomized questions, detailed answer explanations, and grade-based feedback.</p>
-        <span class="project-link">
-          View Project
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </span>
+        <span class="project-link">Coming Soon</span>
       </div>
 
       <!-- Salesforce Risk Doc -->
-      <div class="project-card">
+      <div class="project-card no-link">
         <span class="project-icon">📄</span>
-        <div class="project-type">Professional Document · DOCX</div>
-        <div class="project-title">Salesforce Transition Risk Assessment</div>
-        <p class="project-desc">A stakeholder-ready Word document mapping risks across six categories for an abrupt mid-project handoff — covering knowledge transfer, technical gaps, delivery timelines, contractual exposure, and recommended mitigations.</p>
-        <span class="project-link">
-          View Project
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </span>
+        <div class="project-type">Professional Document · Strategy</div>
+        <div class="project-title">Transition Risk Assessment</div>
+        <p class="project-desc">A stakeholder-ready document mapping risks across six categories for an abrupt mid-project handoff — covering knowledge transfer, technical gaps, delivery timelines, contractual exposure, and recommended mitigations.</p>
+        <span class="project-link">Coming Soon</span>
       </div>
 
       <!-- March Madness -->
-      <div class="project-card">
+      <div class="project-card no-link">
         <span class="project-icon">🏀</span>
         <div class="project-type">Analysis · Strategy</div>
         <div class="project-title">March Madness Bracket Framework</div>
         <p class="project-desc">A data-informed bracket-building methodology covering seed trust thresholds, mid-major sleepers, conference tournament momentum, and pool-winning upset theory. Spoiler: Duke was involved.</p>
-        <span class="project-link">
-          Read Analysis
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </span>
+        <span class="project-link">Coming Soon</span>
       </div>
 
       <!-- Creative Writing -->
-      <div class="project-card">
+      <div class="project-card no-link">
         <span class="project-icon">✍️</span>
         <div class="project-type">Creative Writing · Narrative</div>
         <div class="project-title">The Sam's Club Incident</div>
         <p class="project-desc">A personal anecdote rewritten as suspenseful literary fiction — in which an early-morning parking lot crowd triggers apocalyptic dread, only to reveal a Pokémon card expansion pack release. A study in dramatic irony and anticlimactic revelation.</p>
-        <span class="project-link">
-          Read Story
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </span>
+        <span class="project-link">Coming Soon</span>
       </div>
 
       <!-- Flight Tool -->
-      <div class="project-card">
+      <div class="project-card no-link">
         <span class="project-icon">✈️</span>
         <div class="project-type">Tool Use · AI Connectors</div>
         <div class="project-title">Real-Time Travel Research</div>
         <p class="project-desc">Leveraging Kiwi.com and Trivago MCP connectors to find optimized flight and hotel combinations in real time. Includes bundle vs. direct booking cost analysis and price alert strategies.</p>
-        <span class="project-link">
-          View Demo
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </span>
-      </div>
-
-      <!-- KMU Tracker -->
-      <div class="project-card">
-        <span class="project-icon">🥋</span>
-        <div class="project-type">Interactive Tool · React / JavaScript</div>
-        <div class="project-title">KMU Tracker</div>
-        <p class="project-desc">A full Krav Maga Worldwide curriculum tracker — rate your confidence on every technique from Yellow through Blue belt, surface your weak spots before test day, log instructor notes, and track progression across 300+ techniques.</p>
-        <a href="kmu.html" class="project-link" style="text-decoration:none;color:inherit;">
-          View Project
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </a>
+        <span class="project-link">Coming Soon</span>
       </div>
 
     </div>
   </section>
 
-  <!-- SKILLS -->
   <section id="skills">
     <div class="section-header fade-in">
       <span class="section-num">03</span>
@@ -784,7 +688,6 @@
     </div>
   </section>
 
-  <!-- CONTACT -->
   <section id="contact">
     <div class="section-header fade-in">
       <span class="section-num">04</span>
@@ -794,9 +697,7 @@
       <div class="divider"></div>
       <p>Whether you want to talk strategy, swap bracket takes, debate the finer points of Krav Maga, or just say hello — I'm easy to reach. No Navy ship required.</p>
       <div class="contact-links">
-        <a href="/cdn-cgi/l/email-protection#511001063423253934383c11363c30383d7f323e3c" class="contact-link primary">
-          Send a Message
-        </a>
+        <a href="mailto:APWertheim@gmail.com" class="contact-link primary">Send a Message</a>
         <a href="https://linkedin.com/in/adam-wertheim" target="_blank" class="contact-link secondary">
           LinkedIn
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7 2h3v3M10 2L5.5 6.5M5 3H2v7h7V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -805,14 +706,23 @@
     </div>
   </section>
 
-  <!-- FOOTER -->
   <footer>
     <span class="footer-logo">Adam Wertheim</span>
     <p>Built with intention. Hosted on GitHub Pages.</p>
     <p>© 2026</p>
   </footer>
 
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-    // Scroll-triggered fade-in
+  <script>
     const observer = new IntersectionObserver((entries) => {
-   
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
