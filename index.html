@@ -41,7 +41,7 @@
       opacity: 0.4;
     }
 
-    /* --- NAV --- */
+    /* NAV */
     nav {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -77,7 +77,7 @@
 
     .nav-links a:hover { color: var(--gold); }
 
-    /* --- HERO --- */
+    /* HERO */
     .hero {
       min-height: 100vh;
       display: flex;
@@ -95,18 +95,6 @@
       width: 1px;
       height: 60vh;
       background: linear-gradient(to bottom, transparent, var(--border), transparent);
-    }
-
-    .hero-number {
-      position: absolute;
-      right: 4rem;
-      top: 50%;
-      transform: translateY(-50%) rotate(90deg);
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 0.75rem;
-      letter-spacing: 0.3em;
-      color: var(--muted);
-      text-transform: uppercase;
     }
 
     .hero-content {
@@ -170,7 +158,7 @@
     .hero-cta svg { transition: transform 0.3s; }
     .hero-cta:hover svg { transform: translateX(4px); }
 
-    /* --- SECTIONS --- */
+    /* SECTIONS */
     section { padding: 7rem 4rem; position: relative; z-index: 1; }
 
     .section-header {
@@ -194,7 +182,7 @@
       letter-spacing: -0.01em;
     }
 
-    /* --- ABOUT --- */
+    /* ABOUT */
     #about {
       background: var(--surface);
       border-top: 1px solid var(--border);
@@ -252,8 +240,9 @@
       color: var(--muted);
     }
 
-    /* --- PROJECTS & GAMES shared card styles --- */
+    /* PROJECTS & GAMES */
     #projects { background: var(--bg); }
+
     #games {
       background: var(--surface);
       border-top: 1px solid var(--border);
@@ -354,10 +343,8 @@
       font-weight: 500;
     }
 
-    /* --- SKILLS --- */
-    #skills {
-      background: var(--bg);
-    }
+    /* SKILLS */
+    #skills { background: var(--bg); }
 
     .skills-grid {
       display: grid;
@@ -388,7 +375,7 @@
     .skill-group li:hover { color: var(--text); }
     .skill-group li::before { content: '—'; color: var(--border); font-size: 0.7rem; }
 
-    /* --- CONTACT --- */
+    /* CONTACT */
     #contact {
       background: var(--surface);
       border-top: 1px solid var(--border);
@@ -422,7 +409,7 @@
     .contact-link.secondary { border: 1px solid var(--border); color: var(--muted); }
     .contact-link.secondary:hover { border-color: var(--gold); color: var(--gold); }
 
-    /* --- FOOTER --- */
+    /* FOOTER */
     footer {
       padding: 2rem 4rem;
       border-top: 1px solid var(--border);
@@ -448,7 +435,7 @@
       opacity: 0.5;
     }
 
-    /* --- ANIMATIONS --- */
+    /* ANIMATIONS */
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(30px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -462,14 +449,7 @@
 
     .fade-in.visible { opacity: 1; transform: translateY(0); }
 
-    /* Grids are always visible — only headers and cards animate */
-    .projects-grid,
-    .games-grid {
-      opacity: 1 !important;
-      transform: none !important;
-    }
-
-    /* --- RESPONSIVE --- */
+    /* RESPONSIVE */
     @media (max-width: 900px) {
       nav { padding: 1.2rem 2rem; }
       section { padding: 5rem 2rem; }
@@ -602,6 +582,46 @@
           </div>
         </div>
       </a>
+
+      <!-- Priority Dashboard -->
+      <div class="project-card no-link">
+        <span class="project-icon">📊</span>
+        <div class="project-type">Interactive Tool · HTML/JS</div>
+        <div class="project-title">Priority Management Dashboard</div>
+        <p class="project-desc">A weighted scoring dashboard built to manage a client with three distinct business units. Tracks revenue at risk, deadlines, account health, and active projects — with real-time priority ranking and dollar-weighted task management.</p>
+        <span class="project-link">Coming Soon</span>
+      </div>
+
+      <!-- Sam's Club -->
+      <div class="project-card no-link">
+        <span class="project-icon">✍️</span>
+        <div class="project-type">Creative Writing · Narrative</div>
+        <div class="project-title">The Sam's Club Incident</div>
+        <p class="project-desc">A personal anecdote rewritten as suspenseful literary fiction — in which an early-morning parking lot crowd triggers apocalyptic dread, only to reveal a Pokémon card expansion pack release.</p>
+        <span class="project-link">Coming Soon</span>
+      </div>
+
+      <!-- March Madness -->
+      <div class="project-card no-link">
+        <span class="project-icon">🏀</span>
+        <div class="project-type">Analysis · Strategy</div>
+        <div class="project-title">March Madness Bracket Framework</div>
+        <p class="project-desc">A data-informed bracket-building methodology covering seed trust thresholds, mid-major sleepers, conference tournament momentum, and pool-winning upset theory.</p>
+        <span class="project-link">Coming Soon</span>
+      </div>
+
+      <!-- Travel Research -->
+      <div class="project-card no-link">
+        <span class="project-icon">✈️</span>
+        <div class="project-type">Tool Use · AI Connectors</div>
+        <div class="project-title">Real-Time Travel Research</div>
+        <p class="project-desc">Leveraging Kiwi.com and Trivago MCP connectors to find optimized flight and hotel combinations in real time. Includes bundle vs. direct booking cost analysis and price alert strategies.</p>
+        <span class="project-link">Coming Soon</span>
+      </div>
+
+    </div>
+  </section>
+
   <!-- GAMES -->
   <section id="games">
     <div class="section-header fade-in">
@@ -609,51 +629,6 @@
       <h2>Games</h2>
     </div>
     <div class="games-grid">
-
-      <!-- Featured: British Imperialism Quiz -->
-      <a href="quiz-imperialism.html" class="project-card featured">
-        <div>
-          <span class="featured-badge">Play Now</span>
-          <div class="project-type">Trivia Game · HTML/JS</div>
-          <div class="project-title">British Imperialism in India</div>
-          <p class="project-desc">20 questions covering the Great Rebellion of 1857, the British East India Company, colonial administration, the Indian National Congress, and key figures like Gandhi and journalist Tilak. Randomized order every attempt, with detailed answer explanations.</p>
-          <span class="project-link">
-            Play Game
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </span>
-        </div>
-        <div>
-          <div style="background:#111; border:1px solid #2a2a2a; padding:1.5rem; border-radius:2px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:1.2rem;">
-              <span style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#c9a84c;">Quiz Preview</span>
-              <span style="font-size:0.7rem;color:#555;">20 Questions</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:0.6rem;">
-              <div style="padding:0.6rem 0.8rem;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:2px;">
-                <span style="font-size:0.75rem;color:#7a7570;">Who led the Indian National Congress?</span>
-              </div>
-              <div style="padding:0.6rem 0.8rem;background:#1a1a1a;border:1px solid #c9a84c;border-radius:2px;">
-                <span style="font-size:0.75rem;color:#c9a84c;">✓ Dadabhai Naoroji</span>
-              </div>
-              <div style="padding:0.6rem 0.8rem;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:2px;">
-                <span style="font-size:0.75rem;color:#555;">Lord Curzon</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </a>
-
-      <!-- Africa Quiz -->
-      <a href="quiz-africa.html" class="project-card">
-        <span class="project-icon">🌍</span>
-        <div class="project-type">Trivia Game · HTML/JS</div>
-        <div class="project-title">Empire Building in Africa</div>
-        <p class="project-desc">20 questions on European colonization of Africa — covering King Leopold II, the Berlin Conference of 1885, the Boer War, the Suez Canal, and the lasting effects of different colonial administration styles.</p>
-        <span class="project-link">
-          Play Game
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </span>
-      </a>
 
       <!-- Dennis Is Pissed -->
       <a href="dennis-is-pissed.html" class="project-card">
@@ -667,7 +642,7 @@
         </span>
       </a>
 
-      <!-- Placeholder for future games -->
+      <!-- More Games placeholder -->
       <div class="project-card no-link">
         <span class="project-icon">🎮</span>
         <div class="project-type">Coming Soon</div>
@@ -675,6 +650,9 @@
         <p class="project-desc">New games added as they're built. Check back soon.</p>
         <span class="project-link">Stay Tuned</span>
       </div>
+
+      <!-- Empty balancer -->
+      <div class="project-card no-link" style="opacity:0; pointer-events:none;"></div>
 
     </div>
   </section>
@@ -739,7 +717,7 @@
       <div class="divider"></div>
       <p>Whether you want to talk strategy, swap bracket takes, debate the finer points of Krav Maga, or just say hello — I'm easy to reach. No Navy ship required.</p>
       <div class="contact-links">
-        <a href="/cdn-cgi/l/email-protection#246574734156504c414d49644349454d480a474b49" class="contact-link primary">Send a Message</a>
+        <a href="mailto:APWertheim@gmail.com" class="contact-link primary">Send a Message</a>
         <a href="https://linkedin.com/in/adam-wertheim" target="_blank" class="contact-link secondary">
           LinkedIn
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7 2h3v3M10 2L5.5 6.5M5 3H2v7h7V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -755,9 +733,17 @@
     <p>© 2026</p>
   </footer>
 
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  <script>
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(e => {
         if (e.isIntersecting) {
           e.target.classList.add('visible');
           observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
