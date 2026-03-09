@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Pip's Attack: Lacrosse Hero</title>
+<meta name="description" content="Play Pip's Attack, a fun pixel-art lacrosse game. Beat 12 teams with increasing difficulty, dodge defenders, and score goals to claim glory. Move with the joystick, shoot with the button!">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: monospace;
+  }
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  #rotate-msg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #0a0a1a;
+    color: #fff;
+    font-family: monospace;
+    font-size: 20px;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 16px;
+    z-index: 999;
+  }
+  #rotate-msg span { font-size: 48px; }
+  @media (orientation: portrait) {
+    #rotate-msg { display: flex; }
+  }
+</style>
+</head>
+<body>
+<div id="rotate-msg">
+  <span>📱</span>
+  Rotate your phone for the<br>best experience!
+</div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// ── Sizing ──────────────────────────────────────────────────────────────────
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  if (w > h) { canvas.width = w; canvas.height = h; }
+  else { canvas.width = w; canvas.height = h; }
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── Audio (Web Audio API procedural) ────────────────────────────────────────
+let audioCtx = null;
+let crowdGain = null;
+let crowdStarted = false;
+
+function initAudio() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume().then(() => {
+      if (!crowdStarted) { crowdStarted = true; startCrowdAmbience(); }
+    });
+  } else if (!crowdStarted) {
+    crowdStarted = true;
+    startCrowdAmbience();
+  }
+}
+
+function startCrowdAmbience() {
+  if (!audioCtx) return;
+  crowdGain = audioCtx.createGain();
+  crowdGain.gain.value = 0.12;
+  crowdGain.connect(audioCtx.destination);
+  scheduleCrowd();
+}
+
+function scheduleCrowd() {
+  if (!audioCtx || !crowdGain) return;
+  try {
+    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 1.5, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.25;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 350 + Math.random() * 250;
+    filter.Q.value = 0.4;
+    src.connect(filter);
+    filter.connect(crowdGain);
+    src.start();
+    src.onended = scheduleCrowd;
+  } catch(e) {}
+}
+
+function playSound(freq1, freq2, dur, vol, type) {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') { audioCtx.resume(); return; }
+  try {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = type || 'square';
+    osc.frequency.setValueAtTime(freq1, audioCtx.currentTime);
+    if (freq2) osc.frequency.linearRampToValueAtTime(freq2, audioCtx.currentTime + dur);
+    g.gain.setValueAtTime(vol, audioCtx.currentTime);
+    g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + dur);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + dur + 0.01);
+  } catch(e) {}
+}
+
+function playGoalFanfare() {
+  if (!audioCtx || audioCtx.state === 'suspended') return;
+  const notes = [523, 659, 784, 1047];
+  try {
+    const g = audioCtx.createGain();
+    g.gain.value = 1;
+    g.connect(audioCtx.destination);
+    notes.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      const eg = audioCtx.createGain();
+      eg.gain.setValueAtTime(0.0, audioCtx.currentTime + i * 0.13);
+      eg.gain.linearRampToValueAtTime(0.35, audioCtx.currentTime + i * 0.13 + 0.02);
+      eg.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + i * 0.13 + 0.2);
+      osc.connect(eg); eg.connect(g);
+      osc.start(audioCtx.currentTime + i * 0.13);
+      osc.stop(audioCtx.currentTime + i * 0.13 + 0.22);
+    });
+  } catch(e) {}
+}
+
+function playSaveSound() {
+  playSound(280, 130, 0.3, 0.25, 'sawtooth');
+}
+
+function playShootSound() {
+  playSound(550, 750, 0.07, 0.2, 'square');
+}
+
+function playAdvanceSound() {
+  if (!audioCtx || audioCtx.state === 'suspended') return;
+  const notes = [400, 500, 640, 820, 1040];
+  try {
+    const g = audioCtx.createGain();
+    g.gain.value = 1;
+    g.connect(audioCtx.destination);
+    notes.forEach((f, i) => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.value = f;
+      const eg = audioCtx.createGain();
+      eg.gain.setValueAtTime(0.28, audioCtx.currentTime + i * 0.1);
+      eg.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + i * 0.1 + 0.15);
+      osc.connect(eg); eg.connect(g);
+      osc.start(audioCtx.currentTime + i * 0.1);
+      osc.stop(audioCtx.currentTime + i * 0.1 + 0.17);
+    });
+  } catch(e) {}
+}
+
+// ── Pixel font renderer (simple 5x7) ─────────────────────────────────────────
+const FONT = {
+  'A':[[0,1,1,1,0],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]],
+  'B':[[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0]],
+  'C':[[0,1,1,1,1],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[0,1,1,1,1]],
+  'D':[[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0]],
+  'E':[[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,1,1,1,1]],
+  'F':[[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0]],
+  'G':[[0,1,1,1,1],[1,0,0,0,0],[1,0,1,1,1],[1,0,0,0,1],[0,1,1,1,1]],
+  'H':[[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]],
+  'I':[[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[1,1,1,1,1]],
+  'J':[[0,0,0,0,1],[0,0,0,0,1],[0,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+  'K':[[1,0,0,0,1],[1,0,0,1,0],[1,1,1,0,0],[1,0,0,1,0],[1,0,0,0,1]],
+  'L':[[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
+  'M':[[1,0,0,0,1],[1,1,0,1,1],[1,0,1,0,1],[1,0,0,0,1],[1,0,0,0,1]],
+  'N':[[1,0,0,0,1],[1,1,0,0,1],[1,0,1,0,1],[1,0,0,1,1],[1,0,0,0,1]],
+  'O':[[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+  'P':[[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0]],
+  'Q':[[0,1,1,1,0],[1,0,0,0,1],[1,0,1,0,1],[1,0,0,1,0],[0,1,1,0,1]],
+  'R':[[1,1,1,1,0],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,1,0],[1,0,0,0,1]],
+  'S':[[0,1,1,1,1],[1,0,0,0,0],[0,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],
+  'T':[[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],
+  'U':[[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+  'V':[[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0]],
+  'W':[[1,0,0,0,1],[1,0,0,0,1],[1,0,1,0,1],[1,1,0,1,1],[1,0,0,0,1]],
+  'X':[[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],[0,1,0,1,0],[1,0,0,0,1]],
+  'Y':[[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],
+  'Z':[[1,1,1,1,1],[0,0,0,1,0],[0,0,1,0,0],[0,1,0,0,0],[1,1,1,1,1]],
+  "'":[[0,1,0,0,0],[0,1,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],
+  '!':[[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,0,0,0],[0,0,1,0,0]],
+  ' ':[[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],
+  '0':[[0,1,1,1,0],[1,0,0,1,1],[1,0,1,0,1],[1,1,0,0,1],[0,1,1,1,0]],
+  '1':[[0,0,1,0,0],[0,1,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,1,1,1,0]],
+  '2':[[0,1,1,1,0],[1,0,0,0,1],[0,0,1,1,0],[0,1,0,0,0],[1,1,1,1,1]],
+  '3':[[1,1,1,1,0],[0,0,0,0,1],[0,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],
+  '4':[[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,1],[0,0,0,1,0],[0,0,0,1,0]],
+  '5':[[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],
+  '6':[[0,1,1,1,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0]],
+  '7':[[1,1,1,1,1],[0,0,0,1,0],[0,0,1,0,0],[0,1,0,0,0],[1,0,0,0,0]],
+  '8':[[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0]],
+  '9':[[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,1],[0,0,0,0,1],[0,1,1,1,0]],
+  ':':[[0,0,0,0,0],[0,0,1,0,0],[0,0,0,0,0],[0,0,1,0,0],[0,0,0,0,0]],
+  '-':[[0,0,0,0,0],[0,0,0,0,0],[0,1,1,1,0],[0,0,0,0,0],[0,0,0,0,0]],
+};
+
+function drawPixelText(text, x, y, scale, color) {
+  ctx.fillStyle = color || '#fff';
+  const chars = text.toUpperCase().split('');
+  let cx = x;
+  for (const ch of chars) {
+    const bitmap = FONT[ch];
+    if (!bitmap) { cx += (5 + 1) * scale; continue; }
+    for (let row = 0; row < 5; row++) {
+      for (let col = 0; col < 5; col++) {
+        if (bitmap[row][col]) {
+          ctx.fillRect(cx + col * scale, y + row * scale, scale, scale);
+        }
+      }
+    }
+    cx += (5 + 1) * scale;
+  }
+}
+
+function pixelTextWidth(text, scale) {
+  return text.length * (5 + 1) * scale;
+}
+
+// ── Particle system ──────────────────────────────────────────────────────────
+const particles = [];
+function spawnConfetti(x, y, count = 30) {
+  const colors = ['#ff2222','#ffffff','#ffdd00','#00ccff','#ff88cc'];
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 3) * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: 4 + Math.random() * 4,
+      life: 1,
+      decay: 0.018 + Math.random() * 0.01
+    });
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.2;
+    p.life -= p.decay;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ── Screen shake ─────────────────────────────────────────────────────────────
+let shakeAmt = 0;
+function triggerShake(amt) { shakeAmt = Math.max(shakeAmt, amt); }
+
+// ── Team names ───────────────────────────────────────────────────────────────
+// goalieDives: goalie reacts to ball mid-flight
+// blockerCount: defenders that plant near goal instead of chasing
+// shadowDef: one defender that aggressively mirrors Pip everywhere
+// turns: how many turns player gets against this team
+const TEAMS = [
+  { name: 'CAVE ROOKIES',   color: '#44aa44', defCount: 0, goalieSpeed: 2.5, defSpeed: 0,   turns: 6, goalieDives: false, blockerCount: 0, shadowDef: false },
+  { name: 'PIXEL KNIGHTS',  color: '#4488ff', defCount: 1, goalieSpeed: 3.0, defSpeed: 1.3, turns: 6, goalieDives: false, blockerCount: 0, shadowDef: false },
+  { name: 'STAR WARRIORS',  color: '#ffaa00', defCount: 2, goalieSpeed: 3.5, defSpeed: 1.6, turns: 6, goalieDives: false, blockerCount: 0, shadowDef: false },
+  { name: 'MEGA DRAGONS',   color: '#cc44cc', defCount: 3, goalieSpeed: 4.0, defSpeed: 1.9, turns: 6, goalieDives: false, blockerCount: 0, shadowDef: false },
+  { name: 'TURBO KNIGHTS',  color: '#ff4444', defCount: 3, goalieSpeed: 4.4, defSpeed: 2.1, turns: 6, goalieDives: true,  blockerCount: 0, shadowDef: false },
+  { name: 'DOOM NINJAS',    color: '#00cccc', defCount: 4, goalieSpeed: 4.8, defSpeed: 2.3, turns: 6, goalieDives: true,  blockerCount: 1, shadowDef: false },
+  { name: 'ULTRA TITANS',   color: '#ff6600', defCount: 4, goalieSpeed: 5.2, defSpeed: 2.5, turns: 5, goalieDives: true,  blockerCount: 1, shadowDef: false },
+  { name: 'APEX PHANTOMS',  color: '#ff2288', defCount: 5, goalieSpeed: 5.5, defSpeed: 2.7, turns: 5, goalieDives: true,  blockerCount: 1, shadowDef: true  },
+  { name: 'IRON WRAITHS',   color: '#aaaaff', defCount: 5, goalieSpeed: 5.8, defSpeed: 2.9, turns: 5, goalieDives: true,  blockerCount: 2, shadowDef: true  },
+  { name: 'VOID KINGS',     color: '#ff8800', defCount: 5, goalieSpeed: 6.1, defSpeed: 3.0, turns: 5, goalieDives: true,  blockerCount: 2, shadowDef: true  },
+  { name: 'DEATH CODERS',   color: '#ff0044', defCount: 6, goalieSpeed: 6.4, defSpeed: 3.2, turns: 5, goalieDives: true,  blockerCount: 2, shadowDef: true  },
+  { name: 'OMEGA FORCE',    color: '#ffffff', defCount: 6, goalieSpeed: 6.8, defSpeed: 3.4, turns: 5, goalieDives: true,  blockerCount: 3, shadowDef: true  },
+];
+
+// ── Game state ───────────────────────────────────────────────────────────────
+const STATE = { START: 0, ADVANCE: 1, PLAYING: 2, GOAL: 3, GAMEOVER: 4, WIN: 5 };
+let state = STATE.START;
+let teamIdx = 0;
+let goals = 0;
+let totalGoals = 0;
+let turnsLeft = 6;
+let advanceTimer = 0;
+let goalTimer = 0;
+let missTimer = 0;   // flash on miss/save
+let blinkTimer = 0;
+
+// ── Field layout ─────────────────────────────────────────────────────────────
+function getField() {
+  const W = canvas.width, H = canvas.height;
+  const fieldW = W * 0.7;
+  const fieldH = H * 0.72;
+  const fieldX = (W - fieldW) / 2;
+  const fieldY = 56; // sits just below the 52px two-row top bar
+  return { W, H, fieldW, fieldH, fieldX, fieldY };
+}
+
+// ── Entities ─────────────────────────────────────────────────────────────────
+let pip = {};
+let ball = {};
+let goalie = {};
+let defenders = [];
+let ballState = 'held'; // 'held' | 'flying'
+
+function initGame() {
+  const f = getField();
+  const cx = f.fieldX + f.fieldW / 2;
+  const cy = f.fieldY + f.fieldH * 0.75;
+
+  pip = { x: cx, y: cy, vx: 0, vy: 0, dir: -Math.PI/2, size: 14, shootCooldown: 0, hasMoved: false };
+  ball = { x: cx, y: cy, vx: 0, vy: 0 };
+  ballState = 'held';
+
+  // Goalie
+  const team = TEAMS[Math.min(teamIdx, TEAMS.length - 1)];
+  const goalY = f.fieldY + 30;
+  const goalCx = f.fieldX + f.fieldW / 2;
+  const goalW = f.fieldW * 0.16;
+  // Goalie — patrol range covers the full crease width so side angles are defended
+  const cr = getCreaseRect();
+  goalie = {
+    x: goalCx, y: goalY + 22,
+    speed: team.goalieSpeed,
+    minX: cr.x + 8,
+    maxX: cr.x + cr.w - 8,
+    dir: 1, size: 12,
+    color: team.color
+  };
+
+  // Defenders — placed in a grid so they always spread across the field
+  defenders = [];
+  const zones = [];
+  const cols = 4, rows = 2;
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      zones.push({
+        x: f.fieldX + f.fieldW * ((col + 0.5) / cols),
+        y: f.fieldY + f.fieldH * (0.28 + row * 0.22)
+      });
+    }
+  }
+  for (let i = zones.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [zones[i], zones[j]] = [zones[j], zones[i]];
+  }
+  for (let i = 0; i < team.defCount; i++) {
+    const z = zones[i % zones.length];
+    defenders.push({
+      x: z.x + (Math.random() - 0.5) * 30,
+      y: z.y + (Math.random() - 0.5) * 20,
+      speed: team.defSpeed,
+      size: 12,
+      color: team.color,
+      angle: Math.random() * Math.PI * 2,
+      patrolTimer: Math.random() * 100,
+      type: 'chaser'
+    });
+  }
+
+  // Blocker defenders — plant in front of goal, don't chase
+  const gr2 = getGoalRect();
+  const blockerPositions = [
+    { x: gr2.x - 20,           y: gr2.y + gr2.h + 50 },
+    { x: gr2.x + gr2.w + 20,   y: gr2.y + gr2.h + 50 },
+    { x: gr2.x + gr2.w / 2,    y: gr2.y + gr2.h + 70 },
+    { x: gr2.x + gr2.w / 2 - 30, y: gr2.y + gr2.h + 90 },
+  ];
+  for (let i = 0; i < team.blockerCount; i++) {
+    const bp = blockerPositions[i % blockerPositions.length];
+    defenders.push({
+      x: bp.x, y: bp.y,
+      speed: 0.6,
+      size: 13,
+      color: team.color,
+      angle: 0,
+      patrolTimer: 0,
+      type: 'blocker',
+      homeX: bp.x, homeY: bp.y
+    });
+  }
+
+  // Shadow defender — mirrors Pip aggressively (one per team if enabled)
+  if (team.shadowDef) {
+    defenders.push({
+      x: f.fieldX + f.fieldW * 0.5,
+      y: f.fieldY + f.fieldH * 0.55,
+      speed: team.defSpeed * 0.9,
+      size: 12,
+      color: team.color,
+      angle: 0,
+      patrolTimer: 0,
+      type: 'shadow'
+    });
+  }
+}
+
+// ── Controls: Joystick (left) + Shoot button (right) ─────────────────────────
+let joystick = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, id: null };
+
+function getJoystickBase() {
+  const W = canvas.width, H = canvas.height;
+  return { x: W * 0.12, y: H * 0.75 };
+}
+
+function getShootButtonPos() {
+  const W = canvas.width, H = canvas.height;
+  return { x: W * 0.88, y: H * 0.75, r: 38 };
+}
+
+function isShootButton(cx, cy) {
+  const sb = getShootButtonPos();
+  const dx = cx - sb.x, dy = cy - sb.y;
+  return Math.sqrt(dx*dx + dy*dy) < sb.r + 20;
+}
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  initAudio();
+  if (state === STATE.START) { startGame(); return; }
+  if (state === STATE.ADVANCE || state === STATE.GOAL) return;
+  if (state === STATE.GAMEOVER || state === STATE.WIN) { resetGame(); return; }
+  for (const t of e.changedTouches) {
+    if (isShootButton(t.clientX, t.clientY)) {
+      // Shoot button tap
+      if (ballState === 'held' && pip.hasMoved && pip.shootCooldown <= 0) shootBall();
+    } else {
+      // Joystick zone
+      const jb = getJoystickBase();
+      const dx = t.clientX - jb.x, dy = t.clientY - jb.y;
+      if (!joystick.active) {
+        joystick = { active: true, startX: t.clientX, startY: t.clientY, dx: 0, dy: 0, id: t.identifier };
+      }
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === joystick.id) {
+      joystick.dx = t.clientX - joystick.startX;
+      joystick.dy = t.clientY - joystick.startY;
+      const len = Math.sqrt(joystick.dx**2 + joystick.dy**2);
+      if (len > 55) { joystick.dx = joystick.dx/len*55; joystick.dy = joystick.dy/len*55; }
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === joystick.id) {
+      joystick = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, id: null };
+    }
+  }
+}, { passive: false });
+
+// Mouse fallback for desktop testing
+let mouseDown = false;
+canvas.addEventListener('mousedown', e => {
+  initAudio();
+  if (state === STATE.START) { startGame(); return; }
+  if (state === STATE.GAMEOVER || state === STATE.WIN) { resetGame(); return; }
+  if (state === STATE.ADVANCE || state === STATE.GOAL) return;
+  if (isShootButton(e.clientX, e.clientY)) {
+    if (ballState === 'held' && pip.hasMoved && pip.shootCooldown <= 0) shootBall();
+    return;
+  }
+  mouseDown = true;
+  joystick = { active: true, startX: e.clientX, startY: e.clientY, dx: 0, dy: 0, id: 'mouse' };
+});
+canvas.addEventListener('mousemove', e => {
+  if (!mouseDown) return;
+  joystick.dx = e.clientX - joystick.startX;
+  joystick.dy = e.clientY - joystick.startY;
+  const len = Math.sqrt(joystick.dx**2 + joystick.dy**2);
+  if (len > 55) { joystick.dx = joystick.dx/len*55; joystick.dy = joystick.dy/len*55; }
+});
+canvas.addEventListener('mouseup', () => {
+  mouseDown = false;
+  joystick = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, id: null };
+});
+
+// ── Start / Reset ─────────────────────────────────────────────────────────────
+function startGame() {
+  teamIdx = 0; goals = 0; totalGoals = 0;
+  turnsLeft = TEAMS[0].turns;
+  initGame();
+  state = STATE.PLAYING;
+}
+
+function resetGame() {
+  state = STATE.START;
+  particles.length = 0;
+}
+
+function loseTurn() {
+  turnsLeft--;
+  missTimer = 90;
+  pip.hasMoved = false;
+  if (turnsLeft <= 0) {
+    state = STATE.GAMEOVER;
+  } else {
+    const f = getField();
+    pip.x = f.fieldX + f.fieldW / 2;
+    pip.y = f.fieldY + f.fieldH * 0.75;
+    pip.vx = 0; pip.vy = 0;
+    ball.x = pip.x; ball.y = pip.y;
+    ballState = 'held';
+    pip.shootCooldown = 0;
+  }
+}
+
+// ── Goal net geometry ─────────────────────────────────────────────────────────
+function getGoalRect() {
+  const f = getField();
+  const gW = f.fieldW * 0.16;
+  const gH = 20;
+  const gX = f.fieldX + (f.fieldW - gW) / 2;
+  const gY = f.fieldY;
+  return { x: gX, y: gY, w: gW, h: gH };
+}
+
+// Crease = restricted zone Pip cannot enter
+function getCreaseRect() {
+  const gr = getGoalRect();
+  return { x: gr.x - 15, y: gr.y, w: gr.w + 30, h: gr.h + 36 };
+}
+
+// ── Update ───────────────────────────────────────────────────────────────────
+function update() {
+  blinkTimer++;
+  const f = getField();
+
+  if (state === STATE.ADVANCE) {
+    advanceTimer--;
+    if (advanceTimer <= 0) { initGame(); state = STATE.PLAYING; }
+    return;
+  }
+
+  if (state === STATE.GOAL) {
+    goalTimer--;
+    updateParticles();
+    if (shakeAmt > 0) shakeAmt *= 0.85;
+    if (goalTimer <= 0) {
+      goals++;
+      totalGoals++;
+      if (goals >= 3) {
+        teamIdx++;
+        goals = 0;
+        if (teamIdx >= TEAMS.length) {
+          // All 12 teams beaten — victory!
+          spawnConfetti(canvas.width/2, canvas.height/2, 80);
+          playGoalFanfare();
+          state = STATE.WIN;
+          return;
+        }
+        turnsLeft = TEAMS[teamIdx].turns;
+        state = STATE.ADVANCE;
+        advanceTimer = 180;
+        playAdvanceSound();
+      } else {
+        initGame();
+        state = STATE.PLAYING;
+      }
+    }
+    return;
+  }
+
+  if (state === STATE.GAMEOVER || state === STATE.WIN) {
+    updateParticles();
+    return;
+  }
+
+  if (state !== STATE.PLAYING) return;
+
+  if (missTimer > 0) missTimer--;
+  updateParticles();
+  if (shakeAmt > 0) shakeAmt *= 0.85;
+
+  // Pip movement
+  const speed = 3.5;
+  const len = Math.sqrt(joystick.dx**2 + joystick.dy**2);
+  if (len > 5) {
+    pip.vx = (joystick.dx / 55) * speed;
+    pip.vy = (joystick.dy / 55) * speed;
+    pip.dir = Math.atan2(pip.vy, pip.vx);
+    pip.hasMoved = true;
+  } else {
+    pip.vx *= 0.7; pip.vy *= 0.7;
+  }
+
+  pip.x += pip.vx; pip.y += pip.vy;
+  pip.x = Math.max(f.fieldX + pip.size, Math.min(f.fieldX + f.fieldW - pip.size, pip.x));
+  pip.y = Math.max(f.fieldY + pip.size, Math.min(f.fieldY + f.fieldH - pip.size, pip.y));
+
+  // Crease boundary — Pip cannot enter the goalie box
+  const cr = getCreaseRect();
+  const pipInCreaseX = pip.x + pip.size > cr.x && pip.x - pip.size < cr.x + cr.w;
+  const pipInCreaseY = pip.y + pip.size > cr.y && pip.y - pip.size < cr.y + cr.h;
+  if (pipInCreaseX && pipInCreaseY) {
+    const overlapLeft   = (pip.x + pip.size) - cr.x;
+    const overlapRight  = (cr.x + cr.w) - (pip.x - pip.size);
+    const overlapBottom = (pip.y + pip.size) - cr.y;
+    const overlapTop    = (cr.y + cr.h) - (pip.y - pip.size);
+    const minH = Math.min(overlapLeft, overlapRight);
+    const minV = Math.min(overlapBottom, overlapTop);
+    if (minV <= minH) {
+      pip.y = cr.y + cr.h + pip.size;
+      pip.vy = 0;
+    } else if (overlapLeft < overlapRight) {
+      pip.x = cr.x - pip.size;
+      pip.vx = 0;
+    } else {
+      pip.x = cr.x + cr.w + pip.size;
+      pip.vx = 0;
+    }
+  }
+
+  if (pip.shootCooldown > 0) pip.shootCooldown--;
+
+  // Ball follows pip when held
+  if (ballState === 'held') {
+    ball.x = pip.x + Math.cos(pip.dir) * 16;
+    ball.y = pip.y + Math.sin(pip.dir) * 16;
+  }
+
+  // Ball flying
+  if (ballState === 'flying') {
+    ball.x += ball.vx; ball.y += ball.vy;
+
+    // Check goal
+    const gr = getGoalRect();
+    if (ball.y < gr.y + gr.h && ball.y > gr.y - 4 && ball.x > gr.x && ball.x < gr.x + gr.w) {
+      // Require a minimum approach angle — ball must be coming mostly downward,
+      // not nearly horizontal (which is a side-of-post exploit shot).
+      // ball.vy is negative going toward goal (upward on screen).
+      const ballSpeed = Math.sqrt(ball.vx**2 + ball.vy**2);
+      const approachAngle = Math.abs(ball.vy) / ballSpeed; // 1.0 = straight on, 0 = pure side
+      if (approachAngle > 0.4) {
+        // Valid goal
+        triggerShake(12);
+        spawnConfetti(ball.x, ball.y, 50);
+        playGoalFanfare();
+        state = STATE.GOAL;
+        goalTimer = 120;
+        return;
+      } else {
+        // Too shallow — hits the side netting, no goal, lose turn
+        playSaveSound();
+        triggerShake(5);
+        loseTurn();
+        return;
+      }
+    }
+
+    // Out of field top = missed — lose a turn
+    if (ball.y < f.fieldY - 20) {
+      loseTurn();
+    }
+
+    // Goalie block — lose a turn
+    const gdx = ball.x - goalie.x, gdy = ball.y - goalie.y;
+    if (Math.sqrt(gdx*gdx + gdy*gdy) < goalie.size + 7) {
+      playSaveSound();
+      triggerShake(5);
+      loseTurn();
+    }
+
+    // Defender block — lose a turn
+    for (const def of defenders) {
+      const ddx = ball.x - def.x, ddy = ball.y - def.y;
+      if (Math.sqrt(ddx*ddx + ddy*ddy) < def.size + 7) {
+        playSaveSound();
+        triggerShake(5);
+        loseTurn();
+        break;
+      }
+    }
+  }
+
+  // Goalie AI
+  const team = TEAMS[Math.min(teamIdx, TEAMS.length - 1)];
+  if (team.goalieDives && ballState === 'flying') {
+    // Dive directly toward ball in flight — no range limit during dive
+    const bdx = ball.x - goalie.x;
+    const diveSpeed = goalie.speed * 1.6;
+    goalie.x += Math.sign(bdx) * Math.min(Math.abs(bdx), diveSpeed);
+    goalie.x = Math.max(goalie.minX, Math.min(goalie.maxX, goalie.x));
+  } else {
+    // Track Pip's X position to cut off angle shots — goalie slides to stay
+    // between Pip and the center of goal, biased toward Pip's side
+    const gr = getGoalRect();
+    const goalCx = gr.x + gr.w / 2;
+    // Interpolate between center and Pip's X based on how far off-center Pip is
+    const pipOffsetX = pip.x - goalCx;
+    const targetX = goalCx + pipOffsetX * 0.55; // follow Pip's angle strongly
+    const diff = targetX - goalie.x;
+    // Move at full speed toward target when ball is held, snappier response
+    goalie.x += diff * 0.08 + Math.sign(diff) * goalie.speed * 0.4;
+    goalie.x = Math.max(goalie.minX, Math.min(goalie.maxX, goalie.x));
+  }
+
+  // Defenders AI
+  for (const def of defenders) {
+    def.patrolTimer++;
+
+    if (def.type === 'blocker') {
+      // Slowly drift back to home position, slight wobble
+      def.x += (def.homeX - def.x) * 0.05 + Math.cos(def.patrolTimer * 0.03) * 0.8;
+      def.y += (def.homeY - def.y) * 0.05;
+
+    } else if (def.type === 'shadow') {
+      // Aggressively mirrors Pip — stays between Pip and goal
+      const gr = getGoalRect();
+      const goalCy = gr.y + gr.h / 2;
+      const targetX = pip.x;
+      const targetY = pip.y - 40; // stay slightly ahead of Pip toward goal
+      const sdx = targetX - def.x, sdy = targetY - def.y;
+      const sd = Math.sqrt(sdx**2 + sdy**2);
+      if (sd > 2) {
+        def.x += (sdx / sd) * def.speed;
+        def.y += (sdy / sd) * def.speed;
+      }
+
+    } else {
+      // Chaser: pursue Pip when close, patrol otherwise
+      const toPipX = pip.x - def.x, toPipY = pip.y - def.y;
+      const dist = Math.sqrt(toPipX**2 + toPipY**2);
+      if (dist < 140) {
+        def.x += (toPipX / dist) * def.speed;
+        def.y += (toPipY / dist) * def.speed;
+      } else {
+        def.x += Math.cos(def.angle) * def.speed * 0.6;
+        def.y += Math.sin(def.angle) * def.speed * 0.6;
+        if (def.patrolTimer % 90 === 0) def.angle += (Math.random() - 0.5) * 1.5;
+      }
+    }
+
+    // Separation: push away from other defenders
+    const MIN_SEP = 52;
+    for (const other of defenders) {
+      if (other === def) continue;
+      const sdx = def.x - other.x, sdy = def.y - other.y;
+      const sd = Math.sqrt(sdx**2 + sdy**2);
+      if (sd < MIN_SEP && sd > 0.1) {
+        const push = (MIN_SEP - sd) / MIN_SEP * 2.5;
+        def.x += (sdx / sd) * push;
+        def.y += (sdy / sd) * push;
+      }
+    }
+
+    // Clamp to field
+    def.x = Math.max(f.fieldX + 20, Math.min(f.fieldX + f.fieldW - 20, def.x));
+    def.y = Math.max(f.fieldY + 40, Math.min(f.fieldY + f.fieldH * 0.85, def.y));
+
+    // Push pip away on contact
+    const dxp = pip.x - def.x, dyp = pip.y - def.y;
+    const dp = Math.sqrt(dxp**2 + dyp**2);
+    if (dp < pip.size + def.size) {
+      const push = (pip.size + def.size - dp) / 2;
+      pip.x += (dxp / dp) * push;
+      pip.y += (dyp / dp) * push;
+    }
+  }
+}
+
+function shootBall() {
+  const gr = getGoalRect();
+  const goalCx = gr.x + gr.w / 2;
+  const goalCy = gr.y + gr.h / 2;
+
+  // Aim assist: favor the side opposite the goalie
+  const goalieOffset = goalie.x - goalCx; // positive = goalie right of center
+  const openSideX = goalCx - goalieOffset * 0.6;
+
+  // Blend aim assist with pip's natural facing direction
+  const facingTargetX = ball.x + Math.cos(pip.dir) * 300;
+  const blendedX = openSideX * 0.5 + facingTargetX * 0.5;
+
+  // Add true randomness spread across ~60% of net width each shot
+  const spread = gr.w * 0.55;
+  const randomOffset = (Math.random() - 0.5) * spread;
+  let targetX = blendedX + randomOffset;
+
+  // Keep inside net bounds with a small margin
+  targetX = Math.max(gr.x + 6, Math.min(gr.x + gr.w - 6, targetX));
+
+  // Vary target Y slightly too — top/bottom of net feel different
+  const targetY = gr.y + gr.h * (0.2 + Math.random() * 0.6);
+
+  const tx = targetX - ball.x, ty = targetY - ball.y;
+  const dist = Math.sqrt(tx**2 + ty**2);
+  const spd = 11;
+  ball.vx = (tx/dist) * spd;
+  ball.vy = (ty/dist) * spd;
+  ballState = 'flying';
+  pip.dir = Math.atan2(ball.vy, ball.vx);
+  playShootSound();
+}
+
+// ── Draw helpers ─────────────────────────────────────────────────────────────
+function drawField() {
+  const f = getField();
+  // Field background
+  ctx.fillStyle = '#1a3d1a';
+  ctx.fillRect(f.fieldX, f.fieldY, f.fieldW, f.fieldH);
+
+  // Stripe pattern
+  ctx.fillStyle = '#1e4520';
+  for (let i = 0; i < 6; i++) {
+    ctx.fillRect(f.fieldX, f.fieldY + i * (f.fieldH/6), f.fieldW, f.fieldH/12);
+  }
+
+  // Field border
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(f.fieldX + 1, f.fieldY + 1, f.fieldW - 2, f.fieldH - 2);
+
+  // Center circle
+  ctx.strokeStyle = '#ffffff66';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(f.fieldX + f.fieldW/2, f.fieldY + f.fieldH/2, 40, 0, Math.PI*2);
+  ctx.stroke();
+
+  // Center line
+  ctx.beginPath();
+  ctx.moveTo(f.fieldX + 4, f.fieldY + f.fieldH/2);
+  ctx.lineTo(f.fieldX + f.fieldW - 4, f.fieldY + f.fieldH/2);
+  ctx.stroke();
+
+  // Crease — restricted zone (tinted red to signal no-entry)
+  ctx.strokeStyle = '#ff4444bb';
+  ctx.lineWidth = 2;
+  const gr = getGoalRect();
+  const cr2 = getCreaseRect();
+  ctx.fillStyle = '#ff000018';
+  ctx.fillRect(cr2.x, cr2.y, cr2.w, cr2.h);
+  ctx.strokeRect(cr2.x, cr2.y, cr2.w, cr2.h);
+
+  // Small red corner markers at each post — visual cue that side shots don't count
+  ctx.fillStyle = '#ff2222';
+  ctx.fillRect(gr.x - 10, gr.y - 4, 10, 10); // left post outer corner
+  ctx.fillRect(gr.x + gr.w, gr.y - 4, 10, 10); // right post outer corner
+
+  // Goal net
+  ctx.fillStyle = '#cc3300';
+  ctx.fillRect(gr.x - 3, gr.y - 4, gr.w + 6, 4); // crossbar top
+  ctx.fillRect(gr.x - 3, gr.y - 4, 4, gr.h + 4); // left post
+  ctx.fillRect(gr.x + gr.w - 1, gr.y - 4, 4, gr.h + 4); // right post
+  ctx.fillStyle = '#ffffff22';
+  ctx.fillRect(gr.x, gr.y, gr.w, gr.h); // net fill
+  // Net lines
+  ctx.strokeStyle = '#ffffff44';
+  ctx.lineWidth = 1;
+  for (let nx = gr.x; nx < gr.x + gr.w; nx += 10) {
+    ctx.beginPath(); ctx.moveTo(nx, gr.y); ctx.lineTo(nx, gr.y + gr.h); ctx.stroke();
+  }
+  for (let ny = gr.y; ny < gr.y + gr.h; ny += 8) {
+    ctx.beginPath(); ctx.moveTo(gr.x, ny); ctx.lineTo(gr.x + gr.w, ny); ctx.stroke();
+  }
+}
+
+function drawPlayer(x, y, dir, color1, color2, num, size) {
+  const px = Math.round(x), py = Math.round(y);
+  // Shadow
+  ctx.fillStyle = '#00000044';
+  ctx.fillRect(px - size + 2, py + size - 2, size*2, 4);
+
+  // Body
+  ctx.fillStyle = color1;
+  ctx.fillRect(px - size + 2, py - size + 2, (size-2)*2, (size-2)*2);
+
+  // Jersey stripe
+  ctx.fillStyle = color2;
+  ctx.fillRect(px - size + 4, py - 2, (size-4)*2, 4);
+
+  // Head
+  ctx.fillStyle = '#f5c28a';
+  ctx.fillRect(px - 4, py - size - 2, 8, 8);
+
+  // Helmet
+  ctx.fillStyle = color1;
+  ctx.fillRect(px - 5, py - size - 3, 10, 6);
+
+  // Stick
+  const stickLen = size + 6;
+  const sx = Math.cos(dir) * stickLen;
+  const sy = Math.sin(dir) * stickLen;
+  ctx.strokeStyle = '#c8a060';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px, py);
+  ctx.lineTo(px + sx, py + sy);
+  ctx.stroke();
+  // Stick head
+  ctx.fillStyle = '#888';
+  ctx.fillRect(Math.round(px + sx) - 3, Math.round(py + sy) - 3, 6, 6);
+}
+
+function drawGoalie(g) {
+  const px = Math.round(g.x), py = Math.round(g.y);
+  // Body (bigger)
+  ctx.fillStyle = g.color;
+  ctx.fillRect(px - 9, py - 9, 18, 18);
+  // Chest pad highlight
+  ctx.fillStyle = '#ffffff44';
+  ctx.fillRect(px - 5, py - 5, 10, 10);
+  // Head
+  ctx.fillStyle = '#f5c28a';
+  ctx.fillRect(px - 4, py - 14, 8, 8);
+  ctx.fillStyle = g.color;
+  ctx.fillRect(px - 5, py - 15, 10, 7); // helmet
+  // Mask bars
+  ctx.fillStyle = '#ffffff88';
+  ctx.fillRect(px - 5, py - 12, 10, 2);
+}
+
+function drawDefender(d) {
+  const px = Math.round(d.x), py = Math.round(d.y);
+
+  if (d.type === 'blocker') {
+    // Blockers: wider, darker, plant their feet — look immovable
+    ctx.fillStyle = d.color;
+    ctx.fillRect(px - 9, py - 8, 18, 16);
+    ctx.fillStyle = '#00000066';
+    ctx.fillRect(px - 7, py - 5, 14, 10);
+    ctx.fillStyle = '#f5c28a';
+    ctx.fillRect(px - 3, py - 13, 6, 6);
+    ctx.fillStyle = d.color;
+    ctx.fillRect(px - 4, py - 14, 8, 5);
+    // X mark to signal "blocked zone"
+    ctx.strokeStyle = '#ffffff88';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(px-4, py-3); ctx.lineTo(px+4, py+3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px+4, py-3); ctx.lineTo(px-4, py+3); ctx.stroke();
+
+  } else if (d.type === 'shadow') {
+    // Shadow: darker, ghostly, slightly larger — clearly the scary one
+    ctx.fillStyle = '#00000088';
+    ctx.fillRect(px - 8, py - 8, 16, 18); // dark shadow offset
+    ctx.fillStyle = d.color;
+    ctx.fillRect(px - 8, py - 9, 16, 18);
+    ctx.fillStyle = '#ffffff22';
+    ctx.fillRect(px - 5, py - 6, 10, 12);
+    ctx.fillStyle = '#f5c28a';
+    ctx.fillRect(px - 3, py - 14, 6, 6);
+    ctx.fillStyle = d.color;
+    ctx.fillRect(px - 4, py - 15, 8, 6);
+    // Glowing eyes
+    ctx.fillStyle = '#ff0000cc';
+    ctx.fillRect(px - 3, py - 12, 2, 2);
+    ctx.fillRect(px + 1, py - 12, 2, 2);
+
+  } else {
+    // Standard chaser
+    ctx.fillStyle = d.color;
+    ctx.fillRect(px - 7, py - 7, 14, 14);
+    ctx.fillStyle = '#ffffff33';
+    ctx.fillRect(px - 4, py - 4, 8, 8);
+    ctx.fillStyle = '#f5c28a';
+    ctx.fillRect(px - 3, py - 11, 6, 6);
+    ctx.fillStyle = d.color;
+    ctx.fillRect(px - 4, py - 12, 8, 5);
+  }
+}
+
+function drawBall(bx, by) {
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(Math.round(bx) - 4, Math.round(by) - 4, 8, 8);
+  ctx.fillStyle = '#cccccc';
+  ctx.fillRect(Math.round(bx) - 2, Math.round(by) - 2, 4, 4);
+}
+
+function drawHUD() {
+  const W = canvas.width, H = canvas.height;
+  const team = TEAMS[Math.min(teamIdx, TEAMS.length - 1)];
+  const f = getField();
+
+  // ── Top bar: two rows ──────────────────────────────────────────────────────
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, W, 52);
+  // Divider line
+  ctx.fillStyle = '#222244';
+  ctx.fillRect(0, 52, W, 2);
+
+  // Row 1: GOALS on left, SCORE centered, VS TEAM on right
+  // GOALS label + pips — anchored to left edge of field
+  drawPixelText('GOALS:', f.fieldX, 6, 3, '#aaaaaa');
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = i < goals ? '#ff3333' : '#333355';
+    ctx.fillRect(f.fieldX + 110 + i * 22, 6, 16, 16);
+    if (i < goals) {
+      ctx.fillStyle = '#ff8888';
+      ctx.fillRect(f.fieldX + 114 + i * 22, 8, 8, 8);
+    }
+  }
+
+  // SCORE centered
+  const scoreStr = 'SCORE:' + totalGoals;
+  const sw = pixelTextWidth(scoreStr, 3);
+  drawPixelText(scoreStr, (W - sw) / 2, 6, 3, '#ffff00');
+
+  // Row 2: VS TEAM name centered in second row
+  const vsStr = 'VS ' + team.name;
+  const vw = pixelTextWidth(vsStr, 3);
+  drawPixelText(vsStr, (W - vw) / 2, 30, 3, team.color);
+
+  // ── Bottom bar: TURNS ──────────────────────────────────────────────────────
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, H - 32, W, 32);
+  ctx.fillStyle = '#222244';
+  ctx.fillRect(0, H - 32, W, 2);
+
+  drawPixelText('TURNS:', f.fieldX, H - 24, 3, '#aaaaaa');
+  const maxTurns = TEAMS[Math.min(teamIdx, TEAMS.length - 1)].turns;
+  for (let i = 0; i < maxTurns; i++) {
+    const filled = i < turnsLeft;
+    ctx.fillStyle = filled ? '#ff3333' : '#222244';
+    ctx.fillRect(f.fieldX + 110 + i * 22, H - 24, 16, 16);
+    if (filled) {
+      ctx.fillStyle = '#ff8888';
+      ctx.fillRect(f.fieldX + 114 + i * 22, H - 21, 8, 8);
+    }
+  }
+
+  // Miss flash overlay
+  if (missTimer > 0) {
+    ctx.fillStyle = `rgba(80,0,0,${(missTimer / 90) * 0.5})`;
+    ctx.fillRect(0, 0, W, H);
+    if (missTimer > 50) {
+      const mm = turnsLeft > 0 ? 'BLOCKED!' : 'NO TURNS LEFT!';
+      const mw = pixelTextWidth(mm, 4);
+      drawPixelText(mm, (W - mw) / 2, H / 2 - 20, 4, '#ff4444');
+    }
+  }
+  // ── Joystick (left) ──
+  ctx.fillStyle = '#ffffff18';
+  const jb = getJoystickBase();
+  ctx.beginPath();
+  ctx.arc(jb.x, jb.y, 50, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff33';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(jb.x, jb.y, 50, 0, Math.PI*2);
+  ctx.stroke();
+  // Knob
+  const knobX = joystick.active ? jb.x + joystick.dx : jb.x;
+  const knobY = joystick.active ? jb.y + joystick.dy : jb.y;
+  ctx.fillStyle = joystick.active ? '#ffffff66' : '#ffffff33';
+  ctx.beginPath();
+  ctx.arc(knobX, knobY, 22, 0, Math.PI*2);
+  ctx.fill();
+
+  // ── Shoot button (right) ──
+  const sb = getShootButtonPos();
+  const canShoot = ballState === 'held' && pip.hasMoved && pip.shootCooldown <= 0;
+  // Outer ring
+  ctx.fillStyle = canShoot ? '#cc220088' : '#44111188';
+  ctx.beginPath();
+  ctx.arc(sb.x, sb.y, sb.r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = canShoot ? '#ff4444' : '#661111';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(sb.x, sb.y, sb.r, 0, Math.PI*2);
+  ctx.stroke();
+  // SHOOT label
+  const shootLabel = 'SHOOT';
+  const slw = pixelTextWidth(shootLabel, 2);
+  drawPixelText(shootLabel, sb.x - slw/2, sb.y - 5, 2, canShoot ? '#ffffff' : '#664444');
+  // Pulse ring when ready
+  if (canShoot && blinkTimer % 40 < 20) {
+    ctx.strokeStyle = '#ff666644';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(sb.x, sb.y, sb.r + 8, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  // Label under button
+  if (!pip.hasMoved) {
+    const hint = 'MOVE FIRST';
+    const hw = pixelTextWidth(hint, 2);
+    drawPixelText(hint, sb.x - hw/2, sb.y + sb.r + 8, 2, '#ff666688');
+  }
+}
+
+// ── Draw Pip pixel sprite (start screen) ─────────────────────────────────────
+function drawPipVictory(cx, cy, scale) {
+  const s = scale;
+  // Shadow
+  ctx.fillStyle = '#00000066';
+  ctx.fillRect(cx - 12*s, cy + 20*s, 24*s, 4*s);
+
+  // Legs
+  ctx.fillStyle = '#cc2222';
+  ctx.fillRect(cx - 8*s, cy + 10*s, 6*s, 12*s);
+  ctx.fillRect(cx + 2*s, cy + 10*s, 6*s, 12*s);
+  // Shoes
+  ctx.fillStyle = '#222';
+  ctx.fillRect(cx - 10*s, cy + 20*s, 8*s, 4*s);
+  ctx.fillRect(cx + 2*s, cy + 20*s, 8*s, 4*s);
+
+  // Body / jersey
+  ctx.fillStyle = '#cc2222';
+  ctx.fillRect(cx - 10*s, cy - 8*s, 20*s, 20*s);
+  // White stripes
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(cx - 10*s, cy - 2*s, 20*s, 4*s);
+  // Number 13
+  ctx.fillStyle = '#cc2222';
+  drawPixelText('13', cx - 6*s, cy + 2*s - 1, s, '#cc2222');
+  ctx.fillStyle = '#ffffff';
+  drawPixelText('13', cx - 5*s, cy + 1*s, s, '#ffffff');
+
+  // Arms
+  ctx.fillStyle = '#cc2222';
+  ctx.fillRect(cx - 18*s, cy - 6*s, 8*s, 6*s);  // left arm normal
+  ctx.fillRect(cx + 10*s, cy - 16*s, 6*s, 8*s); // right arm raised
+
+  // Hands
+  ctx.fillStyle = '#f5c28a';
+  ctx.fillRect(cx - 20*s, cy - 8*s, 6*s, 6*s);
+  ctx.fillRect(cx + 10*s, cy - 18*s, 6*s, 6*s);
+
+  // Stick (raised in victory)
+  ctx.strokeStyle = '#c8a060';
+  ctx.lineWidth = 2 * s;
+  ctx.beginPath();
+  ctx.moveTo(cx + 13*s, cy - 16*s);
+  ctx.lineTo(cx + 10*s, cy - 38*s);
+  ctx.stroke();
+  // Stick head
+  ctx.fillStyle = '#888';
+  ctx.fillRect(cx + 7*s, cy - 40*s, 8*s, 6*s);
+  ctx.fillStyle = '#ffffff55';
+  ctx.fillRect(cx + 8*s, cy - 39*s, 6*s, 4*s);
+
+  // Head / neck
+  ctx.fillStyle = '#f5c28a';
+  ctx.fillRect(cx - 6*s, cy - 18*s, 12*s, 12*s);
+
+  // Helmet
+  ctx.fillStyle = '#cc2222';
+  ctx.fillRect(cx - 8*s, cy - 22*s, 16*s, 10*s);
+  // Face mask
+  ctx.fillStyle = '#ffffff99';
+  ctx.fillRect(cx - 6*s, cy - 20*s, 4*s, 6*s);
+  ctx.fillRect(cx + 2*s, cy - 20*s, 4*s, 6*s);
+  ctx.fillRect(cx - 6*s, cy - 17*s, 12*s, 2*s);
+}
+
+// ── Draw scenes ───────────────────────────────────────────────────────────────
+function drawStarfield() {
+  // Subtle star bg
+  ctx.fillStyle = '#ffffff';
+  const stars = [[10,20],[50,80],[200,30],[350,15],[450,65],[520,40],[600,25],[700,55],[750,90],[800,12],[100,95],[300,75]];
+  for (const [x,y] of stars) {
+    const sz = (blinkTimer % 60 < 30 && (x+y)%3===0) ? 2 : 1;
+    ctx.fillRect(x % canvas.width, y % canvas.height, sz, sz);
+  }
+}
+
+function drawStartScreen() {
+  const W = canvas.width, H = canvas.height;
+
+  // Deep background
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#0a0a2a');
+  grad.addColorStop(1, '#1a0a10');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  drawStarfield();
+
+  // Stadium lights in corners
+  for (const [lx,ly] of [[50,50],[W-50,50]]) {
+    const lg = ctx.createRadialGradient(lx,ly,0,lx,ly,80);
+    lg.addColorStop(0,'#ffffff33');
+    lg.addColorStop(1,'transparent');
+    ctx.fillStyle = lg;
+    ctx.fillRect(lx-80,ly-80,160,160);
+    ctx.fillStyle = '#ffeecc';
+    ctx.fillRect(lx-4, ly-4, 8, 8);
+  }
+
+  // Title shadow
+  const title = "PIP'S ATTACK";
+  const ts = 5;
+  const tw = pixelTextWidth(title, ts);
+  const tx = (W - tw) / 2;
+  const ty = H * 0.12;
+  drawPixelText(title, tx + 3, ty + 3, ts, '#880000');
+  drawPixelText(title, tx, ty, ts, '#ff3333');
+  // Glow pass
+  ctx.globalAlpha = 0.3;
+  drawPixelText(title, tx - 1, ty - 1, ts, '#ff8888');
+  drawPixelText(title, tx + 1, ty + 1, ts, '#ff8888');
+  ctx.globalAlpha = 1;
+
+  // Subtitle
+  const sub = 'LACROSSE HERO';
+  const sw = pixelTextWidth(sub, 3);
+  drawPixelText(sub, (W-sw)/2, ty + ts*5 + 10, 3, '#ffaa44');
+
+  // Pip victory pose
+  drawPipVictory(W/2, H * 0.57, 2);
+
+  // Tap to start (blinking)
+  if (blinkTimer % 60 < 45) {
+    const msg = 'TAP TO START';
+    const mw = pixelTextWidth(msg, 3);
+    drawPixelText(msg, (W-mw)/2, H * 0.85, 3, '#ffffff');
+  }
+
+  // Team count preview
+  const preview = 'BEAT 12 TEAMS TO CLAIM GLORY';
+  const pw = pixelTextWidth(preview, 2);
+  drawPixelText(preview, (W-pw)/2, H * 0.92, 2, '#666688');
+
+  drawParticles();
+}
+
+function drawAdvanceScreen() {
+  const W = canvas.width, H = canvas.height;
+  const team = TEAMS[Math.min(teamIdx, TEAMS.length - 1)];
+
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, W, H);
+  drawStarfield();
+
+  // Panel
+  ctx.fillStyle = '#1a1a3a';
+  ctx.fillRect(W/2 - 200, H/2 - 110, 400, 220);
+  ctx.strokeStyle = team.color;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(W/2 - 200, H/2 - 110, 400, 220);
+
+  const hdr = 'NEXT OPPONENT';
+  const hw = pixelTextWidth(hdr, 3);
+  drawPixelText(hdr, (W-hw)/2, H/2 - 98, 3, '#aaaacc');
+
+  const tname = team.name;
+  const tnw = pixelTextWidth(tname, 4);
+  drawPixelText(tname, (W-tnw)/2, H/2 - 62, 4, team.color);
+
+  // Turns warning if reduced
+  const turnsStr = 'TURNS: ' + team.turns;
+  const tw2 = pixelTextWidth(turnsStr, 3);
+  const turnsColor = team.turns <= 4 ? '#ff4444' : team.turns <= 5 ? '#ffaa00' : '#44ff88';
+  drawPixelText(turnsStr, (W - tw2) / 2, H/2 - 18, 3, turnsColor);
+
+  // New threat warnings
+  const warnings = [];
+  if (team.goalieDives && teamIdx > 0 && !TEAMS[teamIdx-1].goalieDives) warnings.push('GOALIE NOW DIVES!');
+  if (team.blockerCount > 0 && teamIdx > 0 && TEAMS[teamIdx-1].blockerCount === 0) warnings.push('BLOCKERS DEPLOYED!');
+  if (team.shadowDef && teamIdx > 0 && !TEAMS[teamIdx-1].shadowDef) warnings.push('SHADOW DEFENDER!');
+  warnings.forEach((w, i) => {
+    const ww = pixelTextWidth(w, 2);
+    drawPixelText(w, (W - ww) / 2, H/2 + 12 + i * 18, 2, '#ff6644');
+  });
+
+  if (blinkTimer % 40 < 30) {
+    const sub = 'GET READY!';
+    const sw = pixelTextWidth(sub, 3);
+    drawPixelText(sub, (W-sw)/2, H/2 + 72, 3, '#ffffff');
+  }
+
+  drawParticles();
+}
+
+function drawGoalScreen() {
+  const W = canvas.width, H = canvas.height;
+
+  // Flash
+  if (goalTimer > 90) {
+    ctx.fillStyle = `rgba(255,50,50,${(goalTimer-90)/30*0.4})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  const msg = 'GOAL!';
+  const mw = pixelTextWidth(msg, 8);
+  drawPixelText(msg, (W-mw)/2 + 2, H/2 - 38 + 2, 8, '#880000');
+  drawPixelText(msg, (W-mw)/2, H/2 - 40, 8, '#ff3333');
+
+  const nextGoals = goals + 1; // goals increments after this screen
+  const sub = nextGoals >= 3 ? 'TEAM BEAT!' : `${nextGoals} OF 3`;
+  const sw = pixelTextWidth(sub, 3);
+  drawPixelText(sub, (W-sw)/2, H/2 + 20, 3, '#ffff00');
+
+  drawParticles();
+}
+
+function drawWinScreen() {
+  const W = canvas.width, H = canvas.height;
+
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#00050a');
+  grad.addColorStop(1, '#0a1500');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+  drawStarfield();
+
+  // Gold panel
+  ctx.fillStyle = '#1a1500';
+  ctx.fillRect(W/2 - 220, H/2 - 120, 440, 240);
+  ctx.strokeStyle = '#ffdd00';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(W/2 - 220, H/2 - 120, 440, 240);
+
+  const title = 'YOU WIN!';
+  const tw = pixelTextWidth(title, 6);
+  drawPixelText(title, (W - tw)/2 + 2, H/2 - 105 + 2, 6, '#886600');
+  drawPixelText(title, (W - tw)/2, H/2 - 107, 6, '#ffdd00');
+
+  const scoreLine = 'TOTAL GOALS: ' + totalGoals;
+  const sw = pixelTextWidth(scoreLine, 3);
+  drawPixelText(scoreLine, (W - sw)/2, H/2 - 22, 3, '#ffffff');
+
+  const glory = 'ALL 12 TEAMS DEFEATED!';
+  const gw = pixelTextWidth(glory, 2);
+  drawPixelText(glory, (W - gw)/2, H/2 + 12, 2, '#44ff88');
+
+  // Pip victory pose
+  drawPipVictory(W/2, H/2 - 60, 1.5);
+
+  if (blinkTimer % 60 < 45) {
+    const retry = 'TAP TO PLAY AGAIN';
+    const rw = pixelTextWidth(retry, 3);
+    drawPixelText(retry, (W - rw)/2, H/2 + 78, 3, '#ffffff');
+  }
+
+  drawParticles();
+}
+
+function drawGameOverScreen() {
+  const W = canvas.width, H = canvas.height;
+
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#0a0005');
+  grad.addColorStop(1, '#1a0010');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  drawStarfield();
+
+  // Panel
+  ctx.fillStyle = '#1a0010';
+  ctx.fillRect(W/2 - 200, H/2 - 110, 400, 220);
+  ctx.strokeStyle = '#ff3333';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(W/2 - 200, H/2 - 110, 400, 220);
+
+  const title = 'GAME OVER';
+  const tw = pixelTextWidth(title, 5);
+  drawPixelText(title, (W - tw) / 2 + 2, H/2 - 95 + 2, 5, '#550000');
+  drawPixelText(title, (W - tw) / 2, H/2 - 97, 5, '#ff2222');
+
+  const scoreLine = 'GOALS SCORED: ' + totalGoals;
+  const sw = pixelTextWidth(scoreLine, 3);
+  drawPixelText(scoreLine, (W - sw) / 2, H/2 - 28, 3, '#ffff00');
+
+  const teamLine = 'REACHED: ' + TEAMS[Math.min(teamIdx, TEAMS.length-1)].name;
+  const ttw = pixelTextWidth(teamLine, 2);
+  drawPixelText(teamLine, (W - ttw) / 2, H/2 + 8, 2, TEAMS[Math.min(teamIdx, TEAMS.length-1)].color);
+
+  if (blinkTimer % 60 < 45) {
+    const retry = 'TAP TO TRY AGAIN';
+    const rw = pixelTextWidth(retry, 3);
+    drawPixelText(retry, (W - rw) / 2, H/2 + 60, 3, '#ffffff');
+  }
+
+  drawParticles();
+}
+
+function drawPlayingState() {
+  const f = getField();
+
+  // BG
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Sidebar areas
+  ctx.fillStyle = '#0d0d22';
+  ctx.fillRect(0, 0, f.fieldX, canvas.height);
+  ctx.fillRect(f.fieldX + f.fieldW, 0, canvas.width - f.fieldX - f.fieldW, canvas.height);
+
+  drawField();
+
+  // Draw goalie
+  drawGoalie(goalie);
+
+  // Draw defenders
+  for (const d of defenders) drawDefender(d);
+
+  // Draw pip
+  drawPlayer(pip.x, pip.y, pip.dir, '#cc2222', '#ffffff', '13', pip.size);
+
+  // Draw ball
+  drawBall(ball.x, ball.y);
+
+  drawParticles();
+  drawHUD();
+}
+
+// ── Main render loop ──────────────────────────────────────────────────────────
+function render() {
+  ctx.save();
+
+  if (shakeAmt > 0.5) {
+    ctx.translate(
+      (Math.random()-0.5)*shakeAmt,
+      (Math.random()-0.5)*shakeAmt
+    );
+  }
+
+  if (state === STATE.START) {
+    drawStartScreen();
+  } else if (state === STATE.ADVANCE) {
+    drawPlayingState();
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    drawAdvanceScreen();
+  } else if (state === STATE.PLAYING) {
+    drawPlayingState();
+  } else if (state === STATE.GOAL) {
+    drawPlayingState();
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    drawGoalScreen();
+  } else if (state === STATE.GAMEOVER) {
+    drawGameOverScreen();
+  } else if (state === STATE.WIN) {
+    drawWinScreen();
+  }
+
+  ctx.restore();
+}
+
+// ── Game loop ─────────────────────────────────────────────────────────────────
+function loop() {
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
