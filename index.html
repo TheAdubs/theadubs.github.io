@@ -601,13 +601,13 @@
         <span class="project-link">Coming Soon</span>
       </div>
 
-      <!-- March Madness -->
-      <div class="project-card no-link">
-        <span class="project-icon">🏀</span>
-        <div class="project-type">Analysis · Strategy</div>
-        <div class="project-title">March Madness Bracket Framework</div>
-        <p class="project-desc">A data-informed bracket-building methodology covering seed trust thresholds, mid-major sleepers, conference tournament momentum, and pool-winning upset theory.</p>
-        <span class="project-link">Coming Soon</span>
+      <!-- Fantasy Football Draft Tool -->
+      <div class="project-card" onclick="window.location='fantasy-draft.html'" style="cursor:pointer">
+        <span class="project-icon">🏈</span>
+        <div class="project-type">Interactive Tool · HTML/JS</div>
+        <div class="project-title">Fantasy Draft Dominator</div>
+        <p class="project-desc">A live draft-day command center — 61-player board, VOR scoring, positional scarcity tracker, bye week conflict detector, and round-by-round strategy guide. Built for 6-team full PPR Yahoo.</p>
+        <span class="project-link" style="color:var(--gold)">Launch Tool →</span>
       </div>
 
       <!-- Travel Research -->
@@ -717,7 +717,7 @@
       <div class="divider"></div>
       <p>Whether you want to talk strategy, swap bracket takes, debate the finer points of Krav Maga, or just say hello — I'm easy to reach. No Navy ship required.</p>
       <div class="contact-links">
-        <a href="mailto:APWertheim@gmail.com" class="contact-link primary">Send a Message</a>
+        <a href="/cdn-cgi/l/email-protection#ce8f9e99abbcbaa6aba7a38ea9a3afa7a2e0ada1a3" class="contact-link primary">Send a Message</a>
         <a href="https://linkedin.com/in/adam-wertheim" target="_blank" class="contact-link secondary">
           LinkedIn
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7 2h3v3M10 2L5.5 6.5M5 3H2v7h7V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -733,17 +733,10 @@
     <p>© 2026</p>
   </footer>
 
-  <script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(e => {
         if (e.isIntersecting) {
           e.target.classList.add('visible');
           observer.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.1 });
-
-    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-  </script>
-</body>
-</html>
+     
