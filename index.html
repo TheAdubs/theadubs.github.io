@@ -462,6 +462,13 @@
 
     .fade-in.visible { opacity: 1; transform: translateY(0); }
 
+    /* Grids are always visible — only headers and cards animate */
+    .projects-grid,
+    .games-grid {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+
     /* --- RESPONSIVE --- */
     @media (max-width: 900px) {
       nav { padding: 1.2rem 2rem; }
@@ -514,7 +521,7 @@
     </div>
     <div class="about-grid">
       <div class="about-body fade-in">
-        <p>I started my career on a Navy ship as an <strong>Information Systems Technician</strong> — responsible for the technology and, apparently, the morale of everyone around me. That combination of discipline, adaptability, and just enough irreverence has followed me everywhere since.</p>
+        <p>I started my career on a Navy ship as an <strong>Information Systems Technician</strong> — responsible for the technology and the morale of everyone around me. That combination of discipline, adaptability, and just enough irreverence has followed me everywhere since.</p>
         <p>I've worked in <strong>television production</strong> (Warner Brothers/Telepictures), built marketing teams, closed deals, written strategies, and somewhere along the way became the person organizations call when they need someone who can <strong>think clearly and communicate even more clearly.</strong></p>
         <p>I'm a <strong>Catholic</strong>, and a <strong>Krav Maga blue belt.</strong> My faith and my training both remind me of the same thing: stay grounded, stay ready, stay humble.</p>
         <p>This site is a collection of things I've built, written, and thought about — equal parts professional portfolio and honest self-portrait.</p>
@@ -543,7 +550,7 @@
       <span class="section-num">02</span>
       <h2>Selected Projects</h2>
     </div>
-    <div class="projects-grid fade-in">
+    <div class="projects-grid">
 
       <!-- FEATURED: KMU Tracker -->
       <a href="kmu-tracker.html" class="project-card featured">
@@ -595,53 +602,13 @@
           </div>
         </div>
       </a>
-
-      <!-- Priority Dashboard -->
-      <div class="project-card no-link">
-        <span class="project-icon">📊</span>
-        <div class="project-type">Interactive Tool · HTML/JS</div>
-        <div class="project-title">Priority Management Dashboard</div>
-        <p class="project-desc">A weighted scoring dashboard built to manage a client with three distinct business units. Tracks revenue at risk, deadlines, account health, and active projects — with real-time priority ranking and dollar-weighted task management.</p>
-        <span class="project-link">Coming Soon</span>
-      </div>
-
-      <!-- Sam's Club -->
-      <div class="project-card no-link">
-        <span class="project-icon">✍️</span>
-        <div class="project-type">Creative Writing · Narrative</div>
-        <div class="project-title">The Sam's Club Incident</div>
-        <p class="project-desc">A personal anecdote rewritten as suspenseful literary fiction — in which an early-morning parking lot crowd triggers apocalyptic dread, only to reveal a Pokémon card expansion pack release. A study in dramatic irony and anticlimactic revelation.</p>
-        <span class="project-link">Coming Soon</span>
-      </div>
-
-      <!-- March Madness -->
-      <div class="project-card no-link">
-        <span class="project-icon">🏀</span>
-        <div class="project-type">Analysis · Strategy</div>
-        <div class="project-title">March Madness Bracket Framework</div>
-        <p class="project-desc">A data-informed bracket-building methodology covering seed trust thresholds, mid-major sleepers, conference tournament momentum, and pool-winning upset theory. Spoiler: Duke was involved.</p>
-        <span class="project-link">Coming Soon</span>
-      </div>
-
-      <!-- Travel Research -->
-      <div class="project-card no-link">
-        <span class="project-icon">✈️</span>
-        <div class="project-type">Tool Use · AI Connectors</div>
-        <div class="project-title">Real-Time Travel Research</div>
-        <p class="project-desc">Leveraging Kiwi.com and Trivago MCP connectors to find optimized flight and hotel combinations in real time. Includes bundle vs. direct booking cost analysis and price alert strategies.</p>
-        <span class="project-link">Coming Soon</span>
-      </div>
-
-    </div>
-  </section>
-
   <!-- GAMES -->
   <section id="games">
     <div class="section-header fade-in">
       <span class="section-num">03</span>
       <h2>Games</h2>
     </div>
-    <div class="games-grid fade-in">
+    <div class="games-grid">
 
       <!-- Featured: British Imperialism Quiz -->
       <a href="quiz-imperialism.html" class="project-card featured">
@@ -688,6 +655,18 @@
         </span>
       </a>
 
+      <!-- Dennis Is Pissed -->
+      <a href="dennis-is-pissed.html" class="project-card">
+        <span class="project-icon">😤</span>
+        <div class="project-type">Chase Game · HTML/JS</div>
+        <div class="project-title">Dennis Is Pissed</div>
+        <p class="project-desc">Dennis is angry. You need to run. A fast-paced chase game where survival depends entirely on how quickly you can put distance between yourself and a very upset Dennis.</p>
+        <span class="project-link">
+          Play Game
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+      </a>
+
       <!-- Placeholder for future games -->
       <div class="project-card no-link">
         <span class="project-icon">🎮</span>
@@ -706,7 +685,7 @@
       <span class="section-num">04</span>
       <h2>Skills & Tools</h2>
     </div>
-    <div class="skills-grid fade-in">
+    <div class="skills-grid">
       <div class="skill-group">
         <h3>Storytelling</h3>
         <ul>
