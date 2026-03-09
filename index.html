@@ -41,6 +41,7 @@
       opacity: 0.4;
     }
 
+    /* --- NAV --- */
     nav {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -76,6 +77,7 @@
 
     .nav-links a:hover { color: var(--gold); }
 
+    /* --- HERO --- */
     .hero {
       min-height: 100vh;
       display: flex;
@@ -168,6 +170,7 @@
     .hero-cta svg { transition: transform 0.3s; }
     .hero-cta:hover svg { transform: translateX(4px); }
 
+    /* --- SECTIONS --- */
     section { padding: 7rem 4rem; position: relative; z-index: 1; }
 
     .section-header {
@@ -191,6 +194,7 @@
       letter-spacing: -0.01em;
     }
 
+    /* --- ABOUT --- */
     #about {
       background: var(--surface);
       border-top: 1px solid var(--border);
@@ -248,9 +252,16 @@
       color: var(--muted);
     }
 
+    /* --- PROJECTS & GAMES shared card styles --- */
     #projects { background: var(--bg); }
+    #games {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
 
-    .projects-grid {
+    .projects-grid,
+    .games-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 1.5px;
@@ -343,10 +354,9 @@
       font-weight: 500;
     }
 
+    /* --- SKILLS --- */
     #skills {
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
+      background: var(--bg);
     }
 
     .skills-grid {
@@ -378,7 +388,12 @@
     .skill-group li:hover { color: var(--text); }
     .skill-group li::before { content: '—'; color: var(--border); font-size: 0.7rem; }
 
-    #contact { background: var(--bg); }
+    /* --- CONTACT --- */
+    #contact {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+
     .contact-inner { max-width: 640px; }
 
     .contact-inner p {
@@ -407,6 +422,7 @@
     .contact-link.secondary { border: 1px solid var(--border); color: var(--muted); }
     .contact-link.secondary:hover { border-color: var(--gold); color: var(--gold); }
 
+    /* --- FOOTER --- */
     footer {
       padding: 2rem 4rem;
       border-top: 1px solid var(--border);
@@ -432,6 +448,7 @@
       opacity: 0.5;
     }
 
+    /* --- ANIMATIONS --- */
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(30px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -445,12 +462,13 @@
 
     .fade-in.visible { opacity: 1; transform: translateY(0); }
 
+    /* --- RESPONSIVE --- */
     @media (max-width: 900px) {
       nav { padding: 1.2rem 2rem; }
       section { padding: 5rem 2rem; }
       .hero { padding: 0 2rem; }
       .about-grid { grid-template-columns: 1fr; gap: 3rem; }
-      .projects-grid { grid-template-columns: 1fr; }
+      .projects-grid, .games-grid { grid-template-columns: 1fr; }
       .project-card.featured { grid-column: span 1; grid-template-columns: 1fr; }
       .skills-grid { grid-template-columns: repeat(2, 1fr); }
       footer { padding: 2rem; flex-direction: column; gap: 1rem; text-align: center; }
@@ -460,19 +478,21 @@
 </head>
 <body>
 
+  <!-- NAV -->
   <nav>
     <a class="nav-logo" href="#">Adam Wertheim</a>
     <ul class="nav-links">
       <li><a href="#about">About</a></li>
       <li><a href="#projects">Projects</a></li>
+      <li><a href="#games">Games</a></li>
       <li><a href="#skills">Skills</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
   </nav>
 
+  <!-- HERO -->
   <section class="hero">
     <div class="hero-bg-line"></div>
-    <div class="hero-number">Selected Work — 2024–2026</div>
     <div class="hero-content">
       <div class="hero-eyebrow">Builder · Krav Maga Blue Belt</div>
       <h1>Strategist.<br/><em>Occasional</em><br/>artist and writer.</h1>
@@ -486,6 +506,7 @@
     </div>
   </section>
 
+  <!-- ABOUT -->
   <section id="about">
     <div class="section-header fade-in">
       <span class="section-num">01</span>
@@ -495,7 +516,7 @@
       <div class="about-body fade-in">
         <p>I started my career on a Navy ship as an <strong>Information Systems Technician</strong> — responsible for the technology and, apparently, the morale of everyone around me. That combination of discipline, adaptability, and just enough irreverence has followed me everywhere since.</p>
         <p>I've worked in <strong>television production</strong> (Warner Brothers/Telepictures), built marketing teams, closed deals, written strategies, and somewhere along the way became the person organizations call when they need someone who can <strong>think clearly and communicate even more clearly.</strong></p>
-        <p>I'm a <strong>Catholic</strong>, and <strong>Krav Maga blue belt.</strong> My faith and my training both remind me of the same thing: stay grounded, stay ready, stay humble.</p>
+        <p>I'm a <strong>Catholic</strong>, and a <strong>Krav Maga blue belt.</strong> My faith and my training both remind me of the same thing: stay grounded, stay ready, stay humble.</p>
         <p>This site is a collection of things I've built, written, and thought about — equal parts professional portfolio and honest self-portrait.</p>
         <div class="tags">
           <span class="tag">US Navy Veteran</span>
@@ -512,16 +533,11 @@
           <div class="stat-num">17+</div>
           <div class="stat-label">Years in Technology & Strategy</div>
         </div>
-        <div class="stat-item">
-          <div class="stat-num">∞</div>
-        <div class="stat-item">
-          <div class="stat-num">1</div>
-          <div class="stat-label">Sam's Club Near-Panic Incident on Record</div>
-        </div>
       </div>
     </div>
   </section>
 
+  <!-- PROJECTS -->
   <section id="projects">
     <div class="section-header fade-in">
       <span class="section-num">02</span>
@@ -529,7 +545,7 @@
     </div>
     <div class="projects-grid fade-in">
 
-      <!-- FEATURED: KMU Tracker — full card is a link -->
+      <!-- FEATURED: KMU Tracker -->
       <a href="kmu.html" class="project-card featured">
         <div>
           <span class="featured-badge">Featured</span>
@@ -579,12 +595,115 @@
           </div>
         </div>
       </a>
+
+      <!-- Priority Dashboard -->
+      <div class="project-card no-link">
+        <span class="project-icon">📊</span>
+        <div class="project-type">Interactive Tool · HTML/JS</div>
+        <div class="project-title">Priority Management Dashboard</div>
+        <p class="project-desc">A weighted scoring dashboard built to manage a client with three distinct business units. Tracks revenue at risk, deadlines, account health, and active projects — with real-time priority ranking and dollar-weighted task management.</p>
+        <span class="project-link">Coming Soon</span>
+      </div>
+
+      <!-- Sam's Club -->
+      <div class="project-card no-link">
+        <span class="project-icon">✍️</span>
+        <div class="project-type">Creative Writing · Narrative</div>
+        <div class="project-title">The Sam's Club Incident</div>
+        <p class="project-desc">A personal anecdote rewritten as suspenseful literary fiction — in which an early-morning parking lot crowd triggers apocalyptic dread, only to reveal a Pokémon card expansion pack release. A study in dramatic irony and anticlimactic revelation.</p>
+        <span class="project-link">Coming Soon</span>
+      </div>
+
+      <!-- March Madness -->
+      <div class="project-card no-link">
+        <span class="project-icon">🏀</span>
+        <div class="project-type">Analysis · Strategy</div>
+        <div class="project-title">March Madness Bracket Framework</div>
+        <p class="project-desc">A data-informed bracket-building methodology covering seed trust thresholds, mid-major sleepers, conference tournament momentum, and pool-winning upset theory. Spoiler: Duke was involved.</p>
+        <span class="project-link">Coming Soon</span>
+      </div>
+
+      <!-- Travel Research -->
+      <div class="project-card no-link">
+        <span class="project-icon">✈️</span>
+        <div class="project-type">Tool Use · AI Connectors</div>
+        <div class="project-title">Real-Time Travel Research</div>
+        <p class="project-desc">Leveraging Kiwi.com and Trivago MCP connectors to find optimized flight and hotel combinations in real time. Includes bundle vs. direct booking cost analysis and price alert strategies.</p>
+        <span class="project-link">Coming Soon</span>
+      </div>
+
     </div>
   </section>
 
-  <section id="skills">
+  <!-- GAMES -->
+  <section id="games">
     <div class="section-header fade-in">
       <span class="section-num">03</span>
+      <h2>Games</h2>
+    </div>
+    <div class="games-grid fade-in">
+
+      <!-- Featured: British Imperialism Quiz -->
+      <a href="quiz-imperialism.html" class="project-card featured">
+        <div>
+          <span class="featured-badge">Play Now</span>
+          <div class="project-type">Trivia Game · HTML/JS</div>
+          <div class="project-title">British Imperialism in India</div>
+          <p class="project-desc">20 questions covering the Great Rebellion of 1857, the British East India Company, colonial administration, the Indian National Congress, and key figures like Gandhi and journalist Tilak. Randomized order every attempt, with detailed answer explanations.</p>
+          <span class="project-link">
+            Play Game
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+        </div>
+        <div>
+          <div style="background:#111; border:1px solid #2a2a2a; padding:1.5rem; border-radius:2px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:1.2rem;">
+              <span style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#c9a84c;">Quiz Preview</span>
+              <span style="font-size:0.7rem;color:#555;">20 Questions</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.6rem;">
+              <div style="padding:0.6rem 0.8rem;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:2px;">
+                <span style="font-size:0.75rem;color:#7a7570;">Who led the Indian National Congress?</span>
+              </div>
+              <div style="padding:0.6rem 0.8rem;background:#1a1a1a;border:1px solid #c9a84c;border-radius:2px;">
+                <span style="font-size:0.75rem;color:#c9a84c;">✓ Dadabhai Naoroji</span>
+              </div>
+              <div style="padding:0.6rem 0.8rem;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:2px;">
+                <span style="font-size:0.75rem;color:#555;">Lord Curzon</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <!-- Africa Quiz -->
+      <a href="quiz-africa.html" class="project-card">
+        <span class="project-icon">🌍</span>
+        <div class="project-type">Trivia Game · HTML/JS</div>
+        <div class="project-title">Empire Building in Africa</div>
+        <p class="project-desc">20 questions on European colonization of Africa — covering King Leopold II, the Berlin Conference of 1885, the Boer War, the Suez Canal, and the lasting effects of different colonial administration styles.</p>
+        <span class="project-link">
+          Play Game
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+      </a>
+
+      <!-- Placeholder for future games -->
+      <div class="project-card no-link">
+        <span class="project-icon">🎮</span>
+        <div class="project-type">Coming Soon</div>
+        <div class="project-title">More Games</div>
+        <p class="project-desc">New games added as they're built. Check back soon.</p>
+        <span class="project-link">Stay Tuned</span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SKILLS -->
+  <section id="skills">
+    <div class="section-header fade-in">
+      <span class="section-num">04</span>
       <h2>Skills & Tools</h2>
     </div>
     <div class="skills-grid fade-in">
@@ -631,16 +750,17 @@
     </div>
   </section>
 
+  <!-- CONTACT -->
   <section id="contact">
     <div class="section-header fade-in">
-      <span class="section-num">04</span>
+      <span class="section-num">05</span>
       <h2>Get In Touch</h2>
     </div>
     <div class="contact-inner fade-in">
       <div class="divider"></div>
       <p>Whether you want to talk strategy, swap bracket takes, debate the finer points of Krav Maga, or just say hello — I'm easy to reach. No Navy ship required.</p>
       <div class="contact-links">
-        <a href="mailto:APWertheim@gmail.com" class="contact-link primary">Send a Message</a>
+        <a href="/cdn-cgi/l/email-protection#246574734156504c414d49644349454d480a474b49" class="contact-link primary">Send a Message</a>
         <a href="https://linkedin.com/in/adam-wertheim" target="_blank" class="contact-link secondary">
           LinkedIn
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7 2h3v3M10 2L5.5 6.5M5 3H2v7h7V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -649,23 +769,16 @@
     </div>
   </section>
 
+  <!-- FOOTER -->
   <footer>
     <span class="footer-logo">Adam Wertheim</span>
     <p>Built with intention. Hosted on GitHub Pages.</p>
     <p>© 2026</p>
   </footer>
 
-  <script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(e => {
         if (e.isIntersecting) {
           e.target.classList.add('visible');
           observer.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.1 });
-
-    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-  </script>
-</body>
-</html>
