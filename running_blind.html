@@ -576,6 +576,12 @@ canvas.addEventListener('touchend',e=>{
     if(t.identifier===rJoy.id){rJoy.active=false;rJoy.id=null;rJoy.dx=0;rJoy.dy=0;}
   }
 },{passive:false});
+canvas.addEventListener('touchcancel',e=>{
+  for(const t of e.changedTouches){
+    if(t.identifier===lJoy.id){lJoy.active=false;lJoy.id=null;lJoy.dx=0;lJoy.dy=0;}
+    if(t.identifier===rJoy.id){rJoy.active=false;rJoy.id=null;rJoy.dx=0;rJoy.dy=0;}
+  }
+},{passive:false});
 
 function enterGame(){
   if(AC&&AC.state==='suspended') AC.resume();
@@ -979,7 +985,7 @@ function update(){
 // ─── RAYCASTER ────────────────────────────────────────────────────────────────
 const FOV=Math.PI/3, HALF_FOV=FOV/2;
 const FOV_TAN=Math.tan(HALF_FOV);
-const FLASH_RANGE=9;
+const FLASH_RANGE=isMobile?14:9;
 
 function doRaycast(){
   const sf=player.sanity/100;
@@ -1000,7 +1006,7 @@ function doRaycast(){
     const fSX=rowD*(2*plX)/RW, fSY=rowD*(2*plY)/RW;
     let fx=pTX+rowD*(dX-plX), fy=pTY+rowD*(dY-plY);
     const dark=Math.max(0,Math.min(1,rowD/FLASH_RANGE));
-    const bri=Math.max(0,(1-dark)*effectiveFlicker)*(isFloor?1.0:0.32);
+    const bri=Math.max(0,(1-dark)*effectiveFlicker)*(isFloor?1.0:0.32)*(isMobile?1.45:1.0);
     const tex=isFloor?TEX.floor:TEX.ceil;
     for(let x=0;x<RW;x++){
       const tx=Math.floor(fx*TS)&(TS-1),ty2=Math.floor(fy*TS)&(TS-1);
