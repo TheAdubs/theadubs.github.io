@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Machine That Goes Bing</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0f;
+    --panel: #111118;
+    --border: #2a2a3a;
+    --text: #c8c8e0;
+    --accent: #00ff88;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    overflow: hidden;
+  }
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: clamp(1rem, 5vw, 2.2rem);
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 20px rgba(0,255,136,0.5), 0 0 60px rgba(0,255,136,0.2);
+    margin-bottom: 4px;
+    text-align: center;
+  }
+
+  .subtitle {
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: #555580;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 10px 20px;
+    border-radius: 4px;
+    width: 100%;
+    max-width: 420px;
+    justify-content: space-around;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .stat-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: #555580;
+  }
+
+  .stat-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .machine-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-width: 420px;
+    width: 100%;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .btn {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: var(--panel);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.05s, border-color 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  .btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40%;
+    height: 40%;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    box-shadow: 0 0 10px rgba(255,255,255,0.2);
+  }
+
+  .btn:active { transform: scale(0.94); }
+
+  .btn[data-i="0"] { --c: #ff3366; }
+  .btn[data-i="1"] { --c: #ff9900; }
+  .btn[data-i="2"] { --c: #ffee00; }
+  .btn[data-i="3"] { --c: #00ccff; }
+  .btn[data-i="4"] { --c: #00ff88; }
+  .btn[data-i="5"] { --c: #cc44ff; }
+  .btn[data-i="6"] { --c: #ff6633; }
+  .btn[data-i="7"] { --c: #44ffdd; }
+  .btn[data-i="8"] { --c: #ff44aa; }
+
+  .btn.active {
+    border-color: var(--c);
+    background: color-mix(in srgb, var(--c) 20%, var(--panel));
+    box-shadow: 0 0 24px var(--c), 0 0 60px color-mix(in srgb, var(--c) 40%, transparent), inset 0 0 20px color-mix(in srgb, var(--c) 30%, transparent);
+    animation: pulse 0.4s ease-in-out infinite alternate;
+  }
+
+  .btn.active::before {
+    opacity: 1;
+    background: radial-gradient(circle, color-mix(in srgb, var(--c) 40%, transparent), transparent 70%);
+  }
+
+  .btn.active::after {
+    background: var(--c);
+    box-shadow: 0 0 20px var(--c);
+  }
+
+  .btn.hit-flash {
+    background: color-mix(in srgb, var(--c) 60%, white) !important;
+    border-color: white !important;
+    box-shadow: 0 0 40px var(--c), 0 0 80px var(--c) !important;
+  }
+
+  .btn.wrong {
+    background: rgba(255,30,30,0.3);
+    border-color: #ff1e1e;
+    animation: wrongShake 0.3s ease;
+  }
+
+  @keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.03); }
+  }
+
+  @keyframes wrongShake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  /* BING flash overlay */
+  #bing-flash {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+  }
+
+  #bing-flash.show {
+    animation: bingPop 0.45s ease-out forwards;
+  }
+
+  #bing-text {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: clamp(3rem, 18vw, 7rem);
+    color: white;
+    text-shadow: 0 0 30px var(--flash-color, #00ff88), 0 0 80px var(--flash-color, #00ff88);
+    letter-spacing: 0.1em;
+  }
+
+  @keyframes bingPop {
+    0%   { opacity: 0; transform: scale(0.5); }
+    20%  { opacity: 1; transform: scale(1.15); }
+    50%  { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.2); }
+  }
+
+  /* Screen color flash */
+  #screen-flash {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 40;
+    opacity: 0;
+    background: var(--flash-color, #00ff88);
+  }
+
+  #screen-flash.flash {
+    animation: screenFlash 0.25s ease-out forwards;
+  }
+
+  @keyframes screenFlash {
+    0%   { opacity: 0.25; }
+    100% { opacity: 0; }
+  }
+
+  /* Countdown overlay */
+  #countdown-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    background: rgba(10,10,15,0.85);
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  #countdown-overlay.show { display: flex; }
+
+  #countdown-number {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: clamp(5rem, 25vw, 10rem);
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(0,255,136,0.8);
+    animation: countPulse 0.8s ease-in-out;
+  }
+
+  #countdown-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.3em;
+    color: #555580;
+  }
+
+  @keyframes countPulse {
+    0%   { transform: scale(1.4); opacity: 0; }
+    30%  { transform: scale(1); opacity: 1; }
+    80%  { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.8); opacity: 0.3; }
+  }
+
+  /* End screen */
+  #end-screen {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    background: rgba(10,10,15,0.95);
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px;
+  }
+
+  #end-screen.show { display: flex; }
+
+  #end-rating {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: clamp(1.2rem, 6vw, 2.5rem);
+    text-align: center;
+    letter-spacing: 0.1em;
+    animation: ratingReveal 0.6s ease-out forwards;
+  }
+
+  @keyframes ratingReveal {
+    from { opacity: 0; transform: translateY(20px) scale(0.9); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  #end-score-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(2.5rem, 12vw, 5rem);
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: 0 0 30px rgba(0,255,136,0.6);
+  }
+
+  #end-score-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: #555580;
+    margin-top: -8px;
+  }
+
+  #end-best {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: #555580;
+  }
+
+  #end-stats {
+    display: flex;
+    gap: 24px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 12px 24px;
+    border-radius: 4px;
+    margin: 4px 0;
+  }
+
+  .end-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .end-stat-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .end-stat-lbl {
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    color: #555580;
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 420px;
+    align-items: center;
+  }
+
+  .diff-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .control-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 16px 28px;
+    border: 2px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    width: 100%;
+    min-height: 54px;
+    touch-action: manipulation;
+  }
+
+  .control-btn:hover, .control-btn:active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .difficulty-btn {
+    border-color: #555580;
+    color: #555580;
+    font-size: 0.7rem;
+    padding: 14px 10px;
+    flex: 1;
+  }
+
+  .difficulty-btn.active-diff {
+    border-color: #8866ff;
+    color: #8866ff;
+    background: rgba(136,102,255,0.1);
+  }
+
+  #message {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    height: 20px;
+    margin-bottom: 12px;
+    text-align: center;
+    transition: color 0.2s;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .msg-good    { color: var(--accent); }
+  .msg-bad     { color: #ff3366; }
+  .msg-neutral { color: #555580; }
+
+  #reaction-display {
+    font-size: 0.7rem;
+    color: #555580;
+    letter-spacing: 0.15em;
+    margin-top: 12px;
+    height: 16px;
+  }
+</style>
+</head>
+<body>
+
+<!-- BING flash -->
+<div id="bing-flash"><span id="bing-text">BING!</span></div>
+<!-- Screen color flash -->
+<div id="screen-flash"></div>
+
+<!-- Countdown overlay -->
+<div id="countdown-overlay">
+  <div id="countdown-number">3</div>
+  <div id="countdown-label">GET READY</div>
+</div>
+
+<!-- End screen -->
+<div id="end-screen">
+  <div id="end-rating" style="color:#00ff88">HUMAN REFLEX</div>
+  <div id="end-score-val">0</div>
+  <div id="end-score-label">FINAL SCORE</div>
+  <div id="end-best"></div>
+  <div id="end-stats">
+    <div class="end-stat">
+      <span class="end-stat-val" id="end-hits">0</span>
+      <span class="end-stat-lbl">HITS</span>
+    </div>
+    <div class="end-stat">
+      <span class="end-stat-val" id="end-streak">0</span>
+      <span class="end-stat-lbl">BEST STREAK</span>
+    </div>
+    <div class="end-stat">
+      <span class="end-stat-val" id="end-avg">-</span>
+      <span class="end-stat-lbl">AVG REACT</span>
+    </div>
+  </div>
+  <button class="control-btn" style="max-width:300px;margin-top:8px" onclick="restartFromEnd()">PLAY AGAIN</button>
+</div>
+
+<h1>MACHINE THAT GOES BING</h1>
+<p class="subtitle">PRESS THE LIGHT — BEAT THE CLOCK</p>
+
+<div class="stats-bar">
+  <div class="stat">
+    <span class="stat-label">SCORE</span>
+    <span class="stat-value" id="score">0</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">STREAK</span>
+    <span class="stat-value" id="streak">0</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">BEST</span>
+    <span class="stat-value" id="best">0</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">LIVES</span>
+    <span class="stat-value" id="lives">♥♥♥</span>
+  </div>
+</div>
+
+<div id="message" class="msg-neutral">PRESS START</div>
+
+<div class="machine-grid" id="grid"></div>
+
+<div class="controls">
+  <div class="diff-row">
+    <button class="control-btn difficulty-btn" id="easy-btn" onclick="setDiff('easy')">EASY</button>
+    <button class="control-btn difficulty-btn active-diff" id="normal-btn" onclick="setDiff('normal')">NORMAL</button>
+    <button class="control-btn difficulty-btn" id="hard-btn" onclick="setDiff('hard')">HARD</button>
+  </div>
+  <button class="control-btn" id="start-btn" onclick="startGame()">START</button>
+</div>
+
+<div id="reaction-display"></div>
+
+<script>
+const DIFFS = {
+  easy:   { base: 1400, min: 600, step: 80,  pts: 8 },
+  normal: { base: 1000, min: 350, step: 110, pts: 12 },
+  hard:   { base: 700,  min: 200, step: 130, pts: 20 },
+};
+
+const RATINGS = [
+  { min: 0,   label: 'BARELY HUMAN',      color: '#888899' },
+  { min: 50,  label: 'SLOW REFLEXES',     color: '#aaaacc' },
+  { min: 120, label: 'HUMAN REFLEX',      color: '#00ff88' },
+  { min: 220, label: 'SHARP OPERATOR',    color: '#00ccff' },
+  { min: 360, label: 'LIGHTNING FINGERS', color: '#ffee00' },
+  { min: 500, label: 'CYBORG TIER',       color: '#ff9900' },
+  { min: 700, label: 'ARE YOU EVEN HUMAN',color: '#ff3366' },
+];
+
+let diff = 'normal';
+let active = -1;
+let timeout = null;
+let score = 0, streak = 0, best = 0, lives = 3;
+let bestStreak = 0;
+let running = false;
+let litAt = 0;
+let round = 0;
+let totalHits = 0;
+let reactionTimes = [];
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+const btnColors = ['#ff3366','#ff9900','#ffee00','#00ccff','#00ff88','#cc44ff','#ff6633','#44ffdd','#ff44aa'];
+
+function beep(freq, type = 'square', duration = 0.12, gain = 0.18) {
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.type = type;
+  o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  g.gain.setValueAtTime(gain, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  o.start(); o.stop(audioCtx.currentTime + duration);
+}
+
+function bingSound() {
+  beep(880, 'sine', 0.08, 0.25);
+  setTimeout(() => beep(1320, 'sine', 0.12, 0.2), 40);
+}
+
+function failSound() {
+  beep(180, 'sawtooth', 0.25, 0.2);
+  setTimeout(() => beep(120, 'sawtooth', 0.25, 0.2), 120);
+}
+
+function successSound(s) {
+  const freqs = [330, 440, 550, 660, 770, 880];
+  const f = freqs[Math.min(Math.floor(s / 5), freqs.length - 1)];
+  beep(f, 'square', 0.08);
+  setTimeout(() => beep(f * 1.5, 'sine', 0.08), 70);
+}
+
+function gameOverSound() {
+  beep(300, 'sawtooth', 0.2, 0.25);
+  setTimeout(() => beep(220, 'sawtooth', 0.2, 0.25), 150);
+  setTimeout(() => beep(150, 'sawtooth', 0.4, 0.3), 300);
+}
+
+// Build grid
+const grid = document.getElementById('grid');
+for (let i = 0; i < 9; i++) {
+  const b = document.createElement('button');
+  b.className = 'btn';
+  b.dataset.i = i;
+  b.addEventListener('click', () => press(i));
+  b.addEventListener('touchstart', (e) => { e.preventDefault(); press(i); }, { passive: false });
+  grid.appendChild(b);
+}
+
+function setDiff(d) {
+  if (running) return;
+  diff = d;
+  document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active-diff'));
+  document.getElementById(d + '-btn').classList.add('active-diff');
+}
+
+function setMessage(txt, cls) {
+  const m = document.getElementById('message');
+  m.textContent = txt;
+  m.className = cls;
+}
+
+function updateUI() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('streak').textContent = streak;
+  document.getElementById('best').textContent = best;
+  const h = '♥'.repeat(Math.max(0,lives)) + '♡'.repeat(Math.max(0, 3 - lives));
+  document.getElementById('lives').textContent = h;
+}
+
+function clearActive() {
+  if (active >= 0) {
+    grid.children[active].classList.remove('active');
+    active = -1;
+  }
+  clearTimeout(timeout);
+}
+
+function getDelay() {
+  const d = DIFFS[diff];
+  return Math.max(d.min, d.base - round * d.step);
+}
+
+function showBing(color) {
+  const flash = document.getElementById('bing-flash');
+  const text = document.getElementById('bing-text');
+  const screenFlash = document.getElementById('screen-flash');
+  flash.style.setProperty('--flash-color', color);
+  screenFlash.style.setProperty('--flash-color', color);
+  text.style.color = color;
+  text.style.textShadow = `0 0 30px ${color}, 0 0 80px ${color}`;
+  flash.classList.remove('show');
+  screenFlash.classList.remove('flash');
+  void flash.offsetWidth;
+  void screenFlash.offsetWidth;
+  flash.classList.add('show');
+  screenFlash.classList.add('flash');
+}
+
+function nextRound() {
+  if (!running) return;
+  const pause = 300 + Math.random() * 500;
+  setTimeout(() => {
+    if (!running) return;
+    let next;
+    do { next = Math.floor(Math.random() * 9); } while (next === active);
+    active = next;
+    grid.children[active].classList.add('active');
+    litAt = Date.now();
+    const freqs = [220, 262, 330, 392, 440, 523, 587, 659, 784];
+    beep(freqs[active], 'square', 0.15, 0.2);
+    timeout = setTimeout(() => missedIt(), getDelay());
+  }, pause);
+}
+
+function missedIt() {
+  clearActive();
+  lives--;
+  streak = 0;
+  failSound();
+  setMessage('TOO SLOW! — BREATHE...', 'msg-bad');
+  document.getElementById('reaction-display').textContent = '';
+  updateUI();
+  shakeGrid();
+  if (lives <= 0) { gameOver(); return; }
+  setTimeout(() => {
+    if (!running) return;
+    setMessage('GET READY...', 'msg-neutral');
+    nextRound();
+  }, 1500);
+}
+
+function press(i) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (!running) return;
+
+  if (i === active) {
+    const reaction = Date.now() - litAt;
+    const color = btnColors[i];
+    clearActive();
+
+    // Hit flash on button
+    const btn = grid.children[i];
+    btn.classList.add('hit-flash');
+    setTimeout(() => btn.classList.remove('hit-flash'), 150);
+
+    streak++;
+    if (streak > bestStreak) bestStreak = streak;
+    round++;
+    totalHits++;
+    reactionTimes.push(reaction);
+    const pts = DIFFS[diff].pts + Math.floor(streak / 3) * 4;
+    score += pts;
+    if (score > best) best = score;
+
+    bingSound();
+    successSound(streak);
+    showBing(color);
+
+    setMessage(`+${pts}  STREAK ×${streak}`, 'msg-good');
+    document.getElementById('reaction-display').textContent = `REACTION: ${reaction}ms`;
+    updateUI();
+    nextRound();
+  } else if (active >= 0) {
+    lives--;
+    streak = 0;
+    failSound();
+    setMessage('WRONG BUTTON!', 'msg-bad');
+    grid.children[i].classList.add('wrong');
+    setTimeout(() => grid.children[i].classList.remove('wrong'), 400);
+    updateUI();
+    if (lives <= 0) { clearActive(); gameOver(); return; }
+  }
+}
+
+function shakeGrid() {
+  grid.style.animation = 'none';
+  grid.offsetHeight;
+  grid.style.animation = 'wrongShake 0.3s ease';
+  setTimeout(() => grid.style.animation = '', 300);
+}
+
+function countdown(n, cb) {
+  const overlay = document.getElementById('countdown-overlay');
+  const num = document.getElementById('countdown-number');
+  overlay.classList.add('show');
+  
+  function tick(val) {
+    num.textContent = val > 0 ? val : 'GO!';
+    num.style.animation = 'none';
+    void num.offsetWidth;
+    num.style.animation = 'countPulse 0.8s ease-in-out';
+    beep(val > 0 ? 440 : 880, 'sine', 0.1, 0.2);
+    if (val > 0) {
+      setTimeout(() => tick(val - 1), 800);
+    } else {
+      setTimeout(() => {
+        overlay.classList.remove('show');
+        cb();
+      }, 600);
+    }
+  }
+  tick(n);
+}
+
+function startGame() {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  clearActive();
+  score = 0; streak = 0; lives = 3; round = 0;
+  totalHits = 0; bestStreak = 0; reactionTimes = [];
+  running = false;
+  updateUI();
+  document.getElementById('start-btn').textContent = 'RESTART';
+  document.getElementById('reaction-display').textContent = '';
+  setMessage('', 'msg-neutral');
+  document.getElementById('end-screen').classList.remove('show');
+
+  countdown(3, () => {
+    running = true;
+    setMessage('GO!', 'msg-good');
+    setTimeout(() => setMessage('', 'msg-neutral'), 600);
+    nextRound();
+  });
+}
+
+function getRating(s) {
+  let r = RATINGS[0];
+  for (const rating of RATINGS) {
+    if (s >= rating.min) r = rating;
+  }
+  return r;
+}
+
+function gameOver() {
+  running = false;
+  clearActive();
+  gameOverSound();
+
+  // Vibrate on mobile
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+
+  const avgReaction = reactionTimes.length
+    ? Math.round(reactionTimes.reduce((a,b) => a+b, 0) / reactionTimes.length)
+    : 0;
+
+  const rating = getRating(score);
+
+  document.getElementById('end-rating').textContent = rating.label;
+  document.getElementById('end-rating').style.color = rating.color;
+  document.getElementById('end-rating').style.textShadow = `0 0 20px ${rating.color}`;
+  document.getElementById('end-score-val').textContent = score;
+  document.getElementById('end-best').textContent = score >= best ? '★ NEW BEST ★' : `BEST: ${best}`;
+  document.getElementById('end-hits').textContent = totalHits;
+  document.getElementById('end-streak').textContent = bestStreak;
+  document.getElementById('end-avg').textContent = avgReaction ? `${avgReaction}ms` : '-';
+
+  setTimeout(() => {
+    document.getElementById('end-screen').classList.add('show');
+    document.getElementById('start-btn').textContent = 'PLAY AGAIN';
+  }, 500);
+}
+
+function restartFromEnd() {
+  document.getElementById('end-screen').classList.remove('show');
+  startGame();
+}
+
+updateUI();
+</script>
+</body>
+</html>
