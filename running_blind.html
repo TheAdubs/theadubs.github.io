@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RUNNING BLIND</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+'use strict';
+
+// ─── CANVAS SETUP ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d', {alpha:false});
+const RW=400, RH=300, VW=800, VH=600;
+const rCanvas = document.createElement('canvas');
+rCanvas.width=RW; rCanvas.height=RH;
+const rCtx = rCanvas.getContext('2d');
+const IMG  = rCtx.createImageData(RW, RH);
+const PIX  = IMG.data;
+const ZBUF = new Float32Array(RW);
+
+let scale=1;
+function resize(){
+  scale=Math.min(window.innerWidth/VW,window.innerHeight/VH);
+  canvas.width=VW; canvas.height=VH;
+  canvas.style.width=VW*scale+'px'; canvas.style.height=VH*scale+'px';
+}
+window.addEventListener('resize',resize); resize();
+
+// ─── AUDIO ENGINE ─────────────────────────────────────────────────────────────
+let AC, mGain;
+function initAudio(){
+  if(AC) return;
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  mGain=AC.createGain(); mGain.gain.value=0.5; mGain.connect(AC.destination);
+}
+
+// Pan: -1=full left, 0=center, 1=full right
+function makePanner(pan=0){
+  if(!AC) return null;
+  const p=AC.createStereoPanner?AC.createStereoPanner():null;
+  if(p){ p.pan.value=Math.max(-1,Math.min(1,pan)); p.connect(mGain); return p; }
+  return mGain; // fallback
+}
+
+// Calculate stereo pan from player to world position
+function worldPan(wx,wy){
+  if(!player) return 0;
+  const toAng=Math.atan2(wy-player.y, wx-player.x);
+  const rel=toAng-player.angle;
+  return Math.max(-1,Math.min(1,Math.sin(rel)));
+}
+
+function tone(f,tp,vol,dur,t=0,fE=null,pan=0){
+  if(!AC) return;
+  const o=AC.createOscillator(),g=AC.createGain(),pn=makePanner(pan);
+  o.connect(g); g.connect(pn||mGain); o.type=tp;
+  o.frequency.setValueAtTime(f,AC.currentTime+t);
+  if(fE) o.frequency.exponentialRampToValueAtTime(fE,AC.currentTime+t+dur);
+  g.gain.setValueAtTime(vol,AC.currentTime+t);
+  g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+t+dur);
+  o.start(AC.currentTime+t); o.stop(AC.currentTime+t+dur+0.06);
+}
+
+function noise(vol,dur,t=0,hp=80,pan=0){
+  if(!AC||vol<0.005) return;
+  const len=Math.ceil(AC.sampleRate*dur);
+  const buf=AC.createBuffer(1,len,AC.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len*0.5);
+  const src=AC.createBufferSource(),g=AC.createGain(),hpf=AC.createBiquadFilter(),pn=makePanner(pan);
+  hpf.type='highpass'; hpf.frequency.value=hp;
+  src.buffer=buf; src.connect(hpf); hpf.connect(g); g.connect(pn||mGain);
+  g.gain.value=vol; src.start(AC.currentTime+t);
+}
+
+// Breathing sound — scary close stalker presence
+function playBreathing(vol,pan=0){
+  if(!AC||vol<0.01) return;
+  tone(120+Math.random()*30,'sine',vol*0.18,0.8,0,null,pan);
+  tone(240+Math.random()*40,'sine',vol*0.09,0.8,0,null,pan);
+  noise(vol*0.28,0.9,0,400,pan);
+  noise(vol*0.22,0.7,0.85,300,pan);
+}
+
+// Door slam — directional
+function doorSlam(pan=0){
+  if(!AC) return;
+  noise(0.9,0.18,0,20,pan);
+  tone(60,'sine',0.7,0.4,0,20,pan);
+  noise(0.3,0.6,0.15,40,pan);
+}
+
+// Window rattle
+function windowRattle(pan=0){
+  if(!AC) return;
+  noise(0.25,0.35,0,1200,pan);
+  tone(280,'sawtooth',0.08,0.3,0,260,pan);
+}
+
+// Distant scream — existential dread (random pan)
+function distantScream(){
+  if(!AC) return;
+  const pan=(Math.random()*2-1);
+  tone(600+Math.random()*200,'sawtooth',0.08,0.5,0,400+Math.random()*100,pan);
+  tone(500+Math.random()*100,'sawtooth',0.06,0.8,0.3,300,pan);
+  noise(0.04,1.0,0,600,pan);
+}
+
+// Footstep in empty room (haunted)
+function ghostFootstep(pan=0){
+  if(!AC) return;
+  noise(0.18,0.06,0,90,pan);
+  tone(55+Math.random()*20,'sine',0.3,0.08,0,null,pan);
+}
+
+// Whisper with barely-audible voice
+function whisper(pan=0){
+  if(!AC) return;
+  noise(0.07+Math.random()*0.09,0.4+Math.random()*0.6,0,1800,pan);
+  // Formant-like vowel sound underneath
+  tone(200+Math.random()*100,'sine',0.02,0.4,0,null,pan);
+}
+
+function heartbeat(i=1,pan=0){
+  tone(75,'sine',0.95*i,0.28,0,30,pan); tone(72,'sine',0.7*i,0.22,0.20,28,pan);
+  noise(0.08*i,0.05,0,80,pan); noise(0.06*i,0.04,0.20,80,pan);
+}
+function footstep(vol=0.15,hvy=false,pan=0){
+  if(!AC||vol<0.01) return;
+  const f=hvy?45+Math.random()*20:80+Math.random()*35;
+  tone(f,'sine',vol*0.8,0.1,0,f*0.4,pan); noise(vol*0.35,0.05,0,hvy?50:120,pan);
+}
+function pickupPage(){ [440,554,659,784].forEach((f,i)=>tone(f,'sine',0.22,0.45,i*0.1)); }
+function growl(vol=0.5,pan=0){ if(!AC||vol<0.04) return; tone(45+Math.random()*20,'sawtooth',vol*0.7,0.6,0,null,pan); noise(vol*0.25,0.4,0.05,30,pan); }
+function lowCreak(pan=0){ if(!AC) return; tone(110+Math.random()*70,'sawtooth',0.12,0.6,0,90,pan); }
+function deathSound(){ tone(180,'sawtooth',0.9,1.0); noise(0.5,0.8); tone(140,'sawtooth',0.6,1.4,0.08); }
+function winSound(){ [523,659,784,1047,1318].forEach((f,i)=>tone(f,'sine',0.3,1.0,i*0.18)); }
+
+// The stare sound — deep resonant hum, like something tuning in on you
+function stareSound(pan=0){
+  if(!AC) return;
+  tone(38,'sine',0.6,3.5,0,36,pan);       // sub rumble that builds
+  tone(76,'sine',0.18,3.5,0,74,pan);      // harmonic
+  noise(0.04,3.5,0,60,pan);               // barely-there texture
+  // Sharp inhale at the end before charge
+  setTimeout(()=>{ noise(0.28,0.4,0,800,pan); tone(220,'sawtooth',0.15,0.3,0,180,pan); }, 3000);
+}
+
+// Silence event: stalker goes quiet — play subtle room tone to make silence audible
+let silenceNode=null;
+function startSilenceTone(){
+  if(!AC||silenceNode) return;
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.connect(g); g.connect(mGain);
+  o.type='sine'; o.frequency.value=38;
+  g.gain.setValueAtTime(0,AC.currentTime);
+  g.gain.linearRampToValueAtTime(0.06,AC.currentTime+3);
+  o.start(); silenceNode={o,g};
+}
+function stopSilenceTone(){
+  if(!silenceNode) return;
+  silenceNode.g.gain.linearRampToValueAtTime(0,AC.currentTime+2);
+  const n=silenceNode; silenceNode=null;
+  setTimeout(()=>{ try{n.o.stop();}catch(e){} },2500);
+}
+
+// ─── MAP ──────────────────────────────────────────────────────────────────────
+const TILE=64, MAP_W=40, MAP_H=21;
+const _M=Array.from({length:MAP_H},()=>new Uint8Array(MAP_W).fill(1));
+function carve(x1,y1,x2,y2,t=0){
+  for(let y=Math.max(1,y1);y<=Math.min(MAP_H-2,y2);y++)
+    for(let x=Math.max(1,x1);x<=Math.min(MAP_W-2,x2);x++) _M[y][x]=t;
+}
+carve(1,1,38,2);
+[4,12,20,28,35].forEach(c=>_M[3][c]=0);
+carve(1,4,7,9); carve(9,4,15,9); carve(17,4,23,9); carve(25,4,31,9); carve(33,4,38,9);
+for(let y=4;y<=9;y++){ _M[y][8]=2; _M[y][16]=2; _M[y][24]=2; _M[y][32]=2; }
+[4,12,20,28].forEach(c=>_M[10][c]=0);
+carve(1,11,38,12);
+[4,12,20,28,34].forEach(c=>_M[13][c]=0);
+carve(1,14,7,19); carve(9,14,15,19); carve(17,14,23,19); carve(25,14,31,19); carve(33,14,38,19);
+for(let y=14;y<=19;y++){ _M[y][8]=2; _M[y][16]=2; _M[y][24]=2; _M[y][32]=2; }
+_M[10][2]=0; _M[10][3]=0; _M[10][21]=0; _M[10][22]=0; _M[3][36]=0; _M[3][37]=0;
+
+function _baseMapAt(tx,ty){ if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H) return 1; return _M[ty][tx]; }
+function inWall(wx,wy,r=8){
+  const r2=r*0.8;
+  return !mapAt(Math.floor((wx-r2)/TILE),Math.floor((wy-r2)/TILE))===false||
+    mapAt(Math.floor((wx-r2)/TILE),Math.floor((wy-r2)/TILE))>0||
+    mapAt(Math.floor((wx+r2)/TILE),Math.floor((wy-r2)/TILE))>0||
+    mapAt(Math.floor((wx-r2)/TILE),Math.floor((wy+r2)/TILE))>0||
+    mapAt(Math.floor((wx+r2)/TILE),Math.floor((wy+r2)/TILE))>0;
+}
+
+const CLOSETS=[
+  {x:2*TILE,y:10*TILE,w:2*TILE,h:TILE},
+  {x:21*TILE,y:10*TILE,w:2*TILE,h:TILE},
+  {x:36*TILE,y:3*TILE,w:2*TILE,h:TILE},
+];
+// ── Dynamic walls (map lies) ──
+const closedDoors=new Map();
+let mapLiesTimer=0;
+
+function mapAt(tx,ty){
+  if(closedDoors.has(`${tx},${ty}`)) return 1;
+  return _baseMapAt(tx,ty);
+}
+
+// All togglable doorway positions (not chapel exit, not closets)
+const TOGGLEABLE_DOORS=[
+  {x:4,y:3},{x:12,y:3},{x:20,y:3},{x:28,y:3},
+  {x:4,y:10},{x:12,y:10},{x:20,y:10},{x:28,y:10},
+  {x:4,y:13},{x:12,y:13},{x:20,y:13},{x:28,y:13},
+];
+
+function scheduleMapLie(){ mapLiesTimer=1200+Math.random()*1800; }
+
+function updateMapLies(){
+  // Tick down existing closed doors
+  for(const [key,data] of closedDoors){
+    data.timer--;
+    if(data.timer<=0){
+      closedDoors.delete(key);
+      // Creak as it "opens" — player may hear a room they thought was sealed change
+      lowCreak((Math.random()*2-1));
+    }
+  }
+  mapLiesTimer--;
+  if(mapLiesTimer>0) return;
+  scheduleMapLie();
+
+  // Pick a door not immediately adjacent to player
+  const px=Math.floor(player.x/TILE), py=Math.floor(player.y/TILE);
+  const candidates=TOGGLEABLE_DOORS.filter(d=>{
+    const key=`${d.x},${d.y}`;
+    if(closedDoors.has(key)) return false;
+    // Don't close a door within 6 tiles of player (Euclidean tile distance)
+    if(Math.hypot(d.x-px,d.y-py)<6) return false;
+    // Don't close a door if it's the only exit from the room the player is in
+    // Upper rooms: rows 4-9, lower rooms: rows 14-19
+    const pInUpperRoom=py>=4&&py<=9;
+    const pInLowerRoom=py>=14&&py<=19;
+    const doorIsUpperEntry=d.y===3||d.y===10;
+    const doorIsLowerEntry=d.y===10||d.y===13;
+    const doorColumn=Math.floor(d.x/8); // rough room index by column
+    const playerColumn=Math.floor(px/8);
+    if(pInUpperRoom&&doorIsUpperEntry&&doorColumn===playerColumn) return false;
+    if(pInLowerRoom&&doorIsLowerEntry&&doorColumn===playerColumn) return false;
+    return true;
+  });
+  if(candidates.length===0) return;
+
+  const door=candidates[Math.floor(Math.random()*candidates.length)];
+  const key=`${door.x},${door.y}`;
+  closedDoors.set(key,{timer:Math.floor(1200+Math.random()*1800)}); // 20-50s
+
+  // Directional slam sound
+  const pan=worldPan(door.x*TILE,door.y*TILE);
+  doorSlam(pan);
+  shakeMag=3;
+}
+
+// ── Wall eye haunted tiles ──
+// These are wall tiles (always solid) that get glowing eyes bleeding through
+let wallEyes=[];
+
+const WALL_EYE_CANDIDATES=[
+  // End-of-corridor walls — most impactful
+  {tx:1,ty:1},{tx:38,ty:1},{tx:1,ty:11},{tx:38,ty:11},
+  // Room back walls
+  {tx:1,ty:4},{tx:7,ty:4},{tx:1,ty:14},{tx:7,ty:14},
+  {tx:33,ty:4},{tx:38,ty:4},{tx:33,ty:14},{tx:38,ty:14},
+  {tx:9,ty:4},{tx:15,ty:4},{tx:17,ty:4},{tx:23,ty:4},
+  {tx:9,ty:14},{tx:15,ty:14},{tx:17,ty:14},{tx:23,ty:14},
+  // Side corridor walls
+  {tx:1,ty:6},{tx:38,ty:6},{tx:1,ty:16},{tx:38,ty:16},
+];
+
+function spawnWallEyes(){
+  wallEyes=[];
+  const picks=[...WALL_EYE_CANDIDATES].sort(()=>Math.random()-0.5).slice(0,5);
+  for(const pos of picks){
+    wallEyes.push({
+      tx:pos.tx, ty:pos.ty,
+      eyeU: 0.5,                   // horizontal position on wall face (0-1)
+      eyeV: 0.42+Math.random()*0.12, // vertical position (eye height)
+      openness:0,
+      blinkPhase:'closed',
+      blinkTimer:300+Math.random()*600, // start closed, open after a while
+      blinkDur:0,
+      hue:'red',
+      lifeTimer:900+Math.random()*1800,
+    });
+  }
+}
+
+function updateWallEyes(){
+  for(const e of wallEyes){
+    e.blinkTimer--;
+    if(e.blinkPhase==='closed'&&e.blinkTimer<=0){
+      e.blinkPhase='opening'; e.blinkDur=12+Math.random()*10; e.blinkTimer=e.blinkDur;
+    } else if(e.blinkPhase==='opening'){
+      e.openness=Math.min(1,1-e.blinkTimer/e.blinkDur);
+      if(e.blinkTimer<=0){ e.blinkPhase='open'; e.blinkTimer=90+Math.random()*240; e.openness=1; }
+    } else if(e.blinkPhase==='open'&&e.blinkTimer<=0){
+      e.blinkPhase='closing'; e.blinkDur=8+Math.random()*8; e.blinkTimer=e.blinkDur;
+    } else if(e.blinkPhase==='closing'){
+      e.openness=Math.max(0,e.blinkTimer/e.blinkDur);
+      if(e.blinkTimer<=0){ e.blinkPhase='closed'; e.blinkTimer=200+Math.random()*500; e.openness=0; }
+    }
+    // Relocate after life expires
+    e.lifeTimer--;
+    if(e.lifeTimer<=0){
+      const np=WALL_EYE_CANDIDATES[Math.floor(Math.random()*WALL_EYE_CANDIDATES.length)];
+      e.tx=np.tx; e.ty=np.ty;
+      e.eyeV=0.4+Math.random()*0.15;
+      e.lifeTimer=900+Math.random()*1800;
+      e.blinkPhase='closed'; e.blinkTimer=60; e.openness=0;
+    }
+  }
+}
+
+function inChapel(){ return player.x>33*TILE&&player.x<39*TILE&&player.y>4*TILE&&player.y<10*TILE; }
+
+// Doorway tiles for "standing in doorway" stalker behavior
+const DOORWAYS=[
+  {x:4,y:3},{x:12,y:3},{x:20,y:3},{x:28,y:3},{x:35,y:3},
+  {x:4,y:10},{x:12,y:10},{x:20,y:10},{x:28,y:10},
+  {x:4,y:13},{x:12,y:13},{x:20,y:13},{x:28,y:13},{x:34,y:13},
+];
+function nearestDoorwayTo(wx,wy){
+  let best=null,bd=9999;
+  for(const d of DOORWAYS){
+    const dd=Math.hypot(wx-d.x*TILE,wy-d.y*TILE);
+    if(dd<bd){ bd=dd; best=d; }
+  }
+  return best;
+}
+
+// ─── PHANTOM EYE SYSTEM ───────────────────────────────────────────────────────
+// Hallway tile positions where eyes can appear (world coords)
+const EYE_SPAWNS=[
+  // Top gallery
+  [5,1.5],[10,1.5],[15,1.5],[22,1.5],[30,1.5],[36,1.5],
+  // Main corridor
+  [5,11.5],[10,11.5],[18,11.5],[25,11.5],[33,11.5],
+  // Doorway thresholds (creepiest)
+  [4,3.5],[12,3.5],[20,3.5],[28,3.5],
+  [4,12.5],[12,12.5],[20,12.5],[28,12.5],
+].map(([tx,ty])=>({wx:tx*TILE+TILE/2, wy:ty*TILE+TILE/2}));
+
+// Active eye pool — each eye pair has independent blink state
+let eyePool=[];
+
+function spawnEyes(){
+  eyePool=[];
+  // Pick 5-7 random positions at game start, reshuffle occasionally
+  const positions=[...EYE_SPAWNS].sort(()=>Math.random()-0.5).slice(0,3);
+  for(const pos of positions){
+    eyePool.push({
+      wx: pos.wx, wy: pos.wy,
+      // Blink phases: 'open','closing','closed','opening'
+      blinkPhase:'open',
+      blinkTimer: 200+Math.random()*400,  // longer open periods — rarer blinks
+      blinkDur: 0,
+      openness: 1.0,
+      hue: Math.random()<0.75 ? 'red' : Math.random()<0.5 ? 'amber' : 'white',
+      drift: 0,
+      driftDir: (Math.random()-0.5)*0.003,
+      active: true,
+      lifeTimer: 1200+Math.random()*1800, // stays longer before relocating
+    });
+  }
+}
+
+function updateEyes(){
+  for(const e of eyePool){
+    // Blink state machine
+    e.blinkTimer--;
+    if(e.blinkPhase==='open'&&e.blinkTimer<=0){
+      e.blinkPhase='closing';
+      e.blinkDur=8+Math.random()*6; // fast close
+      e.blinkTimer=e.blinkDur;
+    } else if(e.blinkPhase==='closing'){
+      e.openness=Math.max(0, e.blinkTimer/e.blinkDur);
+      if(e.blinkTimer<=0){
+        e.blinkPhase='closed';
+        e.blinkTimer=6+Math.random()*18; // hold closed
+        e.openness=0;
+      }
+    } else if(e.blinkPhase==='closed'&&e.blinkTimer<=0){
+      e.blinkPhase='opening';
+      e.blinkDur=10+Math.random()*8;
+      e.blinkTimer=e.blinkDur;
+    } else if(e.blinkPhase==='opening'){
+      e.openness=Math.min(1, 1-(e.blinkTimer/e.blinkDur));
+      if(e.blinkTimer<=0){
+        e.blinkPhase='open';
+        // Sometimes double-blink
+        e.blinkTimer=Math.random()<0.25
+          ? 8+Math.random()*12    // quick second blink
+          : 120+Math.random()*300; // long open
+        e.openness=1;
+      }
+    }
+    // Drift subtly
+    e.drift+=e.driftDir;
+    if(Math.abs(e.drift)>4){ e.driftDir*=-1; }
+
+    // Respawn at new position after life expires
+    e.lifeTimer--;
+    if(e.lifeTimer<=0){
+      const np=EYE_SPAWNS[Math.floor(Math.random()*EYE_SPAWNS.length)];
+      e.wx=np.wx; e.wy=np.wy;
+      e.lifeTimer=600+Math.random()*900;
+      e.blinkPhase='closed'; e.blinkTimer=30; e.openness=0; // appear with a blink-open
+    }
+  }
+}
+
+// Blackout eyes — drawn on 2D canvas during blackout (independent of raycaster)
+let blackoutEyes=[];
+function spawnBlackoutEyes(){
+  blackoutEyes=[];
+  const count=1+Math.floor(Math.random()*2); // 1-2 pairs — less is more
+  for(let i=0;i<count;i++){
+    // Screen positions — distributed in front of player
+    const ex=VW*0.2+Math.random()*VW*0.6;
+    const ey=VH*0.25+Math.random()*VH*0.45;
+    const sz=3+Math.random()*9; // size = apparent distance
+    blackoutEyes.push({
+      x:ex, y:ey, sz,
+      openness:0, blinkPhase:'opening', blinkTimer:40+i*35+Math.random()*30, blinkDur:25,
+      // Slowly drift forward (size increases = approaching)
+      growRate: Math.random()<0.4 ? 0.008+Math.random()*0.015 : 0,
+      hue: Math.random()<0.8?'red':'amber',
+      offsetY: 0,
+    });
+  }
+}
+
+// ─── TEXTURES ─────────────────────────────────────────────────────────────────
+const TS=64;
+const TEX={};
+let seed=42;
+function rng(){ seed^=seed<<13;seed^=seed>>17;seed^=seed<<5; return (seed>>>0)/4294967296; }
+
+function genTex(fn){ const d=new Uint8Array(TS*TS*3); for(let y=0;y<TS;y++) for(let x=0;x<TS;x++) fn(d,(y*TS+x)*3,x,y); return d; }
+
+TEX[1]=genTex((d,i,x,y)=>{
+  const row=Math.floor(y/10),bx=(x+(row%2===0?0:16))%32,mortar=bx<2||y%10<2;
+  if(mortar){d[i]=28;d[i+1]=22;d[i+2]=18;}
+  else{const v=Math.sin(x*0.7+row*2.1)*6+Math.sin(x*2.3+y*0.4)*3,n=(rng()-0.5)*14;
+    d[i]=Math.max(8,Math.min(255,58+v+n)); d[i+1]=Math.max(4,Math.min(255,26+v*0.5+n*0.4)); d[i+2]=Math.max(2,Math.min(255,16+v*0.3+n*0.2));}
+});
+TEX[2]=genTex((d,i,x,y)=>{
+  const plank=Math.floor(x/10),grain=Math.sin(y*0.15+plank*1.7)*4+Math.sin(y*0.8+plank*0.3)*2,n=(rng()-0.5)*8;
+  d[i]=Math.max(8,Math.min(255,46+grain+n)); d[i+1]=Math.max(4,Math.min(255,26+grain*0.7+n*0.5)); d[i+2]=Math.max(1,Math.min(255,12+grain*0.3+n*0.3));
+});
+TEX[3]=genTex((d,i,x,y)=>{
+  const n=(rng()-0.5)*18+Math.sin(x*0.4+y*0.3)*6,crack=(x%13<1||y%11<1)?-20:0;
+  d[i]=Math.max(4,Math.min(255,48+n+crack)); d[i+1]=Math.max(4,Math.min(255,46+n+crack)); d[i+2]=Math.max(6,Math.min(255,52+n+crack));
+});
+TEX.floor=genTex((d,i,x,y)=>{
+  const plank=Math.floor(y/8),n=(rng()-0.5)*10+Math.sin(x*0.3+plank)*3,seam=y%8<1?-15:0;
+  d[i]=Math.max(2,Math.min(255,20+n+seam)); d[i+1]=Math.max(1,Math.min(255,12+n*0.8+seam)); d[i+2]=Math.max(0,Math.min(255,6+n*0.5+seam));
+});
+TEX.ceil=genTex((d,i,x,y)=>{
+  const n=(rng()-0.5)*6+Math.sin(x*0.5+y*0.4)*2;
+  d[i]=Math.max(1,7+n); d[i+1]=Math.max(1,6+n); d[i+2]=Math.max(2,9+n);
+});
+
+// ─── ENTITIES ─────────────────────────────────────────────────────────────────
+let player, stalker, pages, pagesCollected;
+
+const PATROL=[
+  [288,416],[800,416],[1312,416],[1824,416],
+  [1312,736],[288,1056],[800,1056],[1312,1056],
+  [1824,1056],[2336,1056],[2336,416],[1312,160],
+];
+
+function initEntities(){
+  player={x:1312,y:1056,angle:Math.PI,sanity:100,isHiding:false,radius:10};
+  stalker={
+    x:1312,y:416,angle:Math.PI/2,radius:14,
+    state:'patrol',patrolIdx:0,
+    targetX:1312,targetY:416,lastSeenX:0,lastSeenY:0,
+    alertTimer:0,listenTimer:0,doorwayTimer:0,silenceTimer:300,backtrackTimer:0,
+    stareTimer:0,      // countdown during stare state
+    stareAngle:0,      // locked facing angle during stare
+    agg:1.0,stepTimer:0,stuckTimer:0,
+    isSilent:false,     // silence weapon — no sounds
+    wasSilent:false,    // track transition
+    lastSoundFrame:0,   // frame when stalker last made a sound
+    doorwayX:0,doorwayY:0,  // chosen doorway position
+  };
+  pages=[[288,1056],[288,416],[800,1056],[1824,416],[2336,1056]]
+    .map(([x,y],idx)=>({x,y,collected:false,bob:idx*1.2}));
+  pagesCollected=0;
+}
+
+// ─── GAME STATE ───────────────────────────────────────────────────────────────
+let state='menu', frame=0;
+let hbTimer=0, growlTimer=400, stepTimer=0;
+let flickerStr=1, shakeMag=0;
+let bobPhase=0, bobOffset=0;
+let viewPitch=0, viewRoll=0;
+
+// ── Blackout system ──
+let blackoutTimer=0;    // countdown to next blackout
+let blackoutState=0;    // 0=off, 1=pre-flicker, 2=dark
+let blackoutDur=0;      // how long the dark lasts
+let blackoutPreDur=0;   // how long pre-flicker lasts
+let preFlickerTimer=0;
+const BLACKOUT_INTERVAL_MIN=1800, BLACKOUT_INTERVAL_MAX=3600; // frames
+function scheduleBlackout(){
+  blackoutTimer=BLACKOUT_INTERVAL_MIN+Math.random()*(BLACKOUT_INTERVAL_MAX-BLACKOUT_INTERVAL_MIN);
+  // Scales shorter with more pages
+  blackoutTimer*=Math.max(0.4,1-pagesCollected*0.12);
+}
+
+// ── Environment event system ──
+let envTimer=0;       // countdown to next event
+let envSilenceTimer=0; // how long stalker has been quiet
+function scheduleEnv(){ envTimer=60+Math.random()*240; }
+
+// Room data for ghost footstep panning
+const ROOM_CENTERS=[
+  [3.5,6.5],[11.5,6.5],[19.5,6.5],[27.5,6.5],[36,6.5], // upper
+  [3.5,16.5],[11.5,16.5],[19.5,16.5],[27.5,16.5],[36,16.5], // lower
+];
+
+// ─── INPUT ────────────────────────────────────────────────────────────────────
+const keys={};
+document.addEventListener('keydown',e=>{keys[e.code]=true;['Space','ArrowUp','ArrowDown'].includes(e.code)&&e.preventDefault();});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+
+let pointerLocked=false, mouseDX=0;
+canvas.addEventListener('click',()=>{ initAudio(); if(state==='playing') canvas.requestPointerLock?.(); else enterGame(); });
+document.addEventListener('pointerlockchange',()=>{ pointerLocked=document.pointerLockElement===canvas; });
+document.addEventListener('mousemove',e=>{ if(!pointerLocked) return; mouseDX+=e.movementX; });
+
+const isMobile='ontouchstart' in window;
+const LJOY={bx:110,by:490,r:62}, RJOY={bx:690,by:490,r:62};
+const lJoy={active:false,id:null,dx:0,dy:0}, rJoy={active:false,id:null,dx:0,dy:0};
+function cvPt(t){ const r=canvas.getBoundingClientRect(); return {x:(t.clientX-r.left)/scale,y:(t.clientY-r.top)/scale}; }
+
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault(); initAudio();
+  if(state!=='playing'){ enterGame(); return; }
+  for(const t of e.changedTouches){
+    const {x,y}=cvPt(t);
+    if(x<VW*0.5&&!lJoy.active){ lJoy.active=true;lJoy.id=t.identifier;lJoy.dx=0;lJoy.dy=0; }
+    else if(x>=VW*0.5&&!rJoy.active){ rJoy.active=true;rJoy.id=t.identifier;rJoy.dx=0;rJoy.dy=0; }
+  }
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  for(const t of e.changedTouches){
+    const {x,y}=cvPt(t);
+    if(t.identifier===lJoy.id){ lJoy.dx=Math.max(-LJOY.r,Math.min(LJOY.r,x-LJOY.bx)); lJoy.dy=Math.max(-LJOY.r,Math.min(LJOY.r,y-LJOY.by)); }
+    if(t.identifier===rJoy.id){ rJoy.dx=Math.max(-RJOY.r,Math.min(RJOY.r,x-RJOY.bx)); rJoy.dy=Math.max(-RJOY.r,Math.min(RJOY.r,y-RJOY.by)); }
+  }
+},{passive:false});
+canvas.addEventListener('touchend',e=>{
+  e.preventDefault();
+  for(const t of e.changedTouches){
+    if(t.identifier===lJoy.id){lJoy.active=false;lJoy.id=null;lJoy.dx=0;lJoy.dy=0;}
+    if(t.identifier===rJoy.id){rJoy.active=false;rJoy.id=null;rJoy.dx=0;rJoy.dy=0;}
+  }
+},{passive:false});
+
+function enterGame(){
+  if(AC&&AC.state==='suspended') AC.resume();
+  initEntities();
+  hbTimer=0; growlTimer=400; stepTimer=0;
+  flickerStr=1; shakeMag=0; bobPhase=0; bobOffset=0; viewPitch=0; viewRoll=0;
+  blackoutState=0; scheduleBlackout(); scheduleEnv();
+  envSilenceTimer=0; frame=0; state='playing';
+  spawnEyes(); blackoutEyes=[];
+  spawnWallEyes(); closedDoors.clear(); scheduleMapLie();
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+const dist=(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by);
+function absDiff(a,b){ let d=((a-b)%(Math.PI*2)+Math.PI*2)%(Math.PI*2); return d>Math.PI?Math.PI*2-d:d; }
+function slide(obj,dx,dy){
+  const r=obj.radius||10;
+  const nx=obj.x+dx, ny=obj.y+dy;
+  if(!inWall(nx,ny,r)){obj.x=nx;obj.y=ny;return;}
+  if(!inWall(nx,obj.y,r)){obj.x=nx;return;}
+  if(!inWall(obj.x,ny,r)){obj.y=ny;return;}
+}
+
+// ─── STALKER AI (6 states) ────────────────────────────────────────────────────
+function updateStalker(){
+  const agg=stalker.agg;
+  const d=dist(stalker.x,stalker.y,player.x,player.y);
+  const toP=Math.atan2(player.y-stalker.y,player.x-stalker.x);
+  const sprintThresh=LJOY.r*0.72;
+  const moving=(lJoy.active&&Math.hypot(lJoy.dx,lJoy.dy)>8)||
+    (keys.KeyW||keys.KeyS||keys.KeyA||keys.KeyD||keys.ArrowUp||keys.ArrowDown);
+  const sprintFrac=isMobile
+    ? Math.min(1,Math.max(0,(Math.hypot(lJoy.dx,lJoy.dy)-LJOY.r*0.45)/(LJOY.r*0.55)))
+    : ((keys.ShiftLeft||keys.ShiftRight)&&moving?1:0);
+  const sprinting=sprintFrac>0.5;
+  const hearRange=(160 + sprintFrac*140)*agg;
+  // Vision: stalker sees player if player is in front of it within 520px (~8 tiles)
+  const sees=d<520*agg&&absDiff(toP,stalker.angle)<0.9;
+  const hears=moving&&d<hearRange;
+  const stalkerPan=worldPan(stalker.x,stalker.y);
+
+  // ── State transitions ──
+  if(sees||hears){
+    stalker.lastSeenX=player.x; stalker.lastSeenY=player.y;
+    if(stalker.state!=='chase'&&stalker.state!=='stare'){
+      if(sees || stalker.alertTimer<0){
+        // 40% chance to STARE first when it spots you (not when just hearing)
+        // More likely early game when it first sees you, rarer once it's already chasing
+        const doStare=sees&&Math.random()<0.42&&pagesCollected>=1;
+        if(doStare){
+          stalker.state='stare';
+          stalker.stareTimer=Math.floor(100+Math.random()*80); // 1.7–3s freeze
+          stalker.stareDuration=stalker.stareTimer; // store for progress calc
+          stalker.stareAngle=Math.atan2(player.y-stalker.y, player.x-stalker.x);
+          stalker.isSilent=true; // dead silent during stare
+          stareSound(worldPan(stalker.x,stalker.y));
+        } else {
+          stalker.state='chase';
+          stalker.alertTimer=300;
+          if(Math.random()<0.30&&pagesCollected>1){
+            stalker.state='doorway';
+            const dw=nearestDoorwayTo(player.x,player.y);
+            stalker.doorwayX=dw.x*TILE; stalker.doorwayY=dw.y*TILE;
+            stalker.doorwayTimer=180+Math.random()*300;
+          }
+          stalker.isSilent=Math.random()<0.20;
+        }
+      } else if(hears&&stalker.state!=='alert'){
+        stalker.state='alert';
+        stalker.targetX=player.x; stalker.targetY=player.y;
+        stalker.alertTimer=-(60+Math.random()*30);
+      }
+    }
+  } else {
+    switch(stalker.state){
+      case 'stare':
+        // During stare it just watches — counts down then CHARGES
+        stalker.stareTimer--;
+        stalker.angle=stalker.stareAngle; // locked on player
+        if(stalker.stareTimer<=0){
+          stalker.state='chase';
+          stalker.alertTimer=400;
+          stalker.isSilent=false;
+          // Loud lurch sound at the moment it breaks
+          noise(0.5,0.25,0,40,worldPan(stalker.x,stalker.y));
+          shakeMag=7;
+        }
+        break;
+      case 'chase':
+        stalker.alertTimer--;
+        if(stalker.alertTimer<=0){
+          // Don't just stop — listen first
+          stalker.state='listen';
+          stalker.listenTimer=60+Math.random()*120; // 1-3 seconds of perfect stillness
+          stalker.isSilent=true;
+        }
+        // Backtrack fake-out
+        if(stalker.backtrackTimer>0) stalker.backtrackTimer--;
+        else if(Math.random()<0.0012){ stalker.backtrackTimer=40+Math.random()*30; } // sudden reverse
+        break;
+      case 'listen':
+        stalker.listenTimer--;
+        if(stalker.listenTimer<=0){
+          if(hears){ stalker.state='stalk'; stalker.targetX=stalker.lastSeenX; stalker.targetY=stalker.lastSeenY; }
+          else { stalker.state='patrol'; stalker.isSilent=false; }
+        }
+        break;
+      case 'stalk':
+        if(sees||hears){ stalker.state='chase'; stalker.alertTimer=300; }
+        else if(dist(stalker.x,stalker.y,stalker.targetX,stalker.targetY)<50){
+          // Arrived at position — listen again
+          stalker.state='listen'; stalker.listenTimer=90+Math.random()*180;
+        }
+        break;
+      case 'doorway':
+        stalker.doorwayTimer--;
+        if(stalker.doorwayTimer<=0||sees) stalker.state='chase';
+        break;
+      case 'alert':
+        stalker.alertTimer--;
+        if(stalker.alertTimer<=0||dist(stalker.x,stalker.y,stalker.targetX,stalker.targetY)<50) stalker.state='patrol';
+        break;
+    }
+  }
+
+  // ── Silence weapon — goes completely silent mid-hunt at intervals ──
+  if(!stalker.isSilent){
+    stalker.silenceTimer--;
+    if(stalker.silenceTimer<=0){
+      stalker.silenceTimer=(stalker.state==='chase'?90:200)+Math.random()*200;
+      // Randomly enter silence (more often in later game)
+      if(Math.random()<0.08+pagesCollected*0.05){
+        stalker.isSilent=true;
+        startSilenceTone();
+        envSilenceTimer=180+Math.random()*300;
+      }
+    }
+  } else {
+    envSilenceTimer--;
+    if(envSilenceTimer<=0){
+      stalker.isSilent=false;
+      stopSilenceTone();
+      stalker.silenceTimer=120+Math.random()*240;
+    }
+  }
+
+  // ── Movement ──
+  let spd=0;
+  if(stalker.state==='chase')   spd=Math.min(5.5,3.5*agg)*(stalker.backtrackTimer>0?-0.6:1);
+  if(stalker.state==='alert')   spd=2.2;
+  if(stalker.state==='patrol')  spd=1.6;
+  if(stalker.state==='stalk')   spd=1.0;
+  if(stalker.state==='listen')  spd=0;
+  if(stalker.state==='stare')   spd=0;   // COMPLETELY FROZEN
+  if(stalker.state==='doorway') spd=2.8;
+
+  let tx,ty;
+  if(stalker.state==='chase')    { tx=player.x; ty=player.y; }
+  else if(stalker.state==='stalk'||stalker.state==='alert') { tx=stalker.targetX; ty=stalker.targetY; }
+  else if(stalker.state==='doorway') { tx=stalker.doorwayX; ty=stalker.doorwayY; }
+  else {
+    const wp=PATROL[stalker.patrolIdx];
+    tx=wp[0]; ty=wp[1];
+    if(dist(stalker.x,stalker.y,tx,ty)<50) stalker.patrolIdx=(stalker.patrolIdx+1)%PATROL.length;
+  }
+
+  const dd=dist(stalker.x,stalker.y,tx,ty);
+  if(spd!==0&&dd>4){
+    let dir=Math.sign(spd);
+    const s=Math.abs(spd);
+    const nx=(tx-stalker.x)/dd*dir, ny=(ty-stalker.y)/dd*dir;
+    stalker.angle=Math.atan2(ny,nx);
+    const ox=stalker.x,oy=stalker.y;
+    slide(stalker,nx*s,ny*s);
+    if(Math.abs(stalker.x-ox)<0.5&&Math.abs(stalker.y-oy)<0.5){
+      if(++stalker.stuckTimer>20){ stalker.stuckTimer=0; const a=Math.random()*Math.PI*2; stalker.x+=Math.cos(a)*TILE*0.5; stalker.y+=Math.sin(a)*TILE*0.5; if(inWall(stalker.x,stalker.y,stalker.radius)){stalker.x=ox;stalker.y=oy;} }
+    } else stalker.stuckTimer=0;
+  }
+  // Stare: keep angle locked on player even though spd=0
+  if(stalker.state==='stare'){
+    stalker.angle=Math.atan2(player.y-stalker.y, player.x-stalker.x);
+    stalker.stareAngle=stalker.angle;
+  }
+
+  // ── Stalker audio (silent when isSilent) ──
+  if(!stalker.isSilent){
+    stalker.stepTimer--;
+    if(stalker.stepTimer<=0&&(stalker.state==='chase'||stalker.state==='alert')){
+      stalker.stepTimer=stalker.state==='chase'?11:25;
+      footstep(Math.max(0,1-d/800)*0.7,true,stalkerPan);
+      stalker.lastSoundFrame=frame;
+    }
+  }
+
+  // ── Breathing when close but silent ──
+  if(stalker.isSilent&&d<320&&frame%48===0){
+    playBreathing(Math.max(0,1-d/320)*0.7,stalkerPan);
+  }
+  if(stalker.state==='listen'&&d<260&&frame%60===0){
+    playBreathing(0.25+Math.max(0,1-d/260)*0.35,stalkerPan);
+  }
+
+  // ── Caught ──
+  if(d<stalker.radius+player.radius+2){ state='dead'; deathSound(); }
+}
+
+// ─── BLACKOUT SYSTEM ──────────────────────────────────────────────────────────
+function updateBlackout(){
+  if(blackoutState===0){
+    blackoutTimer--;
+    if(blackoutTimer<=0){
+      blackoutState=1;
+      blackoutPreDur=80+Math.random()*60; // pre-flicker 1-2s
+      preFlickerTimer=blackoutPreDur;
+    }
+  } else if(blackoutState===1){
+    // Heavy pre-flicker warning
+    preFlickerTimer--;
+    flickerStr=Math.random()<0.35?0.05+Math.random()*0.3:0.7+Math.random()*0.3;
+    if(preFlickerTimer<=0){
+      blackoutState=2;
+      blackoutDur=Math.floor(180+Math.random()*120); // 3-5s total darkness
+      flickerStr=0;
+      spawnBlackoutEyes();
+    }
+  } else if(blackoutState===2){
+    flickerStr=0; // complete darkness
+    // Update blackout eyes
+    for(const e of blackoutEyes){
+      e.blinkTimer--;
+      if(e.blinkPhase==='opening'){
+        e.openness=Math.min(1, 1-(e.blinkTimer/e.blinkDur));
+        if(e.blinkTimer<=0){ e.blinkPhase='open'; e.blinkTimer=60+Math.random()*180; e.openness=1; }
+      } else if(e.blinkPhase==='open'&&e.blinkTimer<=0){
+        e.blinkPhase='closing'; e.blinkDur=8+Math.random()*8; e.blinkTimer=e.blinkDur;
+      } else if(e.blinkPhase==='closing'){
+        e.openness=Math.max(0, e.blinkTimer/e.blinkDur);
+        if(e.blinkTimer<=0){ e.blinkPhase='closed'; e.blinkTimer=5+Math.random()*15; e.openness=0; }
+      } else if(e.blinkPhase==='closed'&&e.blinkTimer<=0){
+        e.blinkPhase='opening'; e.blinkDur=12+Math.random()*10; e.blinkTimer=e.blinkDur;
+      }
+      // Grow (approach) slowly
+      if(e.growRate>0) e.sz=Math.min(28, e.sz+e.growRate);
+      e.offsetY+=Math.sin(frame*0.03+e.x)*0.15; // subtle float
+    }
+    blackoutDur--;
+    if(blackoutDur<=0){
+      blackoutState=0;
+      flickerStr=1;
+      blackoutEyes=[];
+      scheduleBlackout();
+    }
+  }
+}
+
+// ─── ENVIRONMENT EVENTS ───────────────────────────────────────────────────────
+function updateEnvironment(){
+  envTimer--;
+  if(envTimer>0) return;
+  scheduleEnv();
+
+  // Pick event weighted by game state
+  const evts=['doorSlam','doorSlam','ghostStep','ghostStep','windowRattle','distantScream'];
+  if(pagesCollected>=3) evts.push('distantScream');
+  const ev=evts[Math.floor(Math.random()*evts.length)];
+
+  // Choose a random room center for directionality
+  const room=ROOM_CENTERS[Math.floor(Math.random()*ROOM_CENTERS.length)];
+  const pan=worldPan(room[0]*TILE,room[1]*TILE);
+
+  switch(ev){
+    case 'doorSlam':
+      // Only slam if stalker hasn't been heard in a while (false safety violation)
+      if(frame-stalker.lastSoundFrame>180){
+        doorSlam(pan);
+        shakeMag=4;
+      }
+      break;
+    case 'ghostStep':
+      // Footsteps in an area away from player
+      ghostFootstep(pan);
+      setTimeout(()=>ghostFootstep(pan+(Math.random()-0.5)*0.3),220);
+      setTimeout(()=>ghostFootstep(pan+(Math.random()-0.5)*0.3),420);
+      break;
+    case 'windowRattle':
+      windowRattle(pan);
+      break;
+    case 'distantScream':
+      distantScream();
+      break;
+  }
+}
+
+// ─── UPDATE ───────────────────────────────────────────────────────────────────
+function update(){
+  if(state!=='playing') return;
+  frame++;
+
+  // ── Rotation ──
+  let turn=0;
+  if(keys.ArrowLeft||keys.KeyQ) turn=-0.045;
+  if(keys.ArrowRight||keys.KeyE) turn= 0.045;
+  if(pointerLocked){ player.angle+=mouseDX*0.0022; mouseDX=0; }
+  else if(isMobile&&rJoy.active) turn+=rJoy.dx/RJOY.r*0.055;
+  player.angle+=turn;
+
+  // ── Movement ──
+  const dX=Math.cos(player.angle), dY=Math.sin(player.angle);
+  const pX=-dY, pY=dX;
+  let fx=0,fy=0,sprinting=false;
+  if(keys.KeyW||keys.ArrowUp)   {fx+=dX;fy+=dY;}
+  if(keys.KeyS||keys.ArrowDown) {fx-=dX;fy-=dY;}
+  if(keys.KeyA)                 {fx+=pX;fy+=pY;}
+  if(keys.KeyD)                 {fx-=pX;fy-=pY;}
+  if(keys.ShiftLeft||keys.ShiftRight) sprinting=true;
+  if(isMobile&&lJoy.active){
+    const jd=Math.hypot(lJoy.dx,lJoy.dy);
+    if(jd>8){ fx+=dX*(lJoy.dy/LJOY.r)*-1+pX*(lJoy.dx/LJOY.r)*-1; fy+=dY*(lJoy.dy/LJOY.r)*-1+pY*(lJoy.dx/LJOY.r)*-1; sprinting=jd>LJOY.r*0.72; }
+  }
+  const fLen=Math.hypot(fx,fy);
+  const isMoving=fLen>0.01;
+  if(isMoving){
+    fx/=fLen;fy/=fLen;
+    const spd=sprinting?4.0:2.2;
+    slide(player,fx*spd,fy*spd);
+    if(--stepTimer<=0){ stepTimer=sprinting?9:20; footstep(0.08); }
+  }
+
+  // ── Head bob ──
+  if(isMoving) bobPhase+=sprinting?0.14:0.09;
+  else bobPhase*=0.9;
+  bobOffset+=(isMoving?Math.sin(bobPhase)*9:0 - bobOffset)*0.12;
+
+  // ── Hiding ── (removed)
+
+  // ── Sanity ──
+  const stalkerDist=dist(player.x,player.y,stalker.x,stalker.y);
+  const toStalker=Math.atan2(stalker.y-player.y,stalker.x-player.x);
+  const stalkerOnScreen=absDiff(toStalker,player.angle)<0.52&&stalkerDist<350;
+  // No sanity drain during stare — you can't die from being watched, only from the charge
+  const sanDrain=stalkerOnScreen&&stalker.state!=='stare'?(1-stalkerDist/380)*0.42+0.05:-0.025;
+  player.sanity=Math.max(0,Math.min(100,player.sanity-sanDrain));
+  if(player.sanity<=0){ state='dead'; deathSound(); return; }
+
+  // ── Screen effects ──
+  const sf=player.sanity/100;
+  if(shakeMag>0.1) shakeMag*=0.76; // decay only — shake triggered by specific events, not sanity
+  // Flicker only if NOT blacking out (blackout controls its own flicker)
+  if(blackoutState===0){
+    if(sf<0.45&&Math.random()<0.05) flickerStr=0.12+Math.random()*0.88;
+    else flickerStr=Math.min(1,flickerStr+0.09);
+  }
+  if(sf<0.35){ viewPitch+=(Math.random()-0.5)*2.5; viewRoll+=(Math.random()-0.5)*0.8; }
+  viewPitch*=0.88; viewRoll*=0.90;
+
+  // ── Heartbeat ──
+  const danger=Math.max(0,1-stalkerDist/500);
+  const hbRate=Math.max(11,85-danger*58-(1-sf)*35);
+  if(--hbTimer<=0){ hbTimer=hbRate; heartbeat(Math.min(1.3,0.5+danger*0.5+(1-sf)*0.4)); }
+
+  // ── Growl ──
+  if(--growlTimer<=0){
+    growlTimer=90+Math.random()*220;
+    if(stalkerDist<700&&!stalker.isSilent&&stalker.state!=='listen'){
+      growl(Math.max(0,1-stalkerDist/700)*0.85,worldPan(stalker.x,stalker.y));
+    }
+  }
+
+  // ── Low sanity whispers ──
+  if(sf<0.35&&Math.random()<0.012){
+    const wPan=(Math.random()*2-1);
+    whisper(wPan);
+  }
+
+  // ── Blackout & environment ──
+  updateBlackout();
+  updateEnvironment();
+  updateEyes();
+  updateWallEyes();
+  updateMapLies();
+
+  // ── Win check FIRST — chapel beats the stalker ──
+  if(pagesCollected>=5&&inChapel()){ state='win'; winSound(); return; }
+
+  // ── Stalker ──
+  updateStalker();
+
+  // ── Pages ──
+  for(const p of pages){
+    if(p.collected) continue;
+    p.bob+=0.03;
+    if(dist(player.x,player.y,p.x,p.y)<40){
+      p.collected=true; pagesCollected++;
+      pickupPage();
+      stalker.agg=1+pagesCollected*0.22;
+      if(pagesCollected>=5){ stalker.state='chase'; stalker.alertTimer=999999; stalker.isSilent=false; }
+    }
+  }
+}
+
+// ─── RAYCASTER ────────────────────────────────────────────────────────────────
+const FOV=Math.PI/3, HALF_FOV=FOV/2;
+const FOV_TAN=Math.tan(HALF_FOV);
+const FLASH_RANGE=9;
+
+function doRaycast(){
+  const sf=player.sanity/100;
+  const pTX=player.x/TILE, pTY=player.y/TILE;
+  const dX=Math.cos(player.angle), dY=Math.sin(player.angle);
+  const plX=-dY*FOV_TAN, plY=dX*FOV_TAN;
+  const horizon=(RH/2)+bobOffset*0.5+viewPitch*0.25|0;
+  const effectiveFlicker=flickerStr;
+
+  PIX.fill(0);
+
+  // ── Floor & Ceiling ──
+  for(let y=0;y<RH;y++){
+    const isFloor=y>horizon;
+    const rowC=isFloor?(y-horizon):(horizon-y);
+    if(rowC===0) continue;
+    const rowD=(RH*0.5)/rowC;
+    const fSX=rowD*(2*plX)/RW, fSY=rowD*(2*plY)/RW;
+    let fx=pTX+rowD*(dX-plX), fy=pTY+rowD*(dY-plY);
+    const dark=Math.max(0,Math.min(1,rowD/FLASH_RANGE));
+    const bri=Math.max(0,(1-dark)*effectiveFlicker)*(isFloor?1.0:0.32);
+    const tex=isFloor?TEX.floor:TEX.ceil;
+    for(let x=0;x<RW;x++){
+      const tx=Math.floor(fx*TS)&(TS-1),ty2=Math.floor(fy*TS)&(TS-1);
+      fx+=fSX; fy+=fSY;
+      const ti=(ty2*TS+tx)*3,pi=(y*RW+x)*4;
+      PIX[pi]=tex[ti]*bri|0; PIX[pi+1]=tex[ti+1]*bri|0; PIX[pi+2]=tex[ti+2]*bri|0; PIX[pi+3]=255;
+    }
+  }
+
+  // ── Walls ──
+  for(let col=0;col<RW;col++){
+    const camX=2*col/RW-1;
+    const rDX=dX+plX*camX, rDY=dY+plY*camX;
+    let mX=Math.floor(pTX), mY=Math.floor(pTY);
+    const ddX=Math.abs(1/(rDX||1e-10)), ddY=Math.abs(1/(rDY||1e-10));
+    let stepX,stepY,sdX,sdY;
+    if(rDX<0){stepX=-1;sdX=(pTX-mX)*ddX;}else{stepX=1;sdX=(mX+1-pTX)*ddX;}
+    if(rDY<0){stepY=-1;sdY=(pTY-mY)*ddY;}else{stepY=1;sdY=(mY+1-pTY)*ddY;}
+    let hit=false,side=0,wType=0,itr=0;
+    while(!hit&&itr++<200){
+      if(sdX<sdY){sdX+=ddX;mX+=stepX;side=0;}else{sdY+=ddY;mY+=stepY;side=1;}
+      wType=mapAt(mX,mY); if(wType>0) hit=true;
+    }
+    const perp=side===0?(mX-pTX+(1-stepX)/2)/rDX:(mY-pTY+(1-stepY)/2)/rDY;
+    ZBUF[col]=perp;
+    if(perp<=0) continue;
+    const lineH=Math.floor(RH/perp);
+    const drawS=Math.max(0,horizon-lineH/2|0), drawE=Math.min(RH-1,horizon+lineH/2|0);
+    let wallX=side===0?pTY+perp*rDY:pTX+perp*rDX; wallX-=Math.floor(wallX);
+    let texX=Math.floor(wallX*TS);
+    if(side===0&&rDX>0) texX=TS-1-texX;
+    if(side===1&&rDY<0) texX=TS-1-texX;
+    const dF=Math.max(0,1-perp/FLASH_RANGE);
+    const aF=Math.max(0,1-(camX*camX)*1.18);
+    let light=dF*aF*effectiveFlicker*(side===1?0.70:1.0);
+    const tex=TEX[wType]||TEX[1];
+    const step=TS/lineH;
+    let texPos=drawS===0?((lineH-RH)/2)*step:0;
+
+    // Check if this tile has a wall eye bleeding through
+    const wallEye=wallEyes.find(e=>e.tx===mX&&e.ty===mY&&e.openness>0.02);
+    const eyeGlowCols= wallEye ? (() => {
+      // Eye pair: two pupils spaced apart at eyeU±0.06
+      const sep=0.06;
+      const lU=wallEye.eyeU-sep, rU=wallEye.eyeU+sep;
+      const lDist=Math.abs(wallX-lU), rDist=Math.abs(wallX-rU);
+      const closest=Math.min(lDist,rDist);
+      // Only glow within ~0.1 of an eye center
+      return closest<0.12 ? { str: (1-closest/0.12)*wallEye.openness, vCenter: wallEye.eyeV } : null;
+    })() : null;
+
+    for(let y=drawS;y<=drawE;y++){
+      const tyy=(texPos|0)&(TS-1); texPos+=step;
+      const ti=(tyy*TS+texX)*3,pi=(y*RW+col)*4;
+      PIX[pi]=tex[ti]*light|0; PIX[pi+1]=tex[ti+1]*light|0; PIX[pi+2]=tex[ti+2]*light|0; PIX[pi+3]=255;
+
+      // Wall eye glow — blend red additively through texture
+      if(eyeGlowCols){
+        const vF=(y-drawS)/(drawE-drawS);
+        const vDist=Math.abs(vF-eyeGlowCols.vCenter);
+        const vFall=Math.max(0,1-vDist/0.09)*wallEye.openness;
+        const glow=eyeGlowCols.str*vFall*light*2.8;
+        if(glow>0.01){
+          PIX[pi]=Math.min(255,PIX[pi]+200*glow)|0;
+          PIX[pi+1]=Math.min(255,PIX[pi+1]+12*glow)|0;
+          PIX[pi+2]=Math.min(255,PIX[pi+2]+8*glow)|0;
+        }
+      }
+    }
+  }
+
+  // ── Sprites ──
+  const sprites=[];
+  for(const p of pages){ if(!p.collected) sprites.push({x:p.x,y:p.y,type:'page',bob:p.bob}); }
+  sprites.push({x:stalker.x,y:stalker.y,type:'stalker'});
+  // World phantom eyes
+  for(const e of eyePool){
+    if(e.openness>0.05) sprites.push({x:e.wx,y:e.wy,type:'eyes',eye:e});
+  }
+  // Hallucinations
+  if(sf<0.32&&Math.random()<0.04){
+    const a=Math.random()*Math.PI*2,r=200+Math.random()*280;
+    sprites.push({x:player.x+Math.cos(a)*r,y:player.y+Math.sin(a)*r,type:'halluc'});
+  }
+  sprites.sort((a,b)=>dist(b.x,b.y,player.x,player.y)-dist(a.x,a.y,player.x,player.y));
+
+  for(const sp of sprites){
+    const sdx=(sp.x-player.x)/TILE, sdy=(sp.y-player.y)/TILE;
+    const inv=1/(plX*dY-dX*plY);
+    const tX=inv*(dY*sdx-dX*sdy), tY=inv*(-plY*sdx+plX*sdy);
+    if(tY<0.12) continue;
+    const sX=Math.floor(RW/2*(1+tX/tY));
+    const dF2=Math.max(0,1-tY/(sp.type==='stalker'?22:14)); // stalker visible at 22 tiles, others 14
+    const aF2=Math.max(0,1-(tX/tY)*(tX/tY)*1.4);
+    let spL=dF2*aF2*effectiveFlicker;
+    if(sp.type==='stalker') spL*=(player.isHiding?0.08:1.0);
+    let sprH=Math.abs(Math.floor(RH/tY));
+    if(sp.type==='page') sprH=Math.floor(sprH*0.5);
+    if(sp.type==='halluc') sprH=Math.floor(sprH*0.65);
+    const sprW=sp.type==='page'?Math.floor(sprH*0.5):sprH;
+    const dSY=Math.max(0,horizon-sprH/2|0), dEY=Math.min(RH-1,horizon+sprH/2|0);
+    const dSX=Math.max(0,sX-sprW/2|0), dEX=Math.min(RW-1,sX+sprW/2|0);
+
+    for(let sx=dSX;sx<dEX;sx++){
+      if(tY>ZBUF[sx]) continue;
+      const tF=(sx-(sX-sprW/2))/sprW;
+      for(let sy=dSY;sy<dEY;sy++){
+        const yF=(sy-dSY)/(dEY-dSY), pi=(sy*RW+sx)*4;
+        if(sp.type==='page'){
+          const brd=tF<0.05||tF>0.95||yF<0.05||yF>0.95, ln=yF>0.2&&yF<0.9&&((yF*10|0)%2===0);
+          if(brd){PIX[pi]=180;PIX[pi+1]=160;PIX[pi+2]=80;PIX[pi+3]=255;}
+          else if(ln){PIX[pi]=120;PIX[pi+1]=100;PIX[pi+2]=50;PIX[pi+3]=255;}
+          else{const g=Math.min(255,(200)*spL)|0;PIX[pi]=g;PIX[pi+1]=g*0.92|0;PIX[pi+2]=g*0.6|0;PIX[pi+3]=255;}
+          continue;
+        }
+        if(sp.type==='eyes'){
+          // Two glowing eye points side by side — ignores body shape entirely
+          const e=sp.eye;
+          const eyeSep=0.18, eyeY=0.5;
+          const isLeftEye =Math.abs(tF-(0.5-eyeSep))<0.06&&Math.abs(yF-eyeY)<0.10*e.openness;
+          const isRightEye=Math.abs(tF-(0.5+eyeSep))<0.06&&Math.abs(yF-eyeY)<0.10*e.openness;
+          // Iris glow falloff from center
+          const ldist=Math.hypot((tF-(0.5-eyeSep))/0.06,(yF-eyeY)/(0.10*Math.max(0.01,e.openness)));
+          const rdist=Math.hypot((tF-(0.5+eyeSep))/0.06,(yF-eyeY)/(0.10*Math.max(0.01,e.openness)));
+          const inEyeGlow=ldist<1.8||rdist<1.8;
+          if(!isLeftEye&&!isRightEye&&!inEyeGlow) continue;
+          const closest=Math.min(ldist,rdist);
+          const glowStr=Math.max(0,1-closest)*e.openness*spL*2.5;
+          if(e.hue==='red'){
+            PIX[pi]=Math.min(255,PIX[pi]+240*glowStr)|0;
+            PIX[pi+1]=Math.min(255,PIX[pi+1]+15*glowStr)|0;
+            PIX[pi+2]=Math.min(255,PIX[pi+2]+8*glowStr)|0;
+          } else if(e.hue==='amber'){
+            PIX[pi]=Math.min(255,PIX[pi]+220*glowStr)|0;
+            PIX[pi+1]=Math.min(255,PIX[pi+1]+130*glowStr)|0;
+            PIX[pi+2]=Math.min(255,PIX[pi+2]+10*glowStr)|0;
+          } else {
+            PIX[pi]=Math.min(255,PIX[pi]+200*glowStr)|0;
+            PIX[pi+1]=Math.min(255,PIX[pi+1]+200*glowStr)|0;
+            PIX[pi+2]=Math.min(255,PIX[pi+2]+200*glowStr)|0;
+          }
+          PIX[pi+3]=255;
+          continue;
+        }
+        const cx=tF-0.5, cy=yF;
+        let inB=false;
+        if(cy<0.22) inB=Math.hypot(cx,cy-0.11)<0.15;          // head
+        else if(cy<0.66) inB=Math.abs(cx)<0.27+(cy-0.22)*0.08; // torso
+        else inB=Math.abs(cx-0.13)<0.13||Math.abs(cx+0.13)<0.13; // legs
+
+        // Outer glow halo (slightly wider than body, deep red)
+        const inGlow=cy<0.22?Math.hypot(cx,cy-0.11)<0.22:
+                     cy<0.66?Math.abs(cx)<0.34+(cy-0.22)*0.08:
+                     Math.abs(cx-0.13)<0.20||Math.abs(cx+0.13)<0.20;
+
+        if(!inB&&!inGlow) continue;
+
+        const eyL=cy>0.07&&cy<0.16&&Math.abs(cx+0.08)<0.045;
+        const eyR=cy>0.07&&cy<0.16&&Math.abs(cx-0.08)<0.045;
+
+        // Use distance-based visibility: close = more visible, but always at least somewhat visible
+        const minVis=Math.max(sp.type==='stalker'?0.28:0.15, spL); // stalker always somewhat visible
+        const bodyLight=Math.min(1, minVis*1.4);
+
+        if(eyL||eyR){
+          // Red glowing eyes — brighter during stare
+          const isStaring=stalker.state==='stare';
+          const pulse=isStaring
+            ? 0.85+Math.sin(frame*0.06)*0.15   // slow throb during stare
+            : 0.6+Math.sin(frame*0.28)*0.4;
+          const eyeBright=Math.min(1,minVis*(isStaring?3:2))*pulse;
+          PIX[pi]=255*eyeBright|0; PIX[pi+1]=20*eyeBright|0; PIX[pi+2]=10*eyeBright|0; PIX[pi+3]=255;
+        } else if(inB){
+          // Dark silhouette — visibly darker than walls but clearly present
+          const sh=sp.type==='halluc'?0.4:1;
+          // Body is a dark charcoal, slightly warm — contrasts against near-black walls
+          PIX[pi]=Math.min(255,52*bodyLight*sh)|0;
+          PIX[pi+1]=Math.min(255,22*bodyLight*sh)|0;
+          PIX[pi+2]=Math.min(255,18*bodyLight*sh)|0;
+          PIX[pi+3]=sp.type==='halluc'?150:240;
+        } else {
+          // Outer red-black glow halo
+          const glowStr=bodyLight*0.35*(sp.type==='halluc'?0.3:1);
+          PIX[pi]=Math.min(255,PIX[pi]+40*glowStr)|0;
+          PIX[pi+1]=Math.min(255,PIX[pi+1]+5*glowStr)|0;
+          PIX[pi+2]=Math.min(255,PIX[pi+2]+3*glowStr)|0;
+          PIX[pi+3]=255;
+        }
+      }
+    }
+  }
+}
+
+// ─── HUD ──────────────────────────────────────────────────────────────────────
+function drawHUD(){
+  const sf=player.sanity/100;
+  // Vignette
+  const vA=Math.pow(1-sf,1.5)*0.88;
+  const r2=Math.round(100*vA);
+  const vg=ctx.createRadialGradient(VW/2,VH/2,VH*0.15,VW/2,VH/2,VW*0.85);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(0.5,`rgba(${r2},0,0,${vA*0.38})`);
+  vg.addColorStop(1,`rgba(${r2},0,0,${vA*0.82})`);
+  ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
+  // Always-present edge darkening
+  const ev=ctx.createRadialGradient(VW/2,VH/2,VH*0.3,VW/2,VH/2,VW*0.75);
+  ev.addColorStop(0,'rgba(0,0,0,0)'); ev.addColorStop(1,'rgba(0,0,0,0.52)');
+  ctx.fillStyle=ev; ctx.fillRect(0,0,VW,VH);
+
+  // Total blackout overlay
+  if(blackoutState===2){
+    ctx.fillStyle='rgba(0,0,0,0.98)'; ctx.fillRect(0,0,VW,VH);
+    // Hint of player's hands
+    const handA=0.04+Math.sin(frame*0.06)*0.02;
+    ctx.fillStyle=`rgba(25,15,10,${handA})`;
+    ctx.fillRect(VW*0.28,VH*0.65,VW*0.44,VH*0.38);
+
+    // Blackout eyes — the most terrifying part
+    for(const e of blackoutEyes){
+      if(e.openness<0.02) continue;
+      const ey=e.y+e.offsetY;
+      const sep=e.sz*1.4;
+      const eyeH=e.sz*e.openness;
+      // Outer glow
+      for(const ex2 of [e.x-sep, e.x+sep]){
+        const gr=ctx.createRadialGradient(ex2,ey,0,ex2,ey,e.sz*3.5);
+        if(e.hue==='red'){
+          gr.addColorStop(0,`rgba(255,20,10,${0.55*e.openness})`);
+          gr.addColorStop(0.4,`rgba(180,5,5,${0.18*e.openness})`);
+          gr.addColorStop(1,'rgba(0,0,0,0)');
+        } else {
+          gr.addColorStop(0,`rgba(255,160,30,${0.55*e.openness})`);
+          gr.addColorStop(0.4,`rgba(200,80,5,${0.18*e.openness})`);
+          gr.addColorStop(1,'rgba(0,0,0,0)');
+        }
+        ctx.fillStyle=gr;
+        ctx.beginPath(); ctx.arc(ex2,ey,e.sz*3.5,0,Math.PI*2); ctx.fill();
+      }
+      // Eye shapes (ellipses that squish when blinking)
+      ctx.save();
+      for(const ex2 of [e.x-sep, e.x+sep]){
+        ctx.beginPath();
+        ctx.ellipse(ex2, ey, e.sz, Math.max(0.5, eyeH), 0, 0, Math.PI*2);
+        const eyeFill=ctx.createRadialGradient(ex2,ey,0,ex2,ey,e.sz);
+        if(e.hue==='red'){
+          eyeFill.addColorStop(0,'rgba(255,80,40,1)');
+          eyeFill.addColorStop(0.5,'rgba(220,20,10,0.9)');
+          eyeFill.addColorStop(1,'rgba(120,0,0,0)');
+        } else {
+          eyeFill.addColorStop(0,'rgba(255,200,60,1)');
+          eyeFill.addColorStop(0.5,'rgba(220,120,10,0.9)');
+          eyeFill.addColorStop(1,'rgba(100,40,0,0)');
+        }
+        ctx.fillStyle=eyeFill; ctx.fill();
+        // Pupil
+        ctx.fillStyle='rgba(0,0,0,0.9)';
+        ctx.beginPath();
+        ctx.ellipse(ex2, ey, e.sz*0.3, Math.max(0.2, eyeH*0.4), 0, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  // Static noise at low sanity
+  if(sf<0.3&&frame%3===0){
+    ctx.globalAlpha=(0.3-sf)/0.3*0.22;
+    for(let i=0;i<300;i++){ ctx.fillStyle=Math.random()>0.5?'#fff':'#000'; ctx.fillRect(Math.random()*VW,Math.random()*VH,2,2); }
+    ctx.globalAlpha=1;
+  }
+  // Chromatic aberration
+  if(sf<0.4&&blackoutState!==2){
+    const ab=(0.4-sf)/0.4*9|0;
+    ctx.globalAlpha=0.14; ctx.drawImage(rCanvas,ab,0,VW,VH);
+    ctx.globalAlpha=0.1;  ctx.drawImage(rCanvas,-ab,0,VW,VH);
+    ctx.globalAlpha=1;
+  }
+
+  // ── Stats panel ──
+  ctx.fillStyle='rgba(0,0,0,0.72)'; ctx.fillRect(12,12,170,64);
+  ctx.strokeStyle='rgba(80,50,20,0.5)'; ctx.lineWidth=1; ctx.strokeRect(12,12,170,64);
+  ctx.fillStyle='rgba(220,200,155,0.95)'; ctx.font='bold 14px monospace'; ctx.textAlign='left';
+  ctx.fillText(`PAGES  ${pagesCollected}/5`,22,33);
+  ctx.fillStyle='#1a0808'; ctx.fillRect(22,40,146,14);
+  ctx.fillStyle=player.sanity>60?'#2855cc':player.sanity>30?'#bb4f0f':'#cc0e0e';
+  ctx.fillRect(22,40,146*(player.sanity/100),14);
+  ctx.fillStyle='rgba(200,175,130,0.92)'; ctx.font='bold 10px monospace';
+  ctx.fillText('SANITY',24,52);
+
+  // ── Stare effect — slow red bloom that builds while it watches you ──
+  if(stalker.state==='stare'){
+    const stareProgress=1-(stalker.stareTimer/(stalker.stareDuration||180)); // 0→1 over stare duration
+    const starePulse=0.3+Math.sin(frame*0.06)*0.12; // slow throb
+    const stareA=Math.min(0.72, stareProgress*0.8+starePulse*0.3);
+    // Full-screen deep red wash — not an edge effect, the whole world reddens
+    ctx.fillStyle=`rgba(90,0,0,${stareA*0.55})`; ctx.fillRect(0,0,VW,VH);
+    // Vignette tightens
+    const sv=ctx.createRadialGradient(VW/2,VH/2,VH*0.05,VW/2,VH/2,VW*0.6);
+    sv.addColorStop(0,'rgba(0,0,0,0)');
+    sv.addColorStop(1,`rgba(0,0,0,${stareA*0.7})`);
+    ctx.fillStyle=sv; ctx.fillRect(0,0,VW,VH);
+    // Final frames flash white before the charge
+    if(stalker.stareTimer<10){
+      ctx.fillStyle=`rgba(255,255,255,${(10-stalker.stareTimer)/10*0.35})`;
+      ctx.fillRect(0,0,VW,VH);
+    }
+  }
+
+  // ── Directional danger indicator ──
+  // Only during chase/doorway/alert states and when stalker is within threat range
+  const threatDist=dist(player.x,player.y,stalker.x,stalker.y);
+  const isThreaten=stalker.state==='chase'||stalker.state==='doorway';
+  if(isThreaten&&threatDist<700){
+    // Angle from player's facing direction to the stalker
+    const toStalkerAng=Math.atan2(stalker.y-player.y, stalker.x-player.x);
+    const relAng=((toStalkerAng-player.angle)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+    // relAng: 0=straight ahead, PI=behind, PI/2=right, 3PI/2=left
+
+    // Intensity: stronger when closer and more behind you (where you can't see)
+    const proximity=Math.max(0,1-threatDist/700);
+    const behindness=Math.max(0,Math.cos(relAng)*-0.5+0.5); // 1=behind, 0=in front
+    const pulse=0.45+Math.sin(frame*0.18)*0.35;
+    const intensity=proximity*pulse*(0.5+behindness*0.5);
+
+    if(intensity>0.04){
+      // Left edge bleed (stalker to the left: relAng ~= 3PI/2)
+      const leftW=Math.max(0,Math.sin(relAng+Math.PI/2)); // peaks at 270deg
+      // Right edge bleed (stalker to the right: relAng ~= PI/2)
+      const rightW=Math.max(0,Math.sin(relAng-Math.PI/2+Math.PI)); // peaks at 90deg  
+      // Behind (stalker behind: relAng ~= PI)
+      const behindW=Math.max(0,-Math.cos(relAng));
+      // Front (stalker ahead: relAng ~= 0 or 2PI)
+      const frontW=Math.max(0,Math.cos(relAng));
+
+      // Left edge
+      if(leftW>0.1){
+        const lg=ctx.createLinearGradient(0,0,VW*0.25,0);
+        lg.addColorStop(0,`rgba(180,0,0,${intensity*leftW*0.7})`);
+        lg.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=lg; ctx.fillRect(0,0,VW*0.25,VH);
+      }
+      // Right edge
+      if(rightW>0.1){
+        const rg=ctx.createLinearGradient(VW,0,VW*0.75,0);
+        rg.addColorStop(0,`rgba(180,0,0,${intensity*rightW*0.7})`);
+        rg.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=rg; ctx.fillRect(VW*0.75,0,VW*0.25,VH);
+      }
+      // Bottom edge (behind you)
+      if(behindW>0.1){
+        const bg=ctx.createLinearGradient(0,VH,0,VH*0.7);
+        bg.addColorStop(0,`rgba(180,0,0,${intensity*behindW*0.8})`);
+        bg.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=bg; ctx.fillRect(0,VH*0.7,VW,VH*0.3);
+      }
+      // Top edge (in front — rare but possible)
+      if(frontW>0.5&&proximity>0.6){
+        const tg=ctx.createLinearGradient(0,0,0,VH*0.2);
+        tg.addColorStop(0,`rgba(180,0,0,${intensity*frontW*0.5})`);
+        tg.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=tg; ctx.fillRect(0,0,VW,VH*0.2);
+      }
+    }
+  }
+  // Listening state — player can hear nothing — make that visible
+  if(stalker.state==='listen'&&stalker.isSilent){
+    const p2=0.5+Math.sin(frame*0.1)*0.35;
+    ctx.fillStyle=`rgba(180,160,80,${p2})`; ctx.font='italic 13px monospace'; ctx.textAlign='center';
+    ctx.fillText('...silence...',VW/2,28);
+  }
+
+  // Hiding
+  if(pagesCollected>=5&&state==='playing'){
+    const pa=0.7+Math.sin(frame*0.13)*0.3;
+    ctx.fillStyle=`rgba(228,48,48,${pa})`; ctx.font='bold 15px monospace'; ctx.textAlign='center';
+    ctx.fillText('REACH THE CHAPEL — IT KNOWS',VW/2,VH-28);
+  }
+  if(pagesCollected>=5){
+    const d2=dist(player.x,player.y,35.5*TILE,6.5*TILE);
+    if(d2<380){
+      const ga=Math.max(0,1-d2/380)*(0.5+Math.sin(frame*0.1)*0.3);
+      ctx.fillStyle=`rgba(200,200,100,${ga})`; ctx.font='italic bold 16px serif'; ctx.textAlign='center';
+      ctx.fillText('The Chapel is near...',VW/2,VH/2-55);
+    }
+  }
+
+  // ── Mobile joysticks ──
+  if(isMobile){
+    function drawJoy(base,joy,label){
+      ctx.beginPath(); ctx.arc(base.bx,base.by,base.r,0,Math.PI*2);
+      ctx.strokeStyle='rgba(255,255,255,0.11)'; ctx.lineWidth=2; ctx.stroke();
+      ctx.fillStyle='rgba(0,0,0,0.18)'; ctx.fill();
+      const kx=base.bx+(joy.active?joy.dx:0), ky=base.by+(joy.active?joy.dy:0);
+      ctx.beginPath(); ctx.arc(kx,ky,24,0,Math.PI*2);
+      ctx.fillStyle=joy.active?'rgba(255,255,255,0.27)':'rgba(255,255,255,0.10)'; ctx.fill();
+      ctx.strokeStyle=joy.active?'rgba(255,255,255,0.52)':'rgba(255,255,255,0.20)'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.24)'; ctx.font='bold 10px monospace'; ctx.textAlign='center';
+      ctx.fillText(label,base.bx,base.by+base.r+16);
+    }
+    drawJoy(LJOY,lJoy,'MOVE'); drawJoy(RJOY,rJoy,'LOOK');
+  }
+}
+
+// ─── SCREENS ──────────────────────────────────────────────────────────────────
+function drawMenu(){
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,VW,VH);
+  // Corridor perspective lines
+  ctx.strokeStyle='rgba(28,16,8,0.8)'; ctx.lineWidth=1;
+  for(let i=1;i<14;i++){
+    const y=VH/2+i*VH*0.065;
+    ctx.beginPath(); ctx.moveTo(VW/2-i*VW*0.055,y); ctx.lineTo(VW/2+i*VW*0.055,y); ctx.stroke();
+  }
+  for(let i=0;i<10;i++){
+    ctx.strokeStyle=`rgba(28,14,7,${0.5-i*0.04})`;
+    ctx.beginPath(); ctx.moveTo(VW/2,VH/2); ctx.lineTo(i*(VW/10),VH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(VW/2,VH/2); ctx.lineTo(VW-i*(VW/10),VH); ctx.stroke();
+  }
+  if(Math.random()<0.015){ ctx.fillStyle=`rgba(8,4,2,${Math.random()*0.55})`; ctx.fillRect(0,0,VW,VH); }
+  const ev=ctx.createRadialGradient(VW/2,VH/2,VH*0.18,VW/2,VH/2,VW);
+  ev.addColorStop(0,'rgba(0,0,0,0)'); ev.addColorStop(1,'rgba(0,0,0,0.95)');
+  ctx.fillStyle=ev; ctx.fillRect(0,0,VW,VH);
+
+  ctx.save(); ctx.shadowColor='#8a0000'; ctx.shadowBlur=85;
+  ctx.fillStyle='#c81212'; ctx.font='bold 92px serif'; ctx.textAlign='center';
+  ctx.fillText('RUNNING BLIND',VW/2,162); ctx.restore();
+
+  ctx.fillStyle='rgba(215,195,150,0.92)'; ctx.font='italic 23px serif'; ctx.textAlign='center';
+  ctx.fillText('Something is already inside with you.',VW/2,228);
+  ctx.fillStyle='rgba(208,183,143,0.92)'; ctx.font='bold 17px monospace';
+  ctx.fillText('Find 5 pages. Reach the Chapel.',VW/2,300);
+  ctx.fillStyle='rgba(182,158,118,0.88)'; ctx.font='16px monospace';
+  ctx.fillText('Do not look at it. Do not let it hear you.',VW/2,372);
+  ctx.fillText('If the light dies — do not move.',VW/2,396);
+  ctx.fillText('Do not lose your mind.',VW/2,420);
+  ctx.fillStyle='rgba(150,132,108,0.85)'; ctx.font='15px monospace';
+  if(!isMobile) ctx.fillText('W/S: Move  A/D: Strafe  Q/E or Mouse: Turn  Shift: Run',VW/2,468);
+  else ctx.fillText('Left stick: Move  Right stick: Look  Push stick edge: Run',VW/2,468);
+  if(frame%90<58){ ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.font='bold 18px monospace'; ctx.fillText(isMobile?'— Tap to enter —':'— Click to enter —',VW/2,533); }
+}
+
+function drawDead(){
+  ctx.fillStyle='rgba(0,0,0,0.9)'; ctx.fillRect(0,0,VW,VH);
+  ctx.save(); ctx.shadowColor='#ff0000'; ctx.shadowBlur=95;
+  ctx.fillStyle='#be0606'; ctx.font='bold 72px serif'; ctx.textAlign='center';
+  ctx.fillText('YOU DIED',VW/2,198); ctx.restore();
+  const msgs=['"It was already hunting you."','"You came so close to freedom."','"Almost. So very almost."','"The chapel was waiting."','"You touched the door. You felt the cold air. Then—"'];
+  ctx.fillStyle='rgba(208,186,146,0.95)'; ctx.font='italic 22px serif'; ctx.textAlign='center';
+  ctx.fillText(msgs[Math.min(pagesCollected,4)],VW/2,300);
+  ctx.fillStyle='rgba(182,162,128,0.88)'; ctx.font='bold 16px monospace';
+  ctx.fillText(`${pagesCollected} of 5 pages collected`,VW/2,365);
+  if(frame%80<52){ ctx.fillStyle='rgba(255,255,255,0.88)'; ctx.font='bold 17px monospace'; ctx.fillText(isMobile?'Tap to try again':'Click to try again',VW/2,432); }
+}
+
+function drawWin(){
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,VW,VH);
+  const wg=ctx.createRadialGradient(VW/2,VH*0.4,0,VW/2,VH*0.4,VW*0.6);
+  wg.addColorStop(0,`rgba(22,20,7,${0.78+Math.sin(frame*0.05)*0.2})`); wg.addColorStop(1,'rgba(0,0,0,1)');
+  ctx.fillStyle=wg; ctx.fillRect(0,0,VW,VH);
+  ctx.save(); ctx.shadowColor='#cccc60'; ctx.shadowBlur=58;
+  ctx.fillStyle='#d2c668'; ctx.font='bold 64px serif'; ctx.textAlign='center';
+  ctx.fillText('YOU ESCAPED',VW/2,198); ctx.restore();
+  ctx.fillStyle='rgba(215,202,160,0.95)'; ctx.font='italic 23px serif'; ctx.textAlign='center';
+  ctx.fillText('The manor falls silent behind you.',VW/2,288);
+  ctx.fillStyle='rgba(188,170,132,0.9)'; ctx.font='bold 17px monospace'; ctx.textAlign='center';
+  ctx.fillText('But you know it saw your face.',VW/2,358);
+  ctx.fillText('And it remembers.',VW/2,386);
+  if(frame%90<58){ ctx.fillStyle='rgba(255,255,255,0.88)'; ctx.font='bold 17px monospace'; ctx.fillText(isMobile?'Tap to play again':'Click to play again',VW/2,452); }
+}
+
+// ─── MAIN LOOP ────────────────────────────────────────────────────────────────
+function loop(){
+  update();
+  if(state==='menu'){ drawMenu(); requestAnimationFrame(loop); return; }
+  if(state==='dead'){ drawDead(); requestAnimationFrame(loop); return; }
+  if(state==='win') { drawWin();  requestAnimationFrame(loop); return; }
+
+  doRaycast();
+  rCtx.putImageData(IMG,0,0);
+  ctx.imageSmoothingEnabled=false;
+  ctx.save();
+  // View rotation at low sanity
+  if(player.sanity<40){ const r=Math.sin(frame*0.08)*(1-player.sanity/40)*0.02+viewRoll*0.01; ctx.translate(VW/2,VH/2); ctx.rotate(r); ctx.translate(-VW/2,-VH/2); }
+  const sx=shakeMag>0.2?(Math.random()-0.5)*shakeMag:0;
+  const sy=shakeMag>0.2?(Math.random()-0.5)*shakeMag:0;
+  ctx.drawImage(rCanvas,sx,sy,VW,VH);
+  ctx.restore();
+
+  drawHUD();
+  requestAnimationFrame(loop);
+}
+
+initEntities();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
