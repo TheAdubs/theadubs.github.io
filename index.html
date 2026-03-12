@@ -83,8 +83,10 @@
       align-items: center;
       padding: 140px 4rem 80px;
       position: relative;
-      overflow: hidden;
+      z-index: 1;
     }
+
+    .hero-content { position: relative; z-index: 2; }
 
     .hero-bg-line {
       position: absolute;
@@ -440,12 +442,18 @@
     }
 
     .fade-in {
-      opacity: 0;
-      transform: translateY(20px);
+      opacity: 1;
+      transform: translateY(0);
       transition: opacity 0.7s ease, transform 0.7s ease;
     }
 
-    .fade-in.visible { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: no-preference) {
+      .fade-in.not-visible {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      .fade-in.visible { opacity: 1; transform: translateY(0); }
+    }
 
     /* HAMBURGER */
     .nav-hamburger {
@@ -833,16 +841,21 @@
   </footer>
 
     <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>  <script>
-    // Fade-in on scroll
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          e.target.classList.add('visible');
-          observer.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.1 });
-    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+    // Fade-in on scroll — elements visible by default, animate when JS ready
+    const fadeEls = document.querySelectorAll('.fade-in');
+    if (window.IntersectionObserver) {
+      fadeEls.forEach(el => el.classList.add('not-visible'));
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.classList.remove('not-visible');
+            e.target.classList.add('visible');
+            observer.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+      fadeEls.forEach(el => observer.observe(el));
+    }
 
     // Hamburger menu
     function toggleMenu() {
