@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KM DRILL FORGE — Complete Krav Maga</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0d0d;
+  --surface: #141414;
+  --card: #1a1a1a;
+  --border: #252525;
+  --accent: #c8a84b;
+  --red: #c8392b;
+  --green: #3a6b4a;
+  --text: #d0ccc4;
+  --muted: #5a5750;
+  --tag: #1e261e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  min-height: 100vh;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0px, transparent 39px, rgba(255,255,255,0.013) 39px, rgba(255,255,255,0.013) 40px),
+    repeating-linear-gradient(90deg, transparent 0px, transparent 39px, rgba(255,255,255,0.013) 39px, rgba(255,255,255,0.013) 40px);
+}
+
+/* HEADER */
+header {
+  background: var(--surface);
+  border-bottom: 2px solid var(--accent);
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.9rem;
+  letter-spacing: 5px;
+  color: var(--accent);
+  line-height: 1;
+}
+.logo em { color: var(--red); font-style: normal; }
+.sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--muted);
+  letter-spacing: 2px;
+}
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.stat-pill {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.stat-pill span { color: var(--accent); }
+
+/* CONTROLS */
+.controls {
+  padding: 16px 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+.filter-btn.active { background: var(--accent); color: #0d0d0d; border-color: var(--accent); font-weight: 700; }
+.filter-btn.belt-yellow.active { background: #b8a030; border-color: #b8a030; }
+.filter-btn.belt-orange.active { background: #c8621a; border-color: #c8621a; }
+.filter-btn.belt-green.active { background: #3a6b2a; border-color: #3a6b2a; color: #d0ccc4; }
+.filter-btn.belt-blue.active { background: #1a4a8a; border-color: #1a4a8a; color: #d0ccc4; }
+.filter-btn.belt-brown.active { background: #5a3018; border-color: #5a3018; color: #d0ccc4; }
+
+.search-wrap { margin-left: auto; position: relative; }
+.search-wrap input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  padding: 7px 32px 7px 12px;
+  width: 220px;
+  outline: none;
+}
+.search-wrap input:focus { border-color: var(--accent); }
+.search-wrap input::placeholder { color: var(--muted); }
+.search-clear {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); cursor: pointer; font-size: 0.8rem; display: none;
+}
+
+/* GRID */
+.grid-wrap { padding: 24px 28px; }
+.results-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--muted);
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+.results-label span { color: var(--accent); }
+
+.drill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 18px;
+}
+
+/* DRILL CARD */
+.drill-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.drill-card:hover { border-color: rgba(200,168,75,0.4); transform: translateY(-2px); }
+
+.belt-stripe {
+  height: 3px;
+  width: 100%;
+}
+.belt-yellow .belt-stripe { background: linear-gradient(90deg, #b8a030, #d4b840); }
+.belt-orange .belt-stripe { background: linear-gradient(90deg, #c8621a, #e07830); }
+.belt-green .belt-stripe { background: linear-gradient(90deg, #2a5a1a, #3a7a28); }
+.belt-blue .belt-stripe { background: linear-gradient(90deg, #1a3a8a, #2a50aa); }
+.belt-brown .belt-stripe { background: linear-gradient(90deg, #4a2010, #6a3820); }
+
+.card-head {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.card-meta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.card-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.25rem;
+  letter-spacing: 2px;
+  color: var(--text);
+  line-height: 1.1;
+}
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+.tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  background: var(--tag);
+  border: 1px solid rgba(58,107,74,0.4);
+  color: #6aaa7a;
+}
+.tag.red { background: rgba(200,57,43,0.1); border-color: rgba(200,57,43,0.3); color: #c87060; }
+
+.dur-box {
+  flex-shrink: 0;
+  border: 1px solid rgba(200,168,75,0.3);
+  padding: 6px 10px;
+  text-align: center;
+  min-width: 68px;
+}
+.dur-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 2px;
+}
+.dur-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  color: var(--accent);
+}
+
+.card-body { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+.sec-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sec-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.goal-txt {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text);
+  font-style: italic;
+  opacity: 0.85;
+}
+.steps { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.steps li { display: flex; gap: 8px; font-size: 0.78rem; line-height: 1.4; }
+.sn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--accent);
+  flex-shrink: 0;
+  width: 18px;
+  padding-top: 1px;
+}
+
+.intensity-row { display: flex; gap: 6px; align-items: center; }
+.int-bar {
+  flex: 1; height: 5px; background: var(--border); overflow: hidden;
+}
+.int-fill { height: 100%; background: linear-gradient(90deg, #3a6b4a, var(--accent), var(--red)); }
+.int-lbl {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--muted);
+  width: 52px;
+  text-align: right;
+}
+
+.no-results {
+  text-align: center;
+  padding: 80px 40px;
+  color: var(--muted);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  grid-column: 1/-1;
+}
+
+/* ── RANDOM DRILL MODAL ── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--card);
+  border: 1px solid var(--accent);
+  max-width: 580px;
+  width: 90%;
+  max-height: 88vh;
+  overflow-y: auto;
+  position: relative;
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn { from { opacity:0; transform:scale(0.95) translateY(10px); } to { opacity:1; transform:scale(1) translateY(0); } }
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface);
+  position: sticky; top: 0;
+}
+.modal-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 3px;
+  color: var(--accent);
+}
+.modal-close {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; font-size: 0.8rem;
+  padding: 4px 10px; font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 1px;
+}
+.modal-close:hover { border-color: var(--red); color: var(--red); }
+.modal-body { padding: 20px; }
+.modal-reshuffle {
+  width: 100%; margin-top: 16px;
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem;
+  letter-spacing: 3px; padding: 12px;
+  background: var(--accent); color: #0d0d0d; border: none; cursor: pointer;
+  transition: background 0.15s;
+}
+.modal-reshuffle:hover { background: #d9b75a; }
+
+/* ── SESSION PLANNER DRAWER ── */
+.planner-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 400;
+  pointer-events: none;
+}
+.planner-overlay.open { display: block; }
+.planner-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.6);
+  pointer-events: all;
+}
+.planner-drawer {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: min(600px, 95vw);
+  background: var(--surface);
+  border-left: 2px solid var(--accent);
+  overflow-y: auto;
+  pointer-events: all;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+.planner-overlay.open .planner-drawer { transform: translateX(0); }
+
+.planner-head {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky; top: 0; z-index: 10;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.planner-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem; letter-spacing: 4px; color: var(--accent);
+}
+.planner-config {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end;
+}
+.config-group { display: flex; flex-direction: column; gap: 6px; }
+.config-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase;
+}
+.config-select {
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem; padding: 7px 10px; outline: none; cursor: pointer;
+}
+.config-select:focus { border-color: var(--accent); }
+.btn-build {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem;
+  letter-spacing: 3px; padding: 10px 22px;
+  background: var(--accent); color: #0d0d0d; border: none; cursor: pointer;
+  transition: background 0.15s; align-self: flex-end;
+}
+.btn-build:hover { background: #d9b75a; }
+
+.session-output { padding: 20px 22px; }
+.session-empty {
+  text-align: center; padding: 60px 20px;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+  color: var(--muted); letter-spacing: 2px; line-height: 2;
+}
+.session-header-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.session-title-main {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem;
+  letter-spacing: 3px; color: var(--accent); margin-bottom: 6px;
+}
+.session-meta-row {
+  display: flex; gap: 16px; flex-wrap: wrap;
+}
+.session-meta-item {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.62rem;
+  color: var(--muted); letter-spacing: 1px;
+}
+.session-meta-item span { color: var(--text); }
+
+.session-phase {
+  margin-bottom: 18px;
+}
+.phase-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.phase-num {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem;
+  letter-spacing: 2px; color: var(--accent); line-height: 1;
+}
+.phase-name {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem;
+  letter-spacing: 2px; color: var(--text);
+}
+.phase-time {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+  color: var(--muted); margin-left: auto; letter-spacing: 1px;
+}
+
+.session-drill-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  display: flex; gap: 12px; align-items: flex-start;
+  border-left: 3px solid var(--border);
+  cursor: pointer;
+  transition: border-left-color 0.15s;
+}
+.session-drill-row:hover { border-left-color: var(--accent); }
+.session-drill-row.belt-yellow { border-left-color: #b8a030; }
+.session-drill-row.belt-orange { border-left-color: #c8621a; }
+.session-drill-row.belt-green { border-left-color: #3a7a28; }
+.session-drill-row.belt-blue { border-left-color: #2a50aa; }
+.session-drill-row.belt-brown { border-left-color: #6a3820; }
+
+.sdr-time {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1rem;
+  color: var(--accent); letter-spacing: 1px; flex-shrink: 0; min-width: 54px;
+}
+.sdr-info { flex: 1; }
+.sdr-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1rem;
+  letter-spacing: 2px; color: var(--text); line-height: 1.1;
+}
+.sdr-sub {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.58rem;
+  color: var(--muted); letter-spacing: 1px; margin-top: 2px;
+}
+.sdr-int {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.58rem;
+  flex-shrink: 0;
+  padding: 2px 6px; border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.btn-print-session {
+  width: 100%; margin-top: 16px;
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem;
+  letter-spacing: 3px; padding: 12px;
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--accent); cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-print-session:hover { background: var(--accent); color: #0d0d0d; }
+
+/* Print */
+@media print {
+  header, .controls, .modal-overlay, .planner-overlay { display: none !important; }
+  body { background: white; }
+  .drill-card { border: 1px solid #ccc; break-inside: avoid; transform: none !important; }
+  .card-title { color: #000; }
+  .belt-stripe { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">KM <em>DRILL</em> FORGE</div>
+    <div class="sub">// COMPLETE KRAV MAGA — LEVINE &amp; WHITMAN // 230+ TECHNIQUES</div>
+  </div>
+  <div class="header-right">
+    <div class="stat-pill">DRILLS: <span id="totalCount">0</span></div>
+    <div class="stat-pill">SHOWN: <span id="shownCount">0</span></div>
+    <button onclick="openRandom()" style="font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:2px;padding:7px 14px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;">⚡ RANDOM</button>
+    <button onclick="openPlanner()" style="font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:2px;padding:7px 14px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">📋 SESSION PLANNER</button>
+    <button onclick="window.print()" style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;letter-spacing:2px;padding:6px 12px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">⎙ PRINT</button>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="filter-group" id="beltFilters">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('belt','all',this)">ALL BELTS</button>
+    <button class="filter-btn belt-yellow" data-filter="Yellow Belt" onclick="setFilter('belt','Yellow Belt',this)">YELLOW</button>
+    <button class="filter-btn belt-orange" data-filter="Orange Belt" onclick="setFilter('belt','Orange Belt',this)">ORANGE</button>
+    <button class="filter-btn belt-green" data-filter="Green Belt" onclick="setFilter('belt','Green Belt',this)">GREEN</button>
+    <button class="filter-btn belt-blue" data-filter="Blue Belt" onclick="setFilter('belt','Blue Belt',this)">BLUE</button>
+    <button class="filter-btn belt-brown" data-filter="Brown Belt" onclick="setFilter('belt','Brown Belt',this)">BROWN</button>
+  </div>
+  <div class="filter-group" id="catFilters">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('cat','all',this)">ALL TYPES</button>
+    <button class="filter-btn" data-filter="Strike" onclick="setFilter('cat','Strike',this)">STRIKES</button>
+    <button class="filter-btn" data-filter="Defense" onclick="setFilter('cat','Defense',this)">DEFENSE</button>
+    <button class="filter-btn" data-filter="Groundfighting" onclick="setFilter('cat','Groundfighting',this)">GROUND</button>
+    <button class="filter-btn" data-filter="Weapon Defense" onclick="setFilter('cat','Weapon Defense',this)">WEAPONS</button>
+    <button class="filter-btn" data-filter="Combination" onclick="setFilter('cat','Combination',this)">COMBOS</button>
+    <button class="filter-btn" data-filter="Self-Defense" onclick="setFilter('cat','Self-Defense',this)">SELF-DEF</button>
+  </div>
+  <div class="search-wrap">
+    <input type="text" id="searchBox" placeholder="SEARCH DRILLS..." oninput="onSearch(this)">
+    <span class="search-clear" id="searchClear" onclick="clearSearch()">✕</span>
+  </div>
+</div>
+
+<div class="grid-wrap">
+  <div class="results-label">SHOWING <span id="shownCount2">0</span> OF <span id="totalCount2">0</span> DRILLS</div>
+  <div class="drill-grid" id="drillGrid"></div>
+</div>
+
+<!-- RANDOM DRILL MODAL -->
+<div class="modal-overlay" id="randomModal" onclick="handleModalClick(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">⚡ RANDOM DRILL</div>
+      <button class="modal-close" onclick="closeRandom()">✕ CLOSE</button>
+    </div>
+    <div class="modal-body" id="randomBody"></div>
+  </div>
+</div>
+
+<!-- SESSION PLANNER DRAWER -->
+<div class="planner-overlay" id="plannerOverlay">
+  <div class="planner-backdrop" onclick="closePlanner()"></div>
+  <div class="planner-drawer">
+    <div class="planner-head">
+      <div class="planner-title">📋 SESSION PLANNER</div>
+      <button class="modal-close" onclick="closePlanner()">✕ CLOSE</button>
+    </div>
+    <div class="planner-config">
+      <div class="config-group">
+        <div class="config-label">Class Duration</div>
+        <select class="config-select" id="planDuration">
+          <option value="30">30 minutes</option>
+          <option value="45">45 minutes</option>
+          <option value="60" selected>60 minutes</option>
+          <option value="90">90 minutes</option>
+        </select>
+      </div>
+      <div class="config-group">
+        <div class="config-label">Belt Focus</div>
+        <select class="config-select" id="planBelt">
+          <option value="all">All Levels</option>
+          <option value="Yellow Belt">Yellow Belt</option>
+          <option value="Orange Belt">Orange Belt</option>
+          <option value="Green Belt">Green Belt</option>
+          <option value="Blue Belt">Blue Belt</option>
+          <option value="Brown Belt">Brown Belt</option>
+        </select>
+      </div>
+      <div class="config-group">
+        <div class="config-label">Focus Area</div>
+        <select class="config-select" id="planCat">
+          <option value="all">Balanced</option>
+          <option value="Strike">Strikes</option>
+          <option value="Defense">Defense</option>
+          <option value="Groundfighting">Groundfighting</option>
+          <option value="Weapon Defense">Weapon Defense</option>
+          <option value="Combination">Combinations</option>
+        </select>
+      </div>
+      <button class="btn-build" onclick="buildSession()">BUILD SESSION</button>
+    </div>
+    <div class="session-output" id="sessionOutput">
+      <div class="session-empty">Configure your class above and hit<br>BUILD SESSION to generate a plan.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DRILLS = [
+  // ─── YELLOW BELT ──────────────────────────────────────────
+  {
+    id: 1, belt: "Yellow Belt", category: "Strike",
+    title: "Hammer & Jab Flow",
+    technique: "Left Straight Punch / Forward Hammerfist",
+    goal: "Build punch mechanics and wrist alignment under fatigue. Develop the habit of recoiling fully between strikes.",
+    duration: "3 min", intensity: 2, intensityLabel: "Low",
+    steps: [
+      "From passive stance, throw a left jab targeting a pad at chin height — focus on rotating hip and shoulder together.",
+      "Immediately flow into a forward hammerfist, driving the bottom of the fist through the same target.",
+      "Reset to passive stance between each rep — do not cheat by staying in fighting stance.",
+      "Partner calls 'GO' randomly every 3–5 seconds to train reaction from passive (not ready) position.",
+      "After 90 sec, switch: partner gives unpredictable verbal cues to fire the combo."
+    ],
+    tags: ["pad work", "reaction", "partner drill"]
+  },
+  {
+    id: 2, belt: "Yellow Belt", category: "Strike",
+    title: "Elbow Matrix",
+    technique: "Elbow Strikes #1–#5",
+    goal: "Ingrain all five elbow directions as instinctive short-range weapons. Train smooth transition between horizontal, backward, and downward angles.",
+    duration: "4 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner holds a pad at different heights and angles — they call a number (1–5) and you fire that elbow.",
+      "Begin slow with 2-second pauses between calls. Progress to 1-second, then random rapid-fire.",
+      "After 2 min, switch to 'close distance' variation: partner steps INTO you unexpectedly, forcing elbow response.",
+      "Final 60 sec: eyes closed, partner taps shoulder — open eyes, identify pad angle, and deliver the correct elbow."
+    ],
+    tags: ["pad work", "range awareness", "stress drill"]
+  },
+  {
+    id: 3, belt: "Yellow Belt", category: "Strike",
+    title: "Low Kick / Punch Chain",
+    technique: "Front Kick + Straight Punch",
+    goal: "Train the distance continuum — learn when a kick is appropriate vs. a punch. Build combination flow from long range to close range.",
+    duration: "3 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Start at kicking distance. Fire a front kick (regular) to the pad held at groin height.",
+      "As you land, close the distance immediately and throw a cross-body straight punch to chin level.",
+      "Partner randomly moves the pad closer before the kick — forcing you to recognize range and skip the kick.",
+      "10 reps at training pace, then 10 reps at full speed. Rest 30 sec. Repeat."
+    ],
+    tags: ["combo", "distance", "pad work"]
+  },
+  {
+    id: 4, belt: "Yellow Belt", category: "Strike",
+    title: "Knee Strike Clinch",
+    technique: "Knee Strike / Round Knee Strike",
+    goal: "Develop explosive knee strikes from a clinch position. Train gripping, pulling, and simultaneous striking.",
+    duration: "2 x 90 sec", intensity: 4, intensityLabel: "High",
+    steps: [
+      "From clinch (both hands gripping partner's head/neck), deliver alternating knee strikes to a pad.",
+      "Partner holds pad against their midsection and controls the pace — no pad, no knee.",
+      "After 60 sec, partner adds push-back resistance: you must pull them INTO each knee.",
+      "Finish each round with a 10-second burst: max speed knees until partner steps back."
+    ],
+    tags: ["clinch", "partner drill", "high intensity"]
+  },
+  {
+    id: 5, belt: "Yellow Belt", category: "Defense",
+    title: "Inside Defense Reflex",
+    technique: "Inside Defense against Straight Punch",
+    goal: "Train the instinctive redirecting block so it fires automatically without conscious thought. Simultaneous defense and counterattack.",
+    duration: "5 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner throws slow, telegraphed straight punches. Defend and immediately counterattack with a punch.",
+      "After 10 reps, partner speeds up and does not tell you which hand they'll use.",
+      "Stress drill: Partner jabs at you while two others push you from the sides with pads — maintain defense.",
+      "Final 60 sec: eyes closed, react to contact only. Open eyes as soon as you feel the attack."
+    ],
+    tags: ["reflex", "stress drill", "counter"]
+  },
+  {
+    id: 6, belt: "Yellow Belt", category: "Defense",
+    title: "360° Blind Reaction",
+    technique: "Inside Defense and 360° against Punches",
+    goal: "Train 360° defense from a position of complete surprise — the most realistic starting point for any street attack.",
+    duration: "6 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Defender stands in passive stance, eyes closed.",
+      "Two partners position themselves and one throws a punch from any angle — defender reacts to contact.",
+      "Immediately follow up with two counterstrikes after the defense.",
+      "Partners switch unpredictably. Introduce verbal distractions between attacks.",
+      "Progress: add a third partner with a pad who shoves the defender at random while the attacks are happening."
+    ],
+    tags: ["360 defense", "stress drill", "partner drill", "blind reaction"]
+  },
+  {
+    id: 7, belt: "Yellow Belt", category: "Self-Defense",
+    title: "Wrist Release Gauntlet",
+    technique: "Wrist Releases (all variations)",
+    goal: "Build muscle memory across all five wrist releases so the defender reacts to the correct hold type automatically.",
+    duration: "4 min", intensity: 2, intensityLabel: "Low",
+    steps: [
+      "Partner grabs your wrist using one of the five hold types — you identify and apply the correct release.",
+      "Start with eyes open, partner announces the hold. Progress to no announcement.",
+      "Add a counterattack immediately after each release — at minimum a push or shove to create distance.",
+      "Gauntlet variation: walk down a line of 4 partners, each applies a random hold. Release and counter each, no stopping."
+    ],
+    tags: ["wrist release", "partner drill", "reflex"]
+  },
+  {
+    id: 8, belt: "Yellow Belt", category: "Self-Defense",
+    title: "Choke from Front: Burst & Counter",
+    technique: "Choke Defense from the Front",
+    goal: "Train the explosive burst and simultaneous pluck-and-strike so the response is automatic even under full choke pressure.",
+    duration: "3 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner applies a slow choke from the front — you perform the pluck and simultaneous counterattack.",
+      "After 5 clean reps, partner increases choke pressure to 60–70% strength.",
+      "Stress variation: defender performs 15 burpees, then immediately receives the choke — must still react correctly.",
+      "Blind drill: eyes closed, from passive stance. Partner chokes — open eyes and defend on contact."
+    ],
+    tags: ["choke defense", "stress inoculation", "partner drill"]
+  },
+  {
+    id: 9, belt: "Yellow Belt", category: "Groundfighting",
+    title: "Ground Position Transitions",
+    technique: "Back Position / Side Position / Getting Up",
+    goal: "Develop fluid, safe ground movement and rapid get-up against a standing opponent.",
+    duration: "4 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Start in back position. Partner circles while you track them with both feet — always face the threat.",
+      "On cue, transition to side position and kick with the top leg.",
+      "On second cue, execute the standard Krav get-up (not a martial arts kip — keep eyes on threat at all times).",
+      "Add: partner tries to step around your kicks as you get up. You must time the get-up to a safe moment.",
+      "Repeat for the other side. 6 cycles per side."
+    ],
+    tags: ["groundfighting", "mobility", "partner drill"]
+  },
+  // ─── ORANGE BELT ──────────────────────────────────────────
+  {
+    id: 10, belt: "Orange Belt", category: "Strike",
+    title: "Hook & Bob Flow",
+    technique: "Hook Punch / Bobbing and Weaving",
+    goal: "Integrate offensive hooks with defensive head movement so evasion becomes part of the attack rhythm.",
+    duration: "3 x 2 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Left jab → right cross → left hook on pad. Partner holds at chin height, adds resistance on hook.",
+      "After 60 sec, partner randomly throws a hook at defender between combos — defender bobs under it.",
+      "Full integration: every time partner calls 'slip' you bob and immediately counter with a hook.",
+      "Final round: remove the pad. Both partners exchange hooks freely — defender bobs all incoming hooks."
+    ],
+    tags: ["combo", "head movement", "bob", "partner drill"]
+  },
+  {
+    id: 11, belt: "Orange Belt", category: "Strike",
+    title: "Uppercut Power Builder",
+    technique: "Uppercut Punch",
+    goal: "Develop the drive mechanics of the uppercut — leg push, hip rotation, and upward trajectory through the target.",
+    duration: "3 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner holds a pad at 45° angle pointing down — you throw uppercuts, driving the pad upward.",
+      "Focus on bending the knees first, then driving up through the legs before the arm fires.",
+      "Alternate: left uppercut, right uppercut, right cross. 10 sets.",
+      "Pressure drill: partner wraps arms around pad and resists — you must generate enough power to move them backward."
+    ],
+    tags: ["uppercut", "power", "pad work"]
+  },
+  {
+    id: 12, belt: "Orange Belt", category: "Combination",
+    title: "5-Count Combo Under Fire",
+    technique: "Left/Right/Left Hook/Right Uppercut",
+    goal: "Build a complete combination under simulated stress — fatigue, distraction, and pressure from multiple directions.",
+    duration: "2 x 3 min", intensity: 5, intensityLabel: "Max Effort",
+    steps: [
+      "Fire full 4-count combo on pad: jab / cross / hook / uppercut at full speed.",
+      "After each combo, second partner immediately shoves you from behind — regain balance and repeat.",
+      "At random intervals, partner drops the pad — you must switch to body kicks or knees.",
+      "Final 30 sec of each round: max output, no pausing between combos."
+    ],
+    tags: ["combo", "stress inoculation", "max intensity"]
+  },
+  {
+    id: 13, belt: "Orange Belt", category: "Strike",
+    title: "Side & Back Kick Distance Drill",
+    technique: "Side Kick / Back Kick",
+    goal: "Train the side and back kick as distance-creating tools, not just power strikes. Target recognition from non-forward-facing positions.",
+    duration: "4 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Walk forward. Partner steps up behind you — fire a back kick without turning around.",
+      "Walk forward. Partner flanks you — pivot and fire a side kick.",
+      "Progress to eyes closed walking: partner approaches from any angle. Kick appropriately by sound/feel.",
+      "Add: immediately after the kick, regain balance and escape in the opposite direction."
+    ],
+    tags: ["back kick", "side kick", "awareness", "partner drill"]
+  },
+  {
+    id: 14, belt: "Orange Belt", category: "Defense",
+    title: "Front Kick Defense Circuit",
+    technique: "Reflexive Defense / Outside Stabbing Defense / Stop Kick against Front Kick",
+    goal: "Train three front-kick defense options under rapid stimulus — learning to select based on range and timing.",
+    duration: "5 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Round 1 (2 min): Partner telegraphs kick — use only reflexive defense. Counter with two punches.",
+      "Round 2 (2 min): Partner kicks faster — use outside stabbing defense or stop kick based on what's available.",
+      "Round 3 (1 min): No announced type — partner mixes all kicks. Defender reacts instinctively.",
+      "Debrief: discuss which defense fired most naturally and why."
+    ],
+    tags: ["front kick defense", "decision drill", "partner drill"]
+  },
+  {
+    id: 15, belt: "Orange Belt", category: "Self-Defense",
+    title: "Bearhug Escape Medley",
+    technique: "Bearhugs (all variations)",
+    goal: "Build explosive responses to all bearhug types — arms free, arms pinned, from behind. React from first contact.",
+    duration: "5 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner applies bearhug from behind, arms free — drop weight, stomp, elbow, and turn.",
+      "Partner applies bearhug from behind, arms pinned — use hip escape, head butt, or stomp.",
+      "Partner applies bearhug from front — create leverage on the neck/nose and counter.",
+      "Stress variation: defender starts striking a pad; partner closes from behind unexpectedly and applies hold.",
+      "Repeat for 3 min with full-resistance bear hugs after technique is clean."
+    ],
+    tags: ["bearhug", "self-defense", "partner drill"]
+  },
+  {
+    id: 16, belt: "Orange Belt", category: "Groundfighting",
+    title: "Mount Escape Under Strikes",
+    technique: "Trap and Roll / Elbow Escape (Shrimping)",
+    goal: "Train mount escapes while receiving realistic (controlled) strikes — the pressure forces urgency.",
+    duration: "4 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Partner is in full mount. They deliver light strikes to your head and body.",
+      "You must time your escape (trap and roll or elbow escape) between strikes.",
+      "After escape, immediately get to feet and create distance.",
+      "Partner mounts with varying weight distribution to prevent you from predicting the setup.",
+      "Switch roles every 2 min."
+    ],
+    tags: ["mount escape", "groundfighting", "pressure drill", "partner drill"]
+  },
+  {
+    id: 17, belt: "Orange Belt", category: "Groundfighting",
+    title: "Foot Grab Counter Drill",
+    technique: "Foot Grab: Stripping / Spinning Round Kick / Spinning Heel Kick",
+    goal: "Train the instinctive response to a grabbed foot — preventing takedown and immediately countering.",
+    duration: "3 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Kick a pad. Partner catches your foot at the end of the kick.",
+      "Without hesitation, apply the correct response: strip (drive knee in), spinning round kick, or spinning heel.",
+      "Call no response in advance — you must assess mid-flight which option is viable.",
+      "Add: after the counter, immediately close and deliver two more strikes before resetting."
+    ],
+    tags: ["foot grab", "counter", "partner drill"]
+  },
+  {
+    id: 43, belt: "Orange Belt", category: "Self-Defense",
+    title: "Wall Choke Burst",
+    technique: "Choke Defense against a Wall",
+    goal: "Train the most constrained choke scenario — back against a wall with no retreat. The burst and pluck must drive forward into the attacker.",
+    duration: "4 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Stand with your back 6 inches from a wall. Partner applies a choke from the front at realistic pressure.",
+      "Execute the pluck and simultaneous counterattack — you cannot step back, so the burst must drive forward into the attacker.",
+      "After the defense, use an elbow or knee to create distance rather than stepping away.",
+      "Stress variation: eyes closed, back against wall. Partner applies choke without warning.",
+      "Progress: partner pins one arm against the wall before choking — adapt the defense."
+    ],
+    tags: ["choke defense", "wall", "restricted space", "partner drill"]
+  },
+  {
+    id: 44, belt: "Orange Belt", category: "Defense",
+    title: "Slip & Counter",
+    technique: "Slipping",
+    goal: "Ingrain slipping as an offensive tool — moving the head offline while simultaneously setting up a counter.",
+    duration: "3 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner throws slow straight punches. Slip outside (duck and rotate) and counter with a rear hook or uppercut.",
+      "Slip inside the punch and counter with a cross to the body.",
+      "Partner mixes jab and cross — defender slips each and counters immediately.",
+      "Speed round: partner increases pace. Defender keeps chin down and eyes forward throughout the slip.",
+      "No-counter round: slip only for 60 sec, building the movement as pure habit before adding the strike."
+    ],
+    tags: ["slipping", "head movement", "counter", "partner drill"]
+  },
+  {
+    id: 45, belt: "Orange Belt", category: "Defense",
+    title: "Fall Break Conditioning",
+    technique: "Back Fall Break / Side Fall Break",
+    goal: "Build automatic fall break mechanics so the slap fires before conscious thought — protecting the head and spine in a takedown or trip.",
+    duration: "5 min", intensity: 2, intensityLabel: "Low",
+    steps: [
+      "Start slow: lower to a squat and roll back into a back fall break. Slap both hands at 45 degrees before shoulders land.",
+      "Progress to standing back fall break — fall straight back and trust the slap timing.",
+      "Side fall break: fall to the right, slap the right arm and right leg simultaneously to distribute impact.",
+      "Partner drill: partner slowly pushes you in random directions — fall and break correctly each time.",
+      "Final rep: 5 burpees, then partner pushes without warning. Fall break from fatigue."
+    ],
+    tags: ["fall break", "safety drill", "conditioning"]
+  },
+  {
+    id: 46, belt: "Orange Belt", category: "Strike",
+    title: "Uppercut Back Kick Chain",
+    technique: "Uppercut Back Kick (Short)",
+    goal: "Train the short uppercut back kick as a close-range weapon when someone is directly behind — no chamber, pure hip snap.",
+    duration: "3 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner stands directly behind you holding a pad at hip height. Deliver the short back kick — no chamber, drive the heel straight back.",
+      "After 8 reps, partner steps to the side slightly — defender must scan and redirect the kick angle.",
+      "Combination: partner grabs from behind, you back kick to create space, turn, and follow with hammerfist.",
+      "Reaction drill: partner taps your shoulder from behind. React with the back kick before turning to face them."
+    ],
+    tags: ["back kick", "close range", "partner drill", "reaction"]
+  },
+  {
+    id: 47, belt: "Orange Belt", category: "Defense",
+    title: "Hook & Uppercut Defense",
+    technique: "Defense against Hook Punch (Extended) / Defense against Uppercut Punch",
+    goal: "Train defenses against the two punches most likely to land in a real fight — hooks come from blind angles, uppercuts from below eyeline.",
+    duration: "5 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner throws slow extended hooks — defend with the forearm block and counter immediately.",
+      "Partner throws slow uppercuts — defend with downward forearm intercept and counter.",
+      "Mix drill: partner alternates hooks, uppercuts, and straight punches without calling them. Defend each correctly.",
+      "Fatigue round: 20 jumping jacks, then immediately receive 10 mixed attacks.",
+      "Eyes closed variation: hands on partner's biceps — feel the windup and react from touch, not sight."
+    ],
+    tags: ["hook defense", "uppercut defense", "reflex", "partner drill"]
+  },
+  {
+    id: 48, belt: "Orange Belt", category: "Groundfighting",
+    title: "Top Mount: Control & Strike",
+    technique: "Mount—Top Position / Maintaining Mount",
+    goal: "Develop the offensive top mount — weight distribution, base maintenance, and strike output while the bottom player actively resists.",
+    duration: "4 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Achieve full mount. Partner begins bucking and bridging immediately. Maintain mount for 30 sec using weight and base adjustments.",
+      "From stable mount, deliver controlled palm strikes and elbows while partner resists.",
+      "Partner attempts the elbow escape (shrimping) — follow their hips to maintain mount position.",
+      "Partner attempts trap and roll — post your arm and redistribute weight to counter it.",
+      "Switch roles every 2 min. Coaching cue: hips low, knees wide, weight forward."
+    ],
+    tags: ["mount top", "groundfighting", "control", "pressure drill"]
+  },
+  // ─── GREEN BELT ──────────────────────────────────────────
+  {
+    id: 18, belt: "Green Belt", category: "Strike",
+    title: "Headbutt Close Quarters",
+    technique: "Forward Headbutt / Upward Headbutt",
+    goal: "Train headbutts as a genuine close-range weapon when arms are tied up — aim points, drive mechanics, and head protection.",
+    duration: "3 min", intensity: 2, intensityLabel: "Low",
+    steps: [
+      "Use a padded headgear or foam pad for safety. Partner holds pad against their forehead.",
+      "From a clinch (arms controlled), deliver forward headbutt driving through the pad with the forehead hairline.",
+      "Upward headbutt variation: from under the chin, drive up with top of forehead while dropping level first.",
+      "Scenario drill: partner locks your arms — only weapon available is headbutt. Deliver 3 before breaking free.",
+      "Note: all headbutt contact must be 30% power max with proper padding."
+    ],
+    tags: ["headbutt", "close range", "clinch", "safety drill"]
+  },
+  {
+    id: 19, belt: "Green Belt", category: "Strike",
+    title: "Slap Kick Range Opener",
+    technique: "Inside Slap Kick / Outside Slap Kick",
+    goal: "Train slap kicks as range-creating, balance-disrupting tools before closing for strikes.",
+    duration: "3 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner stands at outside-kick range. Deliver inside slap kick to their lead thigh — drive inward.",
+      "Immediately close distance and fire two punches.",
+      "Switch: outside slap kick to drive their leg outward, then counter.",
+      "Partner randomly blocks or doesn't block — you must adjust.",
+      "Combination: inside slap kick / cross / hook / outside slap kick to disengage."
+    ],
+    tags: ["slap kick", "range control", "combo"]
+  },
+  {
+    id: 20, belt: "Green Belt", category: "Defense",
+    title: "Outside Defense 5-Angle Circuit",
+    technique: "Outside Defense #1–#5",
+    goal: "Train all five outside defense angles until selection is automatic based on attack angle, not conscious choice.",
+    duration: "6 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner throws slow punches at each angle (1–5), calling number before each strike. Defend and counter.",
+      "Remove angle calls — partner throws at a random angle and you respond.",
+      "Speed round: rapid-fire alternating attacks, no pauses. Defender must keep up.",
+      "Closed-eye drill: feel the incoming attack and react with the correct defense.",
+      "Finale: partner uses angles AND straight punches — outside defense OR inside defense as appropriate."
+    ],
+    tags: ["outside defense", "reflex", "stress drill", "partner drill"]
+  },
+  {
+    id: 21, belt: "Green Belt", category: "Defense",
+    title: "High Round Kick Defense",
+    technique: "Defense against High Round Kick (Reflexive Defense)",
+    goal: "Ingrain the reflexive covering defense so it fires instantly to a high kick even when surprised.",
+    duration: "4 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner delivers slow high round kicks. Defender covers, absorbs on forearm, and counters immediately.",
+      "After 8 reps, partner randomly mixes high kicks with punches — defend each appropriately.",
+      "Fatigue drill: 20 burpees, then immediately receive a high round kick. Cover and counter.",
+      "Partner switches kicking leg randomly without announcement. Defender must not favor one side."
+    ],
+    tags: ["kick defense", "reflex", "stress inoculation"]
+  },
+  {
+    id: 22, belt: "Green Belt", category: "Groundfighting",
+    title: "Guillotine Survival",
+    technique: "Standing Reverse Headlock (Guillotine) / Guard—Guillotine",
+    goal: "Train both the guillotine application and the defense — including survival strategy from inside the hold.",
+    duration: "5 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Partner applies standing reverse headlock — defender executes escape (turn into attacker, posture up).",
+      "Ground variation: partner catches a guillotine from guard. Defender postures, passes guard, and escapes.",
+      "Apply increasing resistance with each rep.",
+      "Scenario drill: standing combo ends with partner catching a guillotine mid-fight. Continue to escape.",
+      "Safety reminder: tap system must be established. All pressure at 50% during learning phase."
+    ],
+    tags: ["guillotine", "groundfighting", "partner drill", "safety required"]
+  },
+  {
+    id: 23, belt: "Green Belt", category: "Groundfighting",
+    title: "Side Mount Control & Strike",
+    technique: "Side Mount (Basic / Arm Lock / Strikes)",
+    goal: "Develop control, pressure, and strike output from side mount — transitioning between control and attack phases.",
+    duration: "4 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Achieve side mount. Partner resists with bridge and roll attempts — maintain control for 30 sec.",
+      "Deliver knees to the head and body while maintaining base.",
+      "Attempt arm lock — partner defends with elbow tuck. Adjust and find the lock.",
+      "Transition to full mount and deliver finishing strikes.",
+      "Switch roles. Partner attempts escapes from side mount."
+    ],
+    tags: ["side mount", "groundfighting", "control", "partner drill"]
+  },
+  {
+    id: 49, belt: "Green Belt", category: "Defense",
+    title: "Roll & Recover",
+    technique: "Forward Roll / Backward Roll / Forward Roll + Back Fall Break",
+    goal: "Build fluid rolls as evasive and recovery tools — training the transition from roll back to fighting stance without pause.",
+    duration: "4 min", intensity: 2, intensityLabel: "Low",
+    steps: [
+      "Forward roll: tuck chin, lead with the shoulder (not the head), roll diagonally across the back, spring to fighting stance.",
+      "10 forward rolls in a line, each one finishing in an immediate fighting stance facing back toward the start.",
+      "Backward roll: roll back over one shoulder, avoid rolling directly over the spine.",
+      "Combination: forward roll away from a strike, pop up, deliver an immediate counterattack on the pad.",
+      "High-speed version: forward roll into back fall break (simulating a trip that transitions to a controlled fall)."
+    ],
+    tags: ["rolls", "fall break", "mobility", "recovery"]
+  },
+  {
+    id: 50, belt: "Green Belt", category: "Strike",
+    title: "Offensive Back Kick Timing",
+    technique: "Offensive Back Kick",
+    goal: "Train the offensive back kick as a range-creating strike thrown while facing the opponent — not a reactive kick but an initiated attack.",
+    duration: "3 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "From fighting stance, step forward with the lead foot, pivot 180 degrees, and deliver the back kick before your weight settles.",
+      "Partner holds a pad behind you at stomach height — time the pivot and kick so the heel makes clean contact.",
+      "Do not telegraph with the shoulders — the pivot should be sudden and the kick immediate.",
+      "Combination: jab / cross to draw the opponent forward, then pivot and back kick as they close.",
+      "Partner provides resistance on the pad — you must generate enough drive to push them back a full step."
+    ],
+    tags: ["back kick", "offensive", "pivot", "pad work"]
+  },
+  {
+    id: 51, belt: "Green Belt", category: "Strike",
+    title: "Heel Kick Follow-Through",
+    technique: "Heel Kick",
+    goal: "Develop the heel kick as a finishing tool for a downed or bent opponent — correct hip chamber and downward trajectory.",
+    duration: "3 min", intensity: 2, intensityLabel: "Low",
+    steps: [
+      "Partner kneels and holds a pad at head level. Chamber the knee high, then drive the heel downward through the pad.",
+      "Focus: this is not a stomp — the leg straightens on impact, driving through the target.",
+      "Standing variation: partner bends forward at the waist. Deliver heel kick to the back of the neck/upper back area (pad protected).",
+      "Combination: knee strike to the midsection forces opponent to double over, immediately follow with heel kick.",
+      "Ground finish: partner is on hands and knees — deliver controlled heel kick to the pad on their back, then disengage."
+    ],
+    tags: ["heel kick", "finishing", "pad work", "combo"]
+  },
+  {
+    id: 52, belt: "Green Belt", category: "Strike",
+    title: "Inward Angle Knee",
+    technique: "Inward Angle Knee",
+    goal: "Train the inward angle knee strike as a clinch weapon targeting the outer thigh and hip — different mechanics from the standard straight knee.",
+    duration: "3 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "From clinch, deliver the inward angle knee — drive the knee across your centerline and into the outer thigh of the partner.",
+      "Partner holds a Thai pad on their outer thigh. Focus on the inward rotation of the hip, not just the knee lift.",
+      "Alternate: left inward angle knee / right straight knee / repeat. Partner adjusts pad position.",
+      "Combination: inward angle knee to the thigh to lower the opponent's guard, then transition to straight knee to the midsection.",
+      "Resistance drill: partner steps their leg back to avoid — you must adjust the angle and still land."
+    ],
+    tags: ["knee", "clinch", "inward angle", "pad work"]
+  },
+  {
+    id: 53, belt: "Green Belt", category: "Defense",
+    title: "Punching Defense Against Right",
+    technique: "Outside Defense against Right Punch (Punching Defense)",
+    goal: "Train the simultaneous punching defense — blocking and striking in one motion, not two separate actions.",
+    duration: "4 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner throws a slow right cross. Defend with the outside punching defense — your left hand redirects the punch while your right cross fires simultaneously.",
+      "The goal: both movements complete at the same moment. Drill this in slow motion until timing is clean.",
+      "Speed up gradually. The defense is lost if the block fires first and the punch second.",
+      "Partner randomly mixes right crosses with jabs — defend the cross with punching defense, the jab with a standard inside defense.",
+      "Eyes closed variation: react to the punch making contact with your guard, fire the simultaneous counter."
+    ],
+    tags: ["outside defense", "simultaneous", "punching defense", "partner drill"]
+  },
+  {
+    id: 54, belt: "Green Belt", category: "Groundfighting",
+    title: "Guard Reversal & Sweep",
+    technique: "Guard Reversal (Sit Up and Sweep) / Side Mount Disengage (Knee to Belly)",
+    goal: "Train the guard sit-up sweep and the knee-to-belly disengage as the two primary ways to reverse position from an inferior ground situation.",
+    duration: "5 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Partner is in your guard, posturing upright. Sit up explosively, overhook one arm, and sweep them to the side.",
+      "Follow the sweep into top position — never stay on your back once the sweep is complete.",
+      "Knee-to-belly: from side mount bottom, frame against the partner and insert the knee to create space, disengage and get up.",
+      "Partner provides active resistance on both drills — you must generate enough movement to overcome it.",
+      "Combination flow: sweep fails, transition to knee-to-belly disengage instead. Train both in a connected sequence."
+    ],
+    tags: ["guard", "sweep", "reversal", "groundfighting", "partner drill"]
+  },
+{
+    id: 55, belt: "Blue Belt", category: "Strike",
+    title: "Chop Strike Arsenal",
+    technique: "Inside Chop / Outside Chop / Mouth of Hand",
+    goal: "Build three close-range edge-of-hand strikes as alternatives to punching — useful when the fist is occupied or the range is awkward.",
+    duration: "4 min", intensity: 2, intensityLabel: "Low",
+    steps: [
+      "Inside chop: from fighting stance, drive the blade of the hand inward across the throat or neck — target: carotid and trachea area.",
+      "Outside chop: swing the blade outward, targeting the side of the neck or the back of the head/neck.",
+      "Mouth of hand: drive the webbing between thumb and forefinger into the throat — useful from very close range.",
+      "Partner holds a pad flat against their palm at neck height. Deliver all three strikes in sequence, 10 reps.",
+      "Combination: jab / cross to create a flinch response, then inside chop to the throat as the follow-through."
+    ],
+    tags: ["chop", "edge of hand", "close range", "pad work"]
+  },
+  {
+    id: 56, belt: "Blue Belt", category: "Defense",
+    title: "Sliding High Kick Defense",
+    technique: "General Defense against Medium to High Kicks / Sliding Defense against High Round Kick / Sliding Defense against Spinning Heel Kick",
+    goal: "Train the sliding defense as a range-collapsing counter — moving inside the kick arc to neutralize power and set up an immediate takedown or counter.",
+    duration: "5 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner throws slow high round kicks. Defend with the general cover block first — absorb on the forearm and counter.",
+      "Progress to sliding defense: on the kick, step forward diagonally into the attacker, jamming the kick at the hip before it generates power.",
+      "Sliding defense against spinning heel kick: read the shoulder rotation that telegraphs the spin, burst forward before the heel arrives.",
+      "Combination: slide in, jam the kick, immediately clinch and deliver knees.",
+      "Speed drill: partner throws kicks without announcement — defender reads the chamber and chooses cover or slide based on timing."
+    ],
+    tags: ["kick defense", "sliding defense", "high kick", "counter"]
+  },
+  {
+    id: 57, belt: "Blue Belt", category: "Self-Defense",
+    title: "Takedown Circuit",
+    technique: "Takedown #1: Simple Takedown / Takedown #2: Double-Leg / Takedown #3: Toe-Pick",
+    goal: "Train all three takedowns as context-dependent tools — recognizing which is available based on distance, grip, and the opponent's base.",
+    duration: "6 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Simple takedown: from clinch, secure a collar-and-elbow grip, step to the outside, and drive them down with hip pressure.",
+      "Double-leg: from outside kicking range, level-change explosively, drive the shoulder into the hips, and finish to the side.",
+      "Toe-pick: from close range, reach down and strip one foot while pushing the upper body in the opposite direction.",
+      "Decision drill: partner stands in a static base — you must identify which takedown is available and execute it within 2 seconds.",
+      "Live round: partner resists and moves. Complete any successful takedown, follow with ground control, and get up immediately."
+    ],
+    tags: ["takedown", "clinch", "partner drill", "decision drill"]
+  },
+  {
+    id: 58, belt: "Blue Belt", category: "Weapon Defense",
+    title: "Gun from Behind",
+    technique: "Gun Defense — Rear Threat",
+    goal: "Train the rear gun defense with the correct burst direction and hand position — the most disorienting threat angle because you cannot see the weapon.",
+    duration: "5 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Partner presses rubber gun into your back (spine level). Burst to the live side, rotating into the attacker as you redirect the gun.",
+      "Critical: the redirect hand must travel to the weapon before the turn completes — not after.",
+      "Stress drill: walking normally, partner approaches from behind and presses gun without warning. React on contact.",
+      "Variation: gun pressed to the back of the head. Adjust burst direction and redirect accordingly.",
+      "After disarm: deliver immediate counterstrikes and create distance. Do not stand still holding the weapon."
+    ],
+    tags: ["gun defense", "rear threat", "weapon", "stress drill"]
+  },
+  {
+    id: 59, belt: "Blue Belt", category: "Groundfighting",
+    title: "Guard Bottom: Attack & Defend",
+    technique: "Guard—Bottom Position: Guillotine / Defense against Guillotine",
+    goal: "Train the guard bottom as an active offensive position — applying and defending the guillotine while managing posture and base.",
+    duration: "5 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "From guard bottom, partner postures upright. Sit up, overhook their arm, and apply the guillotine — lock and squeeze.",
+      "Partner defends by posturing and stacking. Adjust hip angle and maintain pressure.",
+      "Defense variation: you are on top in guard, partner catches a guillotine. Posture, tuck chin, pass the guard to escape.",
+      "Flow drill: alternate between applying and defending the guillotine every 45 seconds.",
+      "Safety protocol: tap system required. Apply at 40% pressure until both partners are comfortable."
+    ],
+    tags: ["guard", "guillotine", "groundfighting", "partner drill", "safety required"]
+  },
+  // ─── BLUE BELT ──────────────────────────────────────────
+  {
+    id: 24, belt: "Blue Belt", category: "Weapon Defense",
+    title: "Gun Front: Burst & Control",
+    technique: "Gun Defense from the Front",
+    goal: "Train the explosive burst, redirection, and weapon control against a handgun threat from the front.",
+    duration: "5 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Use a training/rubber gun. Partner holds gun at chest level. Practice slow burst and redirect 5 times.",
+      "Increase to realistic speed. You must move offline AND redirect simultaneously.",
+      "Stress drill: eyes closed, begin striking a pad. Partner silently approaches and presses gun against your chest. React.",
+      "Add: after redirection, partner resists weapon strip. Force the disarm with the correct cavalier.",
+      "Walk-away variation: after strip, create 3 steps of distance before pointing gun at partner (safe simulation)."
+    ],
+    tags: ["gun defense", "weapon", "stress drill", "partner drill"]
+  },
+  {
+    id: 25, belt: "Blue Belt", category: "Weapon Defense",
+    title: "Gun to Head: Side & Rear",
+    technique: "Gun to the Side of the Head",
+    goal: "Train the explosive off-line burst for gun threats at the head — timing the movement before pulling the trigger.",
+    duration: "4 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Partner holds rubber gun to side of head. Practice burst (burst the feet) and redirect 5 times at slow pace.",
+      "Speed up. Partner may call 'bang' at any point — if you haven't moved offline, you fail the rep.",
+      "Eyes closed variation: partner places gun without announcement. React on contact.",
+      "Variation: gun to back of head. Burst away from the live side, redirect, and control.",
+      "Critical: discuss WHY you move before redirecting (reaction time vs. trigger pull speed)."
+    ],
+    tags: ["gun defense", "weapon", "live-side dead-side", "stress drill"]
+  },
+  {
+    id: 26, belt: "Blue Belt", category: "Weapon Defense",
+    title: "Stick Defense Flow",
+    technique: "Stick Defenses (all angles)",
+    goal: "Train stick defenses against overhead, forehand, and backhand attacks — applying correct burst and counter.",
+    duration: "6 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Partner attacks slowly with a padded stick. Defend each angle — burst inside or outside as appropriate.",
+      "After clean defense, immediately counter with continuous strikes until partner goes down or retreats.",
+      "Increase speed and add randomness to attack angles.",
+      "Combo drill: partner delivers 3-strike stick combination. Defend the first, ride the second, counter on the third.",
+      "Scenario: defender is sitting on a chair when stick attack begins. React from seated/rising position."
+    ],
+    tags: ["stick defense", "weapon", "burst", "partner drill"]
+  },
+  {
+    id: 27, belt: "Blue Belt", category: "Defense",
+    title: "Axe Kick Precision Trainer",
+    technique: "Axe Kick",
+    goal: "Build axe kick mechanics — correct chamber, downward drive, and impact with the heel. Accuracy to specific target zones.",
+    duration: "3 min", intensity: 2, intensityLabel: "Low",
+    steps: [
+      "Partner holds a horizontal pad at collarbone height. Chamber high, drive heel down through the pad.",
+      "Practice from static first. Then from a 2-step approach.",
+      "Target variation: pad at head level (for downed opponent simulation).",
+      "Partner lowers pad unpredictably — you must re-chamber and adjust height mid-kick.",
+      "Combo: jab / cross / axe kick (to break guard or strike collarbone)."
+    ],
+    tags: ["axe kick", "precision", "pad work"]
+  },
+  {
+    id: 28, belt: "Blue Belt", category: "Defense",
+    title: "Cavalier Locks Circuit",
+    technique: "Cavalier #1–#4",
+    goal: "Train all four cavalier wrist locks fluidly — including the transition between them when the first is countered.",
+    duration: "5 min", intensity: 2, intensityLabel: "Low",
+    steps: [
+      "Partner presents a grabbed wrist. Apply cavalier #1 (standard wrist lock) — partner taps.",
+      "Partner resists cavalier #1 by bending elbow. Transition immediately to cavalier #2.",
+      "Drill all four in sequence — practice feel-based transitions without counting.",
+      "Flow drill: partner resists each with random escapes. You must read the movement and switch locks.",
+      "Safety: establish tap protocol. All locks at 40% pressure until partner is familiar."
+    ],
+    tags: ["cavalier", "wrist lock", "partner drill", "safety required"]
+  },
+  {
+    id: 29, belt: "Blue Belt", category: "Groundfighting",
+    title: "Triangle Choke Setup",
+    technique: "Triangle Choke",
+    goal: "Train the triangle choke setup from guard — recognizing the window, framing, and locking the finish.",
+    duration: "4 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "From guard, partner postures forward aggressively. Identify the arm-in-arm-out position.",
+      "Drill the frame, hip escape, and leg lock sequence slowly 10 times.",
+      "Partner adds resistance during the lock phase — you must adjust and finish.",
+      "Escape drill: partner escapes the triangle by stacking. Adjust hip angle and maintain.",
+      "Chain: if triangle fails, flow to armbar or sweep — do not abandon the position."
+    ],
+    tags: ["triangle choke", "groundfighting", "partner drill"]
+  },
+  {
+    id: 30, belt: "Blue Belt", category: "Combination",
+    title: "Spinning Kick Integration",
+    technique: "Spinning Outside Slap Kick / Spinning Heel Kick",
+    goal: "Integrate spinning kicks into real combinations — training awareness of blind-side exposure and recovery.",
+    duration: "4 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Set up with jab/cross to occupy partner. Spin and deliver spinning outside slap kick to body.",
+      "Progress to spinning heel kick — partner holds a pad level with head/neck.",
+      "After every spinning kick, immediately check for a second opponent behind you.",
+      "Failure drill: if you miss the spin, immediately drop to base and cover — never chase a missed kick.",
+      "Combo: jab / cross / spinning heel kick / immediate guard reset."
+    ],
+    tags: ["spinning kick", "combo", "footwork", "high intensity"]
+  },
+{
+    id: 60, belt: "Brown Belt", category: "Self-Defense",
+    title: "Sacrifice Throw",
+    technique: "Face-to-Face Flip (Sacrifice Throw)",
+    goal: "Train the sacrifice throw as a last-resort reversal when conventional takedowns are blocked — using your own drop to generate the throw.",
+    duration: "4 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "From a front clinch, grip the lapels or shoulders. Drop your weight backward while driving your foot into the partner's hip or midsection.",
+      "As you fall back, extend the leg and push — the attacker flips over you and lands behind you.",
+      "Partner must have solid falling skills before this drill. Practice the fall break independently first.",
+      "Slow motion first: 5 reps each side at 20% speed. Progress to 60% once landing is clean.",
+      "Context drill: partner resists a hip throw — when the hip throw is blocked, transition to sacrifice throw without resetting."
+    ],
+    tags: ["throw", "sacrifice", "reversal", "safety required", "partner drill"]
+  },
+  {
+    id: 61, belt: "Brown Belt", category: "Self-Defense",
+    title: "Double-Leg Takedown Defense",
+    technique: "Defense against Double-Leg Takedown / Sprawl",
+    goal: "Train the sprawl as the primary defense against a double-leg — getting hips to the ground behind the attacker and transitioning to a dominant position.",
+    duration: "4 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Partner shoots a slow double-leg. Sprawl: drive hips down and back, push their head down, and land chest-to-back on top of them.",
+      "From the sprawl, immediately transition to side mount or apply a rear choke.",
+      "Partner shoots faster. Time the sprawl to the first step of the shot — early is better than late.",
+      "Resistance drill: partner fights from the sprawl position, trying to complete the takedown. Maintain sprawl pressure.",
+      "Chain: if sprawl fails, execute a guillotine from the clinch position as the backup defense."
+    ],
+    tags: ["sprawl", "takedown defense", "groundfighting", "partner drill"]
+  },
+  {
+    id: 62, belt: "Brown Belt", category: "Weapon Defense",
+    title: "Edged Weapon Under Pressure",
+    technique: "Knife Defense against Upward Stab / Straight Stab / Slash (combined)",
+    goal: "Train knife defenses under fatigue and chaos — combining all three knife attack types in a single flowing drill with no scripted sequence.",
+    duration: "6 min", intensity: 5, intensityLabel: "Max Effort",
+    steps: [
+      "Partner uses a rubber knife and attacks with any combination of upward stab, straight stab, or slash — no pattern, no announcement.",
+      "Defend each attack with the correct response. Counter-strike and attempt to strip the weapon.",
+      "After each defense, a second partner shoves the defender from behind — maintain balance and continue.",
+      "Fatigue protocol: 15 burpees, then immediately face the knife attacker. Defend from full exhaustion.",
+      "Debrief: which attack was hardest to read? Identify the visual cue that distinguishes each before the blade arrives."
+    ],
+    tags: ["knife defense", "weapon", "mixed attacks", "stress inoculation", "max intensity"]
+  },
+  {
+    id: 63, belt: "Brown Belt", category: "Self-Defense",
+    title: "Third-Party Protection",
+    technique: "Third-Party Protection Principles",
+    goal: "Train the unique challenge of protecting another person — movement, positioning, and technique selection change when someone else is in the fight.",
+    duration: "6 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Defender stands beside a partner (the third party). Attacker threatens the third party — defender must intercept and neutralize.",
+      "Key principle: position yourself between the threat and the person you are protecting at all times.",
+      "Weapon threat variation: attacker holds a gun to the third party. Defender must create an angle and burst without endangering the protectee.",
+      "Multiple attacker variation: two attackers — one grabs the protectee, one attacks the defender. Handle both.",
+      "Debrief: the defender cannot fight the same way they would alone — discuss the positional and tactical differences."
+    ],
+    tags: ["third-party", "protection", "scenario", "multi-attacker"]
+  },
+  {
+    id: 64, belt: "Brown Belt", category: "Weapon Defense",
+    title: "Rifle Defense: Entry & Strip",
+    technique: "Shotgun / Assault Rifle / Submachine Gun Defenses",
+    goal: "Train the two-handed burst and redirect against a long gun — internalizing that the priority is muzzle control, not disarm.",
+    duration: "5 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Partner holds a training rifle at low-ready pointed at your chest. Burst to the dead side, redirect the muzzle with both hands.",
+      "Control: one hand on the barrel, one near the receiver. Do not let go with either hand.",
+      "Live-side burst variation: burst toward the attacker's body, redirect the muzzle away from you.",
+      "Bayonet stab variation: partner thrusts the rifle forward. Parry the barrel offline and burst into their body simultaneously.",
+      "Strip and disengage: once you control the rifle, deliver a knee strike and rip the weapon — create distance immediately."
+    ],
+    tags: ["rifle", "long gun", "weapon", "burst", "muzzle control"]
+  },
+  // ─── BROWN BELT ──────────────────────────────────────────
+  {
+    id: 31, belt: "Brown Belt", category: "Weapon Defense",
+    title: "Knife: Upward Stab Defense",
+    technique: "Knife Defense against Upward Stab",
+    goal: "Train the instinctive 360° defense against an upward knife attack and the immediate counter before the attacker recoils.",
+    duration: "5 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Partner holds rubber knife and delivers slow upward stab. Defend with 360 and counter simultaneously.",
+      "Increase to realistic speed. Focus on NOT looking at the knife — look at the attacker's body.",
+      "Stress drill: partner mixes upward stab with overhead attacks — defender responds to the attack type, not the weapon.",
+      "After knife strip, deliver continuing counterattacks until the threat is neutralized.",
+      "Scenario: partner closes from close range without warning. Defend from zero distance."
+    ],
+    tags: ["knife defense", "weapon", "360 defense", "stress drill"]
+  },
+  {
+    id: 32, belt: "Brown Belt", category: "Weapon Defense",
+    title: "Knife: Straight Stab Dead & Live Side",
+    technique: "Knife Defense against Straight Stab (Live Side / Dead Side)",
+    goal: "Train instinctive dead-side and live-side responses to straight stabs — burst direction is everything.",
+    duration: "5 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Partner thrusts rubber knife slowly at chest. Practice dead-side burst (off the attacking arm).",
+      "Practice live-side burst — entering toward the attacker's body.",
+      "Speed round: partner randomizes which side they attack from. You must read and burst correctly.",
+      "Partner stabs from advance (moving forward). Time your burst to their footstep.",
+      "Critical: control the weapon hand throughout — never let it free after initial defense."
+    ],
+    tags: ["knife defense", "live side", "dead side", "burst", "weapon"]
+  },
+  {
+    id: 33, belt: "Brown Belt", category: "Weapon Defense",
+    title: "Knife Slash Defense",
+    technique: "Knife Defense against Forward Slash / Backhand Slash",
+    goal: "Train slashing-attack defenses — forward and backhand — and the follow-through to counter and disarm.",
+    duration: "4 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Partner delivers slow forehand slash across the defender's mid-section. Defend and counter.",
+      "Backhand slash: partner delivers return slash after a forehand. Defend the follow-through, not just the first slash.",
+      "Combination: forward slash → backhand slash. Defend both and counter before partner resets.",
+      "Stress drill: defend against slash, counter, then second partner grabs from behind. Deal with both threats.",
+      "No-look drill: defender keeps eyes on attacker's torso, not the knife — react to body movement."
+    ],
+    tags: ["knife defense", "slash", "weapon", "stress drill"]
+  },
+  {
+    id: 34, belt: "Brown Belt", category: "Self-Defense",
+    title: "Hip Throw in Context",
+    technique: "Hip Throw",
+    goal: "Integrate the hip throw into a real fighting context — from a clinch or after a missed punch, not from a compliant start.",
+    duration: "4 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Begin with a 3-punch combo. Partner catches the last punch in a clinch — execute hip throw.",
+      "Partner resists the throw by blocking the hip entry. Transition to the alternative takedown.",
+      "After the throw, immediately control the downed partner with a strike to prevent get-up.",
+      "Opposite variation: partner attempts a hip throw on you — sprawl and maintain base.",
+      "Safety: both partners must drill fall breaks before adding speed or resistance."
+    ],
+    tags: ["throw", "clinch", "takedown", "safety required"]
+  },
+  {
+    id: 35, belt: "Brown Belt", category: "Weapon Defense",
+    title: "Long Gun Defense Burst",
+    technique: "Defense against Rifle/Bayonet Stab—Live Side / Dead Side",
+    goal: "Train the explosive two-handed burst and redirect against a rifle threat, including bayonet stab variations.",
+    duration: "5 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Use a training rifle/stick. Partner points it at your chest from close range.",
+      "Dead-side burst: step off-line to the left (away from muzzle), redirect barrel with both hands.",
+      "Live-side burst: step right and control near the receiver area.",
+      "Partner raises rifle for a bayonet stab — burst into the attacker's body, not backward.",
+      "After redirect, immediate knee strike / elbow and strip the weapon. Do not release control."
+    ],
+    tags: ["rifle defense", "long gun", "burst", "weapon", "high stakes"]
+  },
+  {
+    id: 36, belt: "Brown Belt", category: "Combination",
+    title: "Full-Nelson Defense: Throw or Sweep",
+    technique: "Defense against Full Nelson: Forward Throw / Sweep",
+    goal: "Train both Full Nelson escape options — reading the attacker's weight distribution to select the appropriate counter.",
+    duration: "4 min", intensity: 3, intensityLabel: "Moderate",
+    steps: [
+      "Partner applies full nelson from behind. Feel for pressure on your neck — immediately tuck chin.",
+      "If partner leans into you: execute forward throw (bridge forward, drop center of gravity).",
+      "If partner leans back: execute sweep (hook inside leg and drop backward).",
+      "Partner randomizes lean direction — you must read and apply the correct counter.",
+      "After throw or sweep, immediately control with ground strikes or disengage."
+    ],
+    tags: ["full nelson", "throw", "sweep", "partner drill"]
+  },
+  {
+    id: 37, belt: "Brown Belt", category: "Self-Defense",
+    title: "Machine Gun Takedown",
+    technique: "Machine Gun Takedown",
+    goal: "Train the continuous attacking pressure takedown — momentum and aggression carry through to the ground.",
+    duration: "3 min", intensity: 5, intensityLabel: "Max Effort",
+    steps: [
+      "Deliver a burst of rapid palm strikes/elbows while driving forward.",
+      "On the 4th–6th strike, grab the back of the head and drive it down while knee comes up.",
+      "Continue driving through — do not stop until the attacker is grounded.",
+      "Partner must give full resistance on forward drive — you overcome it with pressure and momentum.",
+      "Follow with ground control — do not stand still over a downed opponent."
+    ],
+    tags: ["takedown", "aggression", "pressure", "max intensity"]
+  },
+  // ─── STRESS / COMPOUND DRILLS ──────────────────────────────────────────
+{
+    id: 65, belt: "Blue Belt", category: "Combination",
+    title: "Lights Out: Blind Defense Circuit",
+    technique: "Multiple Blue Belt Techniques",
+    goal: "Train all Blue Belt defenses from zero warning in complete darkness — the most realistic condition for a real attack.",
+    duration: "8 min", intensity: 5, intensityLabel: "Max Effort",
+    steps: [
+      "Room lights off or blindfold on. Defender stands in passive stance.",
+      "Partner delivers any Blue Belt attack — gun threat, stick attack, punch, or grab — without announcing it.",
+      "Defend correctly and counterattack. A second partner adds physical disturbance with large pads throughout.",
+      "After each defense, 10 seconds of pad hits before the next attack arrives.",
+      "Coaching: in darkness, listen for footsteps, feel for contact pressure, and rely on trained instinct — not sight."
+    ],
+    tags: ["blind drill", "stress inoculation", "multi-attacker", "max intensity", "Blue Belt"]
+  },
+  {
+    id: 66, belt: "Brown Belt", category: "Combination",
+    title: "Alley Scenario",
+    technique: "Multiple Brown Belt Techniques",
+    goal: "Simulate a realistic ambush — approached from behind, one attacker with a knife, restricted environment, no time to prepare.",
+    duration: "8 min", intensity: 5, intensityLabel: "Max Effort",
+    steps: [
+      "Defender walks a narrow corridor (marked by cones or walls). Two attackers trail behind.",
+      "On cue, one grabs from behind (bearhug or choke), the other presents a knife from the front.",
+      "Defender must escape the grab first, create space, then address the knife threat.",
+      "Variation: knife attacker comes from behind, empty-hand attacker from the front.",
+      "Rule: defender must move out of the corridor immediately — staying static in a confined space is a failure condition."
+    ],
+    tags: ["scenario", "multi-attacker", "knife", "restricted space", "max intensity", "Brown Belt"]
+  },
+  {
+    id: 67, belt: "Green Belt", category: "Combination",
+    title: "Ground & Pound Survival",
+    technique: "Multiple Green Belt Groundfighting Techniques",
+    goal: "Train survival in the worst-case ground scenario — mounted by a striking opponent, fatigued, with a third attacker standing.",
+    duration: "6 min", intensity: 5, intensityLabel: "Max Effort",
+    steps: [
+      "Defender is mounted. Partner delivers light strikes. Third partner stands nearby and may kick or stomp (controlled, to legs/body only).",
+      "Defender must escape the mount, get to feet, and address the standing attacker before the mounted partner recovers.",
+      "Fatigue protocol: 20 mountain climbers, then immediately take the mounted position.",
+      "Time limit: defender gets 20 seconds to escape mount before the scenario resets. Track improvement over sessions.",
+      "Coaching point: the standing attacker is the priority — escape from ground is urgent, not gradual."
+    ],
+    tags: ["groundfighting", "multi-attacker", "survival", "max intensity", "stress inoculation"]
+  },
+  {
+    id: 68, belt: "Yellow Belt", category: "Combination",
+    title: "First Day Scenario",
+    technique: "Multiple Yellow Belt Techniques",
+    goal: "The defining stress test for new students — face all Yellow Belt threats in a single unscripted scenario with no preparation.",
+    duration: "5 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Defender stands in passive stance. Three partners rotate through the following attacks in random order: choke from front, wrist grab, straight punch, bearhug from behind.",
+      "One attack at a time, but no warning and no pause between rounds.",
+      "Two pad holders add constant pushing and shoving throughout.",
+      "Defender must defend, counterattack, and reset to passive stance before the next attack.",
+      "Coaching: this drill exposes whether technique is truly learned or only practiced. Correct errors immediately and re-run."
+    ],
+    tags: ["yellow belt", "scenario", "stress inoculation", "multi-threat", "partner drill"]
+  },
+  {
+    id: 38, belt: "Yellow Belt", category: "Combination",
+    title: "Passive Stance Surprise Circuit",
+    technique: "Multiple Yellow Belt Techniques",
+    goal: "Train the most important transition in Krav Maga — from completely unprepared to explosive counterattack in under one second.",
+    duration: "8 min", intensity: 5, intensityLabel: "Max Effort",
+    steps: [
+      "Defender stands in passive stance (hands at sides, not prepared). Partner attacks without warning using any Yellow Belt attack.",
+      "Defender must react, defend, and deliver at least 2 counterstrikes before resetting.",
+      "Two additional partners push defender with pads during the drill (balance disruption).",
+      "Every 90 sec, stop for 15 burpees — then immediately receive another attack.",
+      "Instructor coaching point: if defender pre-loads (shifts to fighting stance early), they fail the rep."
+    ],
+    tags: ["stress inoculation", "passive stance", "multi-attacker", "max intensity"]
+  },
+  {
+    id: 39, belt: "Orange Belt", category: "Combination",
+    title: "Exhaustion Groundfighting",
+    technique: "Mount Escapes / Fall Breaks / Get-Up",
+    goal: "Train ground survival under genuine physical exhaustion — simulating the adrenal state after a real altercation.",
+    duration: "6 min", intensity: 5, intensityLabel: "Max Effort",
+    steps: [
+      "Run in place at full speed for 45 sec. Drop to ground immediately — partner mounts.",
+      "Escape the mount, get to feet, sprint 5 steps, drop again — partner mounts from side.",
+      "Escape again, get up, receive two punches, go to ground — partner applies choke from behind.",
+      "Escape choke, get up, create distance.",
+      "Repeat circuit. Instructor tracks time — goal is to keep response quality high despite fatigue."
+    ],
+    tags: ["groundfighting", "exhaustion drill", "stress inoculation", "max intensity"]
+  },
+  {
+    id: 40, belt: "Green Belt", category: "Combination",
+    title: "Multi-Angle Strike & Defend",
+    technique: "Outside Defenses / Headbutt / Slap Kicks",
+    goal: "Combine offensive and defensive techniques from Green Belt in a flowing, chaotic environment that mirrors real encounters.",
+    duration: "6 min", intensity: 4, intensityLabel: "High",
+    steps: [
+      "Two partners approach from different angles — one punches (outside defense required), one kicks (kick defense).",
+      "After defending each, immediately deliver a counterattack relevant to the range.",
+      "Third partner adds a slap kick from the side — defender must create range and counter.",
+      "No scripted sequence — all three attackers move freely.",
+      "Coaching: defender must prioritize the most immediate threat, not the closest."
+    ],
+    tags: ["multi-attacker", "outside defense", "combo", "stress inoculation", "high intensity"]
+  },
+  {
+    id: 41, belt: "Blue Belt", category: "Combination",
+    title: "Weapon Stress Scenario",
+    technique: "Gun Defense / Stick Defense / Cavaliers",
+    goal: "Train weapon defense under full stress — fatigue, multiple weapons, and unknown threat type.",
+    duration: "6 min", intensity: 5, intensityLabel: "Max Effort",
+    steps: [
+      "Defender performs 30-sec sprint, then faces a partner who may present a gun, stick, or an empty-hand attack.",
+      "Defender must read the threat and respond with the appropriate weapon defense.",
+      "After each successful defense, 5 more burpees — then next threat.",
+      "Partner introduces verbal misdirection ('I just want to talk') before threatening.",
+      "Debrief: discuss which threats were hardest to read and why."
+    ],
+    tags: ["weapon defense", "stress inoculation", "unknown threat", "max intensity"]
+  },
+  {
+    id: 42, belt: "Brown Belt", category: "Combination",
+    title: "Knife + Second Attacker",
+    technique: "Knife Defenses / Takedowns / Throws",
+    goal: "Simulate the most dangerous realistic scenario — one attacker with a knife, one without. Train priority, movement, and continuous aggression.",
+    duration: "6 min", intensity: 5, intensityLabel: "Max Effort",
+    steps: [
+      "Two partners: one armed (rubber knife), one empty-hand.",
+      "Defender starts with back to both attackers. On cue, turns and must identify the armed attacker first.",
+      "Defend knife, counter, immediately address second attacker.",
+      "Variation: both partners approach simultaneously from different angles.",
+      "Rule: defender must never stop moving — static defenders fail every rep in this drill."
+    ],
+    tags: ["knife", "multi-attacker", "prioritization", "stress drill", "max intensity"]
+  }
+];
+
+// ─── STATE ────────────────────────────────────────────────────
+let activeBelt = 'all';
+let activeCat = 'all';
+let searchTerm = '';
+
+function getFiltered() {
+  return DRILLS.filter(d => {
+    const beltOk = activeBelt === 'all' || d.belt === activeBelt;
+    const catOk = activeCat === 'all' || d.category === activeCat;
+    const s = searchTerm.toLowerCase();
+    const textOk = !s || d.title.toLowerCase().includes(s) || d.technique.toLowerCase().includes(s) || d.tags.join(' ').toLowerCase().includes(s);
+    return beltOk && catOk && textOk;
+  });
+}
+
+function beltClass(belt) {
+  return 'belt-' + belt.split(' ')[0].toLowerCase();
+}
+
+function render() {
+  const filtered = getFiltered();
+  const grid = document.getElementById('drillGrid');
+  document.getElementById('shownCount').textContent = filtered.length;
+  document.getElementById('shownCount2').textContent = filtered.length;
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="no-results">NO DRILLS MATCH THIS FILTER</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map((d, i) => `
+    <div class="drill-card ${beltClass(d.belt)}" style="animation: fadeUp 0.25s ease both; animation-delay:${Math.min(i,12)*0.03}s">
+      <div class="belt-stripe"></div>
+      <div class="card-head">
+        <div>
+          <div class="card-meta">${d.belt} // ${d.category}</div>
+          <div class="card-title">${d.title}</div>
+          <div class="card-tags">
+            ${d.tags.map(t => `<span class="tag ${t.includes('max') || t.includes('stress') || t.includes('safety') ? 'red' : ''}">${t}</span>`).join('')}
+          </div>
+        </div>
+        <div class="dur-box">
+          <span class="dur-label">DURATION</span>
+          <div class="dur-val">${d.duration}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div>
+          <div class="sec-label">Objective</div>
+          <div class="goal-txt">${d.goal}</div>
+        </div>
+        <div>
+          <div class="sec-label">Execution</div>
+          <ol class="steps">
+            ${d.steps.map((s,si) => `<li><span class="sn">${String(si+1).padStart(2,'0')}.</span><span>${s}</span></li>`).join('')}
+          </ol>
+        </div>
+        <div>
+          <div class="sec-label">Intensity</div>
+          <div class="intensity-row">
+            <div class="int-bar"><div class="int-fill" style="width:${d.intensity/5*100}%"></div></div>
+            <div class="int-lbl">${d.intensityLabel}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setFilter(type, val, btn) {
+  if (type === 'belt') {
+    activeBelt = val;
+    document.querySelectorAll('#beltFilters .filter-btn').forEach(b => b.classList.remove('active'));
+  } else {
+    activeCat = val;
+    document.querySelectorAll('#catFilters .filter-btn').forEach(b => b.classList.remove('active'));
+  }
+  btn.classList.add('active');
+  render();
+}
+
+function onSearch(input) {
+  searchTerm = input.value.trim();
+  document.getElementById('searchClear').style.display = searchTerm ? 'block' : 'none';
+  render();
+}
+
+function clearSearch() {
+  document.getElementById('searchBox').value = '';
+  searchTerm = '';
+  document.getElementById('searchClear').style.display = 'none';
+  render();
+}
+
+// Init
+document.getElementById('totalCount').textContent = DRILLS.length;
+document.getElementById('totalCount2').textContent = DRILLS.length;
+
+// Inject keyframe
+const style = document.createElement('style');
+style.textContent = '@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }';
+document.head.appendChild(style);
+
+render();
+
+// ─── RANDOM DRILL ─────────────────────────────────────────────────────────
+function openRandom() {
+  const pool = getFiltered();
+  const source = pool.length > 0 ? pool : DRILLS;
+  showRandomDrill(source[Math.floor(Math.random() * source.length)]);
+  document.getElementById('randomModal').classList.add('open');
+}
+function closeRandom() {
+  document.getElementById('randomModal').classList.remove('open');
+}
+function handleModalClick(e) {
+  if (e.target === document.getElementById('randomModal')) closeRandom();
+}
+function showRandomDrill(d) {
+  document.getElementById('randomBody').innerHTML = `
+    <div class="drill-card ${beltClass(d.belt)}" style="border:none;">
+      <div class="belt-stripe"></div>
+      <div class="card-head">
+        <div>
+          <div class="card-meta">${d.belt} // ${d.category}</div>
+          <div class="card-title">${d.title}</div>
+          <div class="card-tags">
+            ${d.tags.map(t => `<span class="tag ${t.includes('max')||t.includes('stress')||t.includes('safety')?'red':''}">${t}</span>`).join('')}
+          </div>
+        </div>
+        <div class="dur-box">
+          <span class="dur-label">DURATION</span>
+          <div class="dur-val">${d.duration}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div><div class="sec-label">Objective</div><div class="goal-txt">${d.goal}</div></div>
+        <div>
+          <div class="sec-label">Execution</div>
+          <ol class="steps">${d.steps.map((s,i)=>`<li><span class="sn">${String(i+1).padStart(2,'0')}.</span><span>${s}</span></li>`).join('')}</ol>
+        </div>
+        <div>
+          <div class="sec-label">Intensity</div>
+          <div class="intensity-row">
+            <div class="int-bar"><div class="int-fill" style="width:${d.intensity/5*100}%"></div></div>
+            <div class="int-lbl">${d.intensityLabel}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="modal-reshuffle" onclick="reshuffleDrill()">🎲 ANOTHER RANDOM DRILL</button>
+  `;
+}
+function reshuffleDrill() {
+  const pool = getFiltered();
+  const source = pool.length > 0 ? pool : DRILLS;
+  showRandomDrill(source[Math.floor(Math.random() * source.length)]);
+}
+
+// ─── SESSION PLANNER ──────────────────────────────────────────────────────
+function openPlanner() {
+  document.getElementById('plannerOverlay').classList.add('open');
+}
+function closePlanner() {
+  document.getElementById('plannerOverlay').classList.remove('open');
+}
+
+function parseDuration(str) {
+  // Handles: "3 min", "2 x 90 sec", "3 x 2 min", "2 x 3 min"
+  const mxSec = str.match(/(\d+)\s*x\s*(\d+)\s*sec/i);
+  if (mxSec) return Math.ceil((parseInt(mxSec[1]) * parseInt(mxSec[2])) / 60);
+  const mxMin = str.match(/(\d+)\s*x\s*(\d+)\s*min/i);
+  if (mxMin) return parseInt(mxMin[1]) * parseInt(mxMin[2]);
+  const mxBare = str.match(/(\d+)\s*x\s*(\d+)(?!\s*s)/i);
+  if (mxBare) return Math.ceil((parseInt(mxBare[1]) * parseInt(mxBare[2])) / 60);
+  const mins = str.match(/(\d+)\s*min/i);
+  if (mins) return parseInt(mins[1]);
+  const secs = str.match(/(\d+)\s*sec/i);
+  if (secs) return Math.ceil(parseInt(secs[1]) / 60);
+  return 4;
+}
+
+function buildSession() {
+  const totalMin = parseInt(document.getElementById('planDuration').value);
+  const beltFocus = document.getElementById('planBelt').value;
+  const catFocus = document.getElementById('planCat').value;
+
+  // Reserve time for warmup/cooldown blocks
+  const warmupMin = totalMin >= 60 ? 10 : 5;
+  const cooldownMin = totalMin >= 60 ? 8 : 5;
+  const drillTime = totalMin - warmupMin - cooldownMin;
+
+  // Filter drill pool
+  let pool = DRILLS.filter(d => {
+    const bOk = beltFocus === 'all' || d.belt === beltFocus;
+    const cOk = catFocus === 'all' || d.category === catFocus;
+    return bOk && cOk;
+  });
+  if (pool.length < 3) pool = DRILLS; // fallback to all
+
+  // Shuffle pool
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+
+  // Smart sequencing: build phases based on category priority
+  const phaseOrder = catFocus === 'all'
+    ? ['Strike', 'Defense', 'Self-Defense', 'Combination', 'Groundfighting', 'Weapon Defense']
+    : [catFocus, 'Combination', 'Strike', 'Defense', 'Self-Defense', 'Groundfighting', 'Weapon Defense'];
+
+  // Pick drills greedily to fill time, one per category first, then fill
+  const chosen = [];
+  let usedIds = new Set();
+  let timeLeft = drillTime;
+
+  // First pass: one from each category
+  for (const cat of phaseOrder) {
+    if (timeLeft <= 0) break;
+    const pick = shuffled.find(d => d.category === cat && !usedIds.has(d.id));
+    if (pick) {
+      const dur = parseDuration(pick.duration);
+      if (dur <= timeLeft + 2) {
+        chosen.push(pick);
+        usedIds.add(pick.id);
+        timeLeft -= dur;
+      }
+    }
+  }
+
+  // Second pass: fill remaining time
+  for (const d of shuffled) {
+    if (timeLeft <= 1) break;
+    if (usedIds.has(d.id)) continue;
+    const dur = parseDuration(d.duration);
+    if (dur <= timeLeft + 1) {
+      chosen.push(d);
+      usedIds.add(d.id);
+      timeLeft -= dur;
+    }
+  }
+
+  // Sort by intensity (low → high → stress)
+  chosen.sort((a, b) => a.intensity - b.intensity);
+
+  // Build phases
+  const phases = [
+    { name: 'WARM-UP', time: warmupMin, drills: [], note: 'Joint mobility, light shadowboxing, footwork patterns, stance review.' },
+  ];
+
+  // Split drills into phases by intensity
+  const techDrills = chosen.filter(d => d.intensity <= 2);
+  const midDrills = chosen.filter(d => d.intensity === 3);
+  const highDrills = chosen.filter(d => d.intensity >= 4);
+
+  if (techDrills.length) phases.push({ name: 'TECHNIQUE', drills: techDrills });
+  if (midDrills.length) phases.push({ name: 'DRILLING', drills: midDrills });
+  if (highDrills.length) phases.push({ name: 'PRESSURE TRAINING', drills: highDrills });
+  phases.push({ name: 'COOL-DOWN', time: cooldownMin, drills: [], note: 'Light stretching, breathing reset, debrief of key corrections from today\'s session.' });
+
+  // Assign phase times from drill durations
+  phases.forEach(p => {
+    if (!p.time) {
+      p.time = p.drills.reduce((sum, d) => sum + parseDuration(d.duration), 0);
+    }
+  });
+
+  // Build running clock
+  let clock = 0;
+  const formatTime = min => `${String(Math.floor(min)).padStart(2,'0')}:00`;
+
+  let html = `
+    <div class="session-header-block">
+      <div class="session-title-main">CLASS SESSION PLAN</div>
+      <div class="session-meta-row">
+        <div class="session-meta-item">DURATION: <span>${totalMin} MIN</span></div>
+        <div class="session-meta-item">BELT: <span>${beltFocus === 'all' ? 'ALL LEVELS' : beltFocus.toUpperCase()}</span></div>
+        <div class="session-meta-item">FOCUS: <span>${catFocus === 'all' ? 'BALANCED' : catFocus.toUpperCase()}</span></div>
+        <div class="session-meta-item">DRILLS: <span>${chosen.length}</span></div>
+      </div>
+    </div>
+  `;
+
+  phases.forEach((phase, pi) => {
+    const startStr = formatTime(clock);
+    clock += phase.time;
+    const endStr = formatTime(clock);
+
+    html += `
+      <div class="session-phase">
+        <div class="phase-header">
+          <div class="phase-num">${String(pi + 1).padStart(2,'0')}</div>
+          <div class="phase-name">${phase.name}</div>
+          <div class="phase-time">${startStr} → ${endStr} (${phase.time} MIN)</div>
+        </div>
+    `;
+
+    if (phase.note) {
+      html += `<div style="font-size:0.8rem;color:var(--muted);font-style:italic;padding:8px 0 4px;">${phase.note}</div>`;
+    }
+
+    if (phase.drills.length) {
+      let phaseClk = clock - phase.time;
+      phase.drills.forEach(d => {
+        const dur = parseDuration(d.duration);
+        html += `
+          <div class="session-drill-row ${beltClass(d.belt)}" onclick="showDrillInModal(${d.id})" title="Click to view full drill">
+            <div class="sdr-time">${formatTime(phaseClk)}</div>
+            <div class="sdr-info">
+              <div class="sdr-title">${d.title}</div>
+              <div class="sdr-sub">${d.technique} · ${d.belt}</div>
+            </div>
+            <div class="sdr-int">${d.duration}</div>
+          </div>
+        `;
+        phaseClk += dur;
+      });
+    }
+
+    html += `</div>`;
+  });
+
+  html += `<button class="btn-print-session" onclick="printSession()">⎙ PRINT SESSION PLAN</button>`;
+  document.getElementById('sessionOutput').innerHTML = html;
+}
+
+function showDrillInModal(id) {
+  const d = DRILLS.find(x => x.id === id);
+  if (!d) return;
+  showRandomDrill(d);
+  document.getElementById('randomModal').classList.add('open');
+}
+
+function printSession() {
+  const content = document.getElementById('sessionOutput').innerHTML;
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <title>KM Session Plan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: Barlow, sans-serif; background: white; color: #111; padding: 24px; }
+      .session-title-main { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 3px; }
+      .session-header-block { border: 1px solid #ccc; padding: 12px 16px; margin-bottom: 20px; }
+      .session-meta-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px; }
+      .session-meta-item { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: #666; }
+      .session-meta-item span { color: #111; }
+      .phase-header { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #ccc; padding-bottom: 6px; margin-bottom: 10px; }
+      .phase-num { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; color: #b8930a; }
+      .phase-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; }
+      .phase-time { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: #888; margin-left: auto; }
+      .session-phase { margin-bottom: 18px; page-break-inside: avoid; }
+      .session-drill-row { border: 1px solid #ddd; border-left: 3px solid #b8930a; padding: 8px 12px; margin-bottom: 6px; display: flex; gap: 10px; }
+      .sdr-time { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; color: #b8930a; min-width: 48px; }
+      .sdr-title { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 1px; }
+      .sdr-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: #888; }
+      .sdr-int { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: #888; margin-left: auto; }
+      .btn-build, .btn-print-session, .modal-close { display: none; }
+    </style>
+  </head><body>${content}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 400);
+}
+</script>
+</body>
+</html>
