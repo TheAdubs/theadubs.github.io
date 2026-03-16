@@ -206,11 +206,16 @@ function makeFightBtns(){
 makeFightBtns();
 
 const held=new Set();
+const touchMap=new Map(); // touchId -> button act
 let upgBtns=[];
 
+function getTouchPos(t){
+  const r=CV.getBoundingClientRect();
+  return {x:(t.clientX-r.left)*(VW/r.width), y:(t.clientY-r.top)*(VH/r.height)};
+}
 function getTouch(e){
   const r=CV.getBoundingClientRect();
-  return {x:(e.clientX-r.left)/SC,y:(e.clientY-r.top)/SC};
+  return {x:(e.clientX-r.left)*(VW/r.width), y:(e.clientY-r.top)*(VH/r.height)};
 }
 
 CV.addEventListener('touchstart',e=>{e.preventDefault();for(const t of e.changedTouches){const p=getTouchPos(t);onDown(p.x,p.y,t.identifier);}},{passive:false});
@@ -218,8 +223,6 @@ CV.addEventListener('touchend',e=>{e.preventDefault();for(const t of e.changedTo
 CV.addEventListener('touchmove',e=>{e.preventDefault();},{passive:false});
 CV.addEventListener('mousedown',e=>{const p=getTouch(e);onDown(p.x,p.y,'m');});
 CV.addEventListener('mouseup',e=>{onUp('m');});
-
-function getTouchPos(t){const r=CV.getBoundingClientRect();return{x:(t.clientX-r.left)/SC,y:(t.clientY-r.top)/SC};}
 
 function onDown(cx,cy,id){
   titleFlash=1;
@@ -252,6 +255,7 @@ function onDown(cx,cy,id){
     for(const b of btns){
       if(cx>=b.x&&cx<=b.x+b.w&&cy>=b.y&&cy<=b.y+b.h){
         held.add(b.act);b.pressed=true;
+        touchMap.set(id,b.act);
         if(b.act==='block'){player.blocking=true;}
         else doPlayerAct(b.act);
         return;
@@ -260,8 +264,18 @@ function onDown(cx,cy,id){
   }
 }
 function onUp(id){
-  held.delete('block');player.blocking=false;
-  for(const b of btns)b.pressed=false;
+  const act=touchMap.get(id);
+  touchMap.delete(id);
+  if(act){
+    held.delete(act);
+    const b=btns.find(b=>b.act===act);
+    if(b)b.pressed=false;
+    if(act==='block'){
+      // Only actually unblock if no other touch is holding block
+      const stillBlocking=[...touchMap.values()].includes('block');
+      if(!stillBlocking)player.blocking=false;
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -341,6 +355,7 @@ function startFight(){
   fight.effects=[];fight.shake=0;fight.ko=false;fight.koT=0;fight.started=true;
   fight.roundBreak=false;fight.roundBreakT=0;fight.combo=0;fight.comboT=0;
   punchHistory.player.length=0;punchHistory.opp.length=0;
+  touchMap.clear();player.blocking=false;
   setState(S.FIGHT);makeFightBtns();
 }
 
@@ -1296,9 +1311,9 @@ function drawHUD(){
   // Background panel
   const hgr=X.createLinearGradient(0,0,0,128);
   hgr.addColorStop(0,'rgba(0,0,0,0.95)');hgr.addColorStop(1,'rgba(0,0,0,0.6)');
-  X.fillStyle=hgr;X.fillRect(0,0,VW,128);
+  X.fillStyle=hgr;X.fillRect(0,0,VW,142);
   X.strokeStyle='rgba(255,180,0,0.25)';X.lineWidth=1;
-  X.beginPath();X.moveTo(0,128);X.lineTo(VW,128);X.stroke();
+  X.beginPath();X.moveTo(0,142);X.lineTo(VW,142);X.stroke();
 
   // PLAYER HP BAR
   drawBar(12,14,155,22,player.hp/player.maxHp,'#e74c3c','#c0392b','HP','left');
@@ -1311,17 +1326,17 @@ function drawHUD(){
   drawBar(VW-167,44,155,14,opp.st/opp.maxSt,'#f39c12','#d4780a','ST','right');
 
   // Names
-  X.fillStyle='#fff';X.font='bold 11px monospace';X.textAlign='left';
+  X.fillStyle='#fff';X.font='bold 21px monospace';X.textAlign='left';
   X.fillText('HANK',14,78);
   X.textAlign='right';X.fillText(opp.data?opp.data.name.split(' ')[0].replace('"',''):'???',VW-14,78);
 
   // Round + Timer
   const mm=Math.floor(fight.timer/60);const ss=Math.floor(fight.timer%60);
   const timerStr=(mm>0?mm+':':(fight.timer<10?'0:':':'))+(ss<10?'0':'')+ss;
-  X.fillStyle='#fff';X.font='bold 32px monospace';X.textAlign='center';
+  X.fillStyle='#fff';X.font='bold 44px monospace';X.textAlign='center';
   X.fillText(timerStr,VW/2,52);
   // Round pips
-  X.font='bold 12px monospace';X.fillStyle='rgba(255,255,255,0.6)';
+  X.font='bold 17px monospace';X.fillStyle='rgba(255,255,255,0.6)';
   X.fillText('RND '+fight.round+' / '+fight.maxRounds,VW/2,72);
 
   // Round wins
@@ -1332,14 +1347,14 @@ function drawHUD(){
   }
 
   // Money display
-  X.fillStyle='#f1c40f';X.font='bold 13px monospace';X.textAlign='right';
+  X.fillStyle='#f1c40f';X.font='bold 23px monospace';X.textAlign='right';
   X.fillText('$'+player.money,VW-8,112);
 
   // Combo display
   if(fight.combo>1&&fight.comboT>0){
     const alpha=Math.min(1,fight.comboT);
     X.fillStyle=`rgba(0,255,200,${alpha})`;
-    X.font=`bold ${22+fight.combo*2}px monospace`;
+    X.font=`bold ${28+fight.combo*2}px monospace`;
     X.textAlign='center';
     X.fillText(fight.combo+'x COMBO!',VW/2,110);
   }
@@ -1396,7 +1411,7 @@ function drawControls(){
     // Label
     X.globalAlpha=1;
     X.fillStyle=pressed?'#ffe050':'rgba(255,255,255,0.9)';
-    X.font=`bold ${b.w>90?14:13}px monospace`;X.textAlign='center';
+    X.font=`bold ${b.w>90?18:17}px monospace`;X.textAlign='center';
     X.fillText(b.label,b.x+b.w/2,b.y+b.h/2+5);
   }
   X.globalAlpha=1;
@@ -1462,7 +1477,7 @@ function drawTitle(){
   X.restore();
 
   // Subtitle
-  X.fillStyle='rgba(200,150,50,0.9)';X.font='bold 14px monospace';X.textAlign='center';
+  X.fillStyle='rgba(200,150,50,0.9)';X.font='bold 19px monospace';X.textAlign='center';
   X.fillText('AN UNDERGROUND BOXING STORY',VW/2,VH*0.32);
 
   // Draw mini Hank silhouette
@@ -1475,17 +1490,17 @@ function drawTitle(){
   X.globalAlpha=1;
 
   // Goal reminder
-  X.fillStyle='rgba(255,255,255,0.55)';X.font='12px monospace';X.textAlign='center';
+  X.fillStyle='rgba(255,255,255,0.55)';X.font='17px monospace';X.textAlign='center';
   X.fillText('Save your daughter\'s home. $5,000.',VW/2,VH*0.78);
 
   // Tap to start pulse
   const pulse=0.6+Math.sin(Date.now()*0.004)*0.4;
   X.fillStyle=`rgba(255,200,50,${pulse})`;
-  X.font='bold 16px monospace';X.textAlign='center';
+  X.font='bold 21px monospace';X.textAlign='center';
   X.fillText('TAP TO BEGIN',VW/2,VH*0.87);
 
   // Version
-  X.fillStyle='rgba(255,255,255,0.15)';X.font='10px monospace';
+  X.fillStyle='rgba(255,255,255,0.15)';X.font='15px monospace';
   X.fillText('REDEMPTION v1.0',VW/2,VH*0.95);
 }
 
@@ -1501,9 +1516,9 @@ function drawStory(){
   X.beginPath();X.moveTo(40,VH*0.72);X.lineTo(VW-40,VH*0.72);X.stroke();
 
   // Title
-  X.fillStyle='rgba(200,150,50,0.9)';X.font='bold 11px monospace';X.textAlign='center';
+  X.fillStyle='rgba(200,150,50,0.9)';X.font='bold 21px monospace';X.textAlign='center';
   X.fillText('CHAPTER '+(storyPage+1)+' OF '+STORY.length,VW/2,VH*0.35);
-  X.fillStyle='#ffffff';X.font='bold 38px Impact';
+  X.fillStyle='#ffffff';X.font='bold 44px Impact';
   X.fillText(pg.title,VW/2,VH*0.25);
 
   // Lines
@@ -1521,7 +1536,7 @@ function drawStory(){
   }
 
   const pulse=0.5+Math.sin(Date.now()*0.005)*0.5;
-  X.fillStyle=`rgba(255,255,255,${pulse*0.5})`;X.font='12px monospace';X.textAlign='center';
+  X.fillStyle=`rgba(255,255,255,${pulse*0.5})`;X.font='17px monospace';X.textAlign='center';
   X.fillText(storyPage<STORY.length-1?'TAP TO CONTINUE':'TAP TO ENTER THE ARENA',VW/2,VH*0.88);
 }
 
@@ -1531,17 +1546,17 @@ function drawUpgrade(){
   X.fillStyle=bg;X.fillRect(0,0,VW,VH);
 
   // Header
-  X.fillStyle='#ffe050';X.font='bold 28px Impact';X.textAlign='center';
+  X.fillStyle='#ffe050';X.font='bold 34px Impact';X.textAlign='center';
   X.fillText('FIGHTER\'S CORNER',VW/2,52);
-  X.fillStyle='rgba(255,255,255,0.4)';X.font='11px monospace';X.textAlign='center';
+  X.fillStyle='rgba(255,255,255,0.4)';X.font='16px monospace';X.textAlign='center';
   X.fillText('PREPARE FOR FIGHT '+(player.fightIndex+1)+' OF '+OPPS.length,VW/2,72);
 
   // Money
-  X.fillStyle='#f1c40f';X.font='bold 20px monospace';X.textAlign='center';
+  X.fillStyle='#f1c40f';X.font='bold 25px monospace';X.textAlign='center';
   X.fillText('WALLET: $'+player.money,VW/2,100);
 
   // Total earned
-  X.fillStyle='rgba(255,255,255,0.35)';X.font='10px monospace';
+  X.fillStyle='rgba(255,255,255,0.35)';X.font='15px monospace';
   X.fillText('TOTAL EARNED: $'+player.totalEarned+' / $5,000 GOAL',VW/2,118);
 
   // Upgrade buttons
@@ -1567,11 +1582,11 @@ function drawUpgrade(){
 
     // Label
     X.fillStyle=canBuy?'#fff':'rgba(255,255,255,0.4)';
-    X.font='bold 16px monospace';X.textAlign='left';
+    X.font='bold 21px monospace';X.textAlign='left';
     X.fillText(u.label,30,by+28);
 
     // Desc
-    X.fillStyle='rgba(200,200,180,0.55)';X.font='11px sans-serif';
+    X.fillStyle='rgba(200,200,180,0.55)';X.font='16px sans-serif';
     X.fillText(u.desc,30,by+48);
 
     // Level pips
@@ -1584,7 +1599,7 @@ function drawUpgrade(){
     const costX=bw-70,costY=by+22;
     if(lvl>=u.max){
       X.fillStyle='rgba(0,200,100,0.2)';X.beginPath();roundRect(16+costX,by+16,72,30,6);X.fill();
-      X.fillStyle='#2ecc71';X.font='bold 11px monospace';X.textAlign='center';
+      X.fillStyle='#2ecc71';X.font='bold 21px monospace';X.textAlign='center';
       X.fillText('MAX',16+costX+36,by+36);
     }else{
       X.fillStyle=canBuy?rgba(u.color,0.25):'rgba(100,100,100,0.15)';
@@ -1592,7 +1607,7 @@ function drawUpgrade(){
       X.strokeStyle=canBuy?rgba(u.color,0.6):'rgba(100,100,100,0.3)';X.lineWidth=1;
       X.beginPath();roundRect(16+costX,by+16,72,30,6);X.stroke();
       X.fillStyle=canBuy?'#fff':'rgba(150,150,150,0.5)';
-      X.font='bold 12px monospace';X.textAlign='center';
+      X.font='bold 17px monospace';X.textAlign='center';
       X.fillText('$'+u.cost,16+costX+36,by+36);
     }
     X.textAlign='left';
@@ -1607,20 +1622,20 @@ function drawUpgrade(){
   X.fillStyle=fbg;X.beginPath();roundRect(fx,fy,fw,fh,12);X.fill();
   X.strokeStyle='rgba(255,100,50,0.7)';X.lineWidth=2;
   X.beginPath();roundRect(fx,fy,fw,fh,12);X.stroke();
-  X.fillStyle='#fff';X.font='bold 18px Impact';X.textAlign='center';
+  X.fillStyle='#fff';X.font='bold 23px Impact';X.textAlign='center';
   X.fillText('ENTER THE RING',VW/2,fy+28);
-  X.fillStyle='rgba(255,150,100,0.8)';X.font='bold 12px monospace';
+  X.fillStyle='rgba(255,150,100,0.8)';X.font='bold 17px monospace';
   X.fillText('vs. '+(nextOpp?nextOpp.name:'???')+' — PRIZE: $'+(nextOpp?nextOpp.prize:'?'),VW/2,fy+50);
 
   // Losses warning
   if(player.losses===1){
-    X.fillStyle='rgba(255,100,0,0.85)';X.font='bold 11px monospace';X.textAlign='center';
+    X.fillStyle='rgba(255,100,0,0.85)';X.font='bold 21px monospace';X.textAlign='center';
     X.fillText('⚠ ONE MORE LOSS AND IT\'S OVER',VW/2,VH-14);
   }
 }
 
 function drawPreFight(){
-  prefightT+=0.016;
+  prefightT+=dt;
   const od=OPPS[player.fightIndex];
   if(!od)return;
   const bg=X.createLinearGradient(0,0,0,VH);
@@ -1636,7 +1651,7 @@ function drawPreFight(){
   X.globalAlpha=appear;
 
   // FIGHT NUMBER
-  X.fillStyle='rgba(200,150,50,0.7)';X.font='bold 12px monospace';X.textAlign='center';
+  X.fillStyle='rgba(200,150,50,0.7)';X.font='bold 17px monospace';X.textAlign='center';
   X.fillText('FIGHT '+(player.fightIndex+1)+' OF '+OPPS.length,VW/2,55);
 
   // Divider
@@ -1644,9 +1659,9 @@ function drawPreFight(){
   X.beginPath();X.moveTo(30,VH*0.38);X.lineTo(VW-30,VH*0.38);X.stroke();
 
   // Opponent name
-  X.fillStyle='#ffffff';X.font='bold 36px Impact';X.textAlign='center';
+  X.fillStyle='#ffffff';X.font='bold 42px Impact';X.textAlign='center';
   X.fillText(od.name,VW/2,VH*0.32);
-  X.fillStyle=od.boss?'#ff4444':'rgba(255,200,100,0.8)';X.font='bold 14px monospace';
+  X.fillStyle=od.boss?'#ff4444':'rgba(255,200,100,0.8)';X.font='bold 19px monospace';
   X.fillText(od.sub,VW/2,VH*0.36);
 
   // Draw opponent
@@ -1658,7 +1673,7 @@ function drawPreFight(){
   for(let i=0;i<od.bio.length;i++){
     const lf=Math.min(1,(prefightT-0.4-i*0.18)/0.5);
     X.fillStyle=`rgba(210,200,185,${Math.max(0,lf)})`;
-    X.font='italic 15px Georgia';X.textAlign='center';
+    X.font='italic 25px Georgia';X.textAlign='center';
     X.fillText(od.bio[i],VW/2,VH*0.76+i*24);
   }
 
@@ -1672,7 +1687,7 @@ function drawPreFight(){
   for(let i=0;i<numStats;i++){
     const bx=30+i*((VW-60)/numStats);
     // Label
-    X.fillStyle=statColors[i];X.font='bold 13px monospace';X.textAlign='left';
+    X.fillStyle=statColors[i];X.font='bold 23px monospace';X.textAlign='left';
     X.fillText(statNames[i],bx,statStartY);
     // Bar background
     X.fillStyle='rgba(255,255,255,0.12)';
@@ -1684,14 +1699,14 @@ function drawPreFight(){
     X.fillStyle=fg;
     X.beginPath();roundRect(bx,statStartY+6,barW*pct,10,5);X.fill();
     // Value number
-    X.fillStyle='rgba(255,255,255,0.7)';X.font='bold 11px monospace';X.textAlign='left';
+    X.fillStyle='rgba(255,255,255,0.7)';X.font='bold 21px monospace';X.textAlign='left';
     X.fillText(od.stats[statKeys[i]],bx,statStartY+28);
   }
 
   // Tap prompt
   if(prefightT>1.5){
     const pulse=0.5+Math.sin(Date.now()*0.005)*0.5;
-    X.fillStyle=`rgba(255,200,50,${pulse})`;X.font='bold 16px monospace';X.textAlign='center';
+    X.fillStyle=`rgba(255,200,50,${pulse})`;X.font='bold 21px monospace';X.textAlign='center';
     X.fillText('TAP TO FIGHT',VW/2,VH*0.93);
   }
   X.globalAlpha=1;
@@ -1714,12 +1729,12 @@ function drawResult(){
   X.shadowBlur=0;
 
   if(won){
-    X.fillStyle='#ffe050';X.font='bold 28px monospace';
+    X.fillStyle='#ffe050';X.font='bold 34px monospace';
     X.fillText('+$'+resultData.prize,VW/2,VH*0.32);
-    X.fillStyle='rgba(255,255,255,0.55)';X.font='14px monospace';
+    X.fillStyle='rgba(255,255,255,0.55)';X.font='19px monospace';
     X.fillText('WALLET: $'+player.money,VW/2,VH*0.37);
   }else{
-    X.fillStyle='rgba(255,100,50,0.8)';X.font='14px monospace';
+    X.fillStyle='rgba(255,100,50,0.8)';X.font='19px monospace';
     X.fillText('Lost $60 entry fee',VW/2,VH*0.32);
     if(player.losses===1)X.fillText('ONE MORE LOSS AND IT\'S OVER',VW/2,VH*0.37);
   }
@@ -1732,15 +1747,15 @@ function drawResult(){
     X.fillStyle='#f1c40f';X.beginPath();roundRect(40,VH*0.44,(VW-80)*pct,28,14);X.fill();
   }
   X.strokeStyle='rgba(255,255,255,0.2)';X.lineWidth=1;X.beginPath();roundRect(40,VH*0.44,VW-80,28,14);X.stroke();
-  X.fillStyle='rgba(255,255,255,0.6)';X.font='11px monospace';X.textAlign='center';
+  X.fillStyle='rgba(255,255,255,0.6)';X.font='16px monospace';X.textAlign='center';
   X.fillText('$'+player.totalEarned+' / $'+goal+' EARNED',VW/2,VH*0.44+18);
 
   // Wins/losses
-  X.fillStyle='rgba(255,255,255,0.5)';X.font='13px monospace';
+  X.fillStyle='rgba(255,255,255,0.5)';X.font='18px monospace';
   X.fillText('RECORD: '+player.wins+' - '+player.losses,VW/2,VH*0.57);
 
   const pulse=0.5+Math.sin(Date.now()*0.004)*0.5;
-  X.fillStyle=`rgba(255,255,255,${pulse*0.6})`;X.font='bold 14px monospace';
+  X.fillStyle=`rgba(255,255,255,${pulse*0.6})`;X.font='bold 19px monospace';
   X.fillText('TAP TO CONTINUE',VW/2,VH*0.88);
   X.globalAlpha=1;
 }
@@ -1762,7 +1777,7 @@ function drawVictory(){
   X.fillText('REDEEMED',VW/2,VH*0.2);
   X.shadowBlur=0;
 
-  X.fillStyle='rgba(255,255,255,0.9)';X.font='bold 16px monospace';
+  X.fillStyle='rgba(255,255,255,0.9)';X.font='bold 21px monospace';
   X.fillText('HANK DOYLE — UNDEFEATED',VW/2,VH*0.28);
 
   X.fillStyle='rgba(240,220,180,0.85)';X.font='italic 17px Georgia';
@@ -1771,13 +1786,13 @@ function drawVictory(){
   X.save();X.translate(VW/2,VH*0.65);X.scale(0.65,0.65);
   drawHank(0,0,'idle',0,0,false,false);X.restore();
 
-  X.fillStyle='rgba(200,170,50,0.9)';X.font='bold 18px monospace';X.textAlign='center';
+  X.fillStyle='rgba(200,170,50,0.9)';X.font='bold 23px monospace';X.textAlign='center';
   X.fillText('TOTAL EARNED: $'+player.totalEarned,VW/2,VH*0.82);
-  X.fillStyle='rgba(255,255,255,0.5)';X.font='13px monospace';
+  X.fillStyle='rgba(255,255,255,0.5)';X.font='18px monospace';
   X.fillText('RECORD: '+player.wins+' WINS - '+player.losses+' LOSSES',VW/2,VH*0.88);
 
   const pulse=0.5+Math.sin(Date.now()*0.004)*0.5;
-  X.fillStyle=`rgba(255,200,50,${pulse})`;X.font='bold 14px monospace';
+  X.fillStyle=`rgba(255,200,50,${pulse})`;X.font='bold 19px monospace';
   X.fillText('TAP TO PLAY AGAIN',VW/2,VH*0.95);
 }
 
@@ -1791,18 +1806,18 @@ function drawGameOver(){
   X.fillText('GAME OVER',VW/2,VH*0.22);
   X.shadowBlur=0;
 
-  X.fillStyle='rgba(255,255,255,0.7)';X.font='italic 18px Georgia';
+  X.fillStyle='rgba(255,255,255,0.7)';X.font='italic 23px Georgia';
   X.fillText('"He had nothing left to give."',VW/2,VH*0.32);
 
-  X.fillStyle='rgba(200,180,150,0.7)';X.font='13px monospace';X.textAlign='center';
+  X.fillStyle='rgba(200,180,150,0.7)';X.font='18px monospace';X.textAlign='center';
   X.fillText('His daughter\'s house was lost.',VW/2,VH*0.42);
   X.fillText('Crane won. This time.',VW/2,VH*0.47);
 
-  X.fillStyle='rgba(255,255,255,0.4)';X.font='13px monospace';
+  X.fillStyle='rgba(255,255,255,0.4)';X.font='18px monospace';
   X.fillText('RECORD: '+player.wins+' WINS - '+player.losses+' LOSSES',VW/2,VH*0.58);
 
   const pulse=0.5+Math.sin(Date.now()*0.004)*0.5;
-  X.fillStyle=`rgba(255,100,50,${pulse})`;X.font='bold 15px monospace';
+  X.fillStyle=`rgba(255,100,50,${pulse})`;X.font='bold 25px monospace';
   X.fillText('TAP TO TRY AGAIN',VW/2,VH*0.88);
 }
 
@@ -1857,12 +1872,12 @@ function loop(ts){
     // Round break overlay
     if(fight.roundBreak){
       X.fillStyle='rgba(0,0,0,0.65)';X.fillRect(0,0,VW,VH);
-      X.fillStyle='#ffe050';X.font='bold 36px Impact';X.textAlign='center';
+      X.fillStyle='#ffe050';X.font='bold 42px Impact';X.textAlign='center';
       X.fillText('END OF ROUND '+fight.round,VW/2,VH/2-20);
       X.fillStyle='rgba(255,255,255,0.6)';X.font='16px monospace';
       const rwins=fight.roundsWon,rlosses=fight.roundsLost;
       X.fillText(rwins>rlosses?'YOU\'RE WINNING':rlosses>rwins?'YOU\'RE LOSING':'EVEN MATCH',VW/2,VH/2+18);
-      X.fillStyle='rgba(255,255,255,0.3)';X.font='13px monospace';
+      X.fillStyle='rgba(255,255,255,0.3)';X.font='18px monospace';
       X.fillText('CORNER MAN PATCHES YOU UP...',VW/2,VH/2+48);
     }
   }
