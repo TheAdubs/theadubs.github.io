@@ -1843,7 +1843,19 @@ function resetAll(){
 // MAIN LOOP
 // ═══════════════════════════════════════════════════
 let last=0;
+let _crashed=false;
+window.onerror=function(msg,src,line,col,err){
+  _crashed=true;
+  X.fillStyle='#000';X.fillRect(0,0,VW,VH);
+  X.fillStyle='#ff3333';X.font='bold 22px monospace';X.textAlign='center';
+  X.fillText('ERROR',VW/2,200);
+  X.fillStyle='#ffffff';X.font='14px monospace';X.textAlign='center';
+  const words=(msg||'unknown').match(/.{1,30}/g)||[msg];
+  words.forEach((w,i)=>X.fillText(w,VW/2,240+i*22));
+  X.fillText('line '+line,VW/2,340);
+};
 function loop(ts){
+  if(_crashed)return;
   const dt=Math.min((ts-last)/1000,0.05);last=ts;
   stateT+=dt;titleFlash=Math.max(0,titleFlash-dt*3);
 
