@@ -2,24 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>REDEMPTION</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body{
-    width:100%;height:100%;
-    background:#000;
-    overflow:hidden;
-    touch-action:none;
-    -webkit-tap-highlight-color:transparent;
-    user-select:none;-webkit-user-select:none;
-  }
-  canvas{
-    display:block;
-    position:fixed;
-    top:0;left:0;
-    width:100%;height:100%;
-  }
+  html,body{width:100%;height:100%;background:#000;overflow:hidden;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  canvas{display:block;background:#000}
 </style>
 </head>
 <body>
@@ -27,27 +15,22 @@
 <script>
 'use strict';
 const CV=document.getElementById('c');
-const X=CV.getContext('2d',{alpha:false});
+const X=CV.getContext('2d');
 const VW=390,VH=844;
-// DPR capped at 2 — 3x causes blank canvas on some iOS devices with large buffers
-const DPR=Math.min(window.devicePixelRatio||1,2);
-
-// Scale + offset: game is drawn at VW×VH, centered in actual screen
-let GX=0,GY=0,GS=1;
+let SC=1;
 
 function resize(){
-  // Use screen dimensions directly — CSS makes canvas fill 100%/100%
-  const sw=window.innerWidth,sh=window.innerHeight;
-  CV.width=Math.round(sw*DPR);
-  CV.height=Math.round(sh*DPR);
-  // Scale to fit VW×VH with letterboxing
-  GS=Math.min(sw/VW,sh/VH)*DPR;
-  GX=Math.round((CV.width -VW*GS)/2);
-  GY=Math.round((CV.height-VH*GS)/2);
+  SC=Math.min(window.innerWidth/VW,window.innerHeight/VH);
+  CV.width=VW;
+  CV.height=VH;
+  CV.style.width=Math.floor(VW*SC)+'px';
+  CV.style.height=Math.floor(VH*SC)+'px';
+  CV.style.display='block';
+  CV.style.marginLeft=Math.floor((window.innerWidth-VW*SC)/2)+'px';
+  CV.style.marginTop=Math.floor((window.innerHeight-VH*SC)/2)+'px';
 }
 resize();
 window.addEventListener('resize',resize);
-window.addEventListener('orientationchange',()=>setTimeout(resize,200));
 
 // ═══════════════════════════════════════════════════
 // HELPERS
@@ -233,10 +216,12 @@ const touchMap=new Map(); // touchId -> button act
 let upgBtns=[];
 
 function getTouchPos(t){
-  return {x:(t.clientX*DPR-GX)/GS, y:(t.clientY*DPR-GY)/GS};
+  const r=CV.getBoundingClientRect();
+  return {x:(t.clientX-r.left)/SC, y:(t.clientY-r.top)/SC};
 }
 function getTouch(e){
-  return {x:(e.clientX*DPR-GX)/GS, y:(e.clientY*DPR-GY)/GS};
+  const r=CV.getBoundingClientRect();
+  return {x:(e.clientX-r.left)/SC, y:(e.clientY-r.top)/SC};
 }
 
 CV.addEventListener('touchstart',e=>{e.preventDefault();for(const t of e.changedTouches){const p=getTouchPos(t);onDown(p.x,p.y,t.identifier);}},{passive:false});
@@ -1862,9 +1847,7 @@ function loop(ts){
   const dt=Math.min((ts-last)/1000,0.05);last=ts;
   stateT+=dt;titleFlash=Math.max(0,titleFlash-dt*3);
 
-  X.setTransform(1,0,0,1,0,0);
-  X.fillStyle='#000';X.fillRect(0,0,CV.width,CV.height);
-  X.setTransform(GS,0,0,GS,GX,GY);
+  X.clearRect(0,0,VW,VH);
 
   if(state===S.TITLE){drawTitle();}
   else if(state===S.STORY){drawStory();}
