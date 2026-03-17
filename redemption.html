@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>REDEMPTION</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body{width:100%;height:100%;background:#000;overflow:hidden;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
-  canvas{display:block;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%)}
+  html{height:100%;background:#000}
+  body{width:100%;height:100%;background:#000;overflow:hidden;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  canvas{display:block;position:absolute;top:0;left:0}
 </style>
 </head>
 <body>
@@ -18,13 +19,29 @@ const CV=document.getElementById('c'),X=CV.getContext('2d');
 const VW=390,VH=844;let SC=1;
 const DPR=Math.min(window.devicePixelRatio||1,3);
 
+function getViewH(){
+  // Use visualViewport on iOS to get real available height (excludes browser chrome)
+  if(window.visualViewport)return window.visualViewport.height;
+  return window.innerHeight;
+}
+function getViewW(){
+  if(window.visualViewport)return window.visualViewport.width;
+  return window.innerWidth;
+}
+
 function resize(){
-  SC=Math.min(window.innerWidth/VW,window.innerHeight/VH);
+  const vw=getViewW(),vh=getViewH();
+  SC=Math.min(vw/VW,vh/VH);
+  const pw=Math.round(VW*SC),ph=Math.round(VH*SC);
   CV.width=VW*DPR;CV.height=VH*DPR;
-  CV.style.width=VW*SC+'px';CV.style.height=VH*SC+'px';
+  CV.style.width=pw+'px';CV.style.height=ph+'px';
+  CV.style.left=Math.round((vw-pw)/2)+'px';
+  CV.style.top=Math.round((vh-ph)/2)+'px';
   X.setTransform(DPR,0,0,DPR,0,0);
 }
-resize();window.addEventListener('resize',resize);
+resize();
+window.addEventListener('resize',resize);
+if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
 
 // ═══════════════════════════════════════════════════
 // HELPERS
@@ -211,10 +228,13 @@ let upgBtns=[];
 
 function getTouchPos(t){
   const r=CV.getBoundingClientRect();
+  // Guard against zero-size rect during init
+  if(!r.width||!r.height)return{x:0,y:0};
   return {x:(t.clientX-r.left)*(VW/r.width), y:(t.clientY-r.top)*(VH/r.height)};
 }
 function getTouch(e){
   const r=CV.getBoundingClientRect();
+  if(!r.width||!r.height)return{x:0,y:0};
   return {x:(e.clientX-r.left)*(VW/r.width), y:(e.clientY-r.top)*(VH/r.height)};
 }
 
