@@ -201,12 +201,12 @@ const UPGS=[
 let btns=[];
 function makeFightBtns(){
   btns=[
-    {id:'dL',x:8,y:VH-88,w:88,h:60,label:'◀ DODGE',act:'dodgeL',col:'#1a2a3a'},
-    {id:'dR',x:103,y:VH-88,w:88,h:60,label:'DODGE ▶',act:'dodgeR',col:'#1a2a3a'},
-    {id:'jab',x:VW-200,y:VH-148,w:92,h:65,label:'JAB',act:'jab',col:'#1e3a1e'},
-    {id:'hook',x:VW-102,y:VH-148,w:92,h:65,label:'HOOK',act:'hook',col:'#1e3a1e'},
-    {id:'upper',x:VW-200,y:VH-78,w:92,h:65,label:'UPPER',act:'upper',col:'#1e3a1e'},
-    {id:'block',x:VW-102,y:VH-78,w:92,h:65,label:'BLOCK',act:'block',col:'#3a1e1e'},
+    {id:'dL',x:8,   y:VH-172,w:96,h:74,label:'◀ DODGE',act:'dodgeL',col:'#1a2a3a'},
+    {id:'dR',x:8,   y:VH-90, w:96,h:74,label:'DODGE ▶',act:'dodgeR',col:'#1a2a3a'},
+    {id:'jab',  x:VW-202,y:VH-172,w:96,h:74,label:'JAB',  act:'jab',  col:'#1e3a1e'},
+    {id:'hook', x:VW-100,y:VH-172,w:92,h:74,label:'HOOK', act:'hook', col:'#1e3a1e'},
+    {id:'upper',x:VW-202,y:VH-90, w:96,h:74,label:'UPPER',act:'upper',col:'#1e3a1e'},
+    {id:'block',x:VW-100,y:VH-90, w:92,h:74,label:'BLOCK',act:'block',col:'#3a1e1e'},
   ];
 }
 makeFightBtns();
@@ -1314,55 +1314,53 @@ function drawOpponent(x,y,od,anim,animT,hitFlash,blocking,dead){
 // DRAWING — HUD
 // ═══════════════════════════════════════════════════
 function drawHUD(){
+  const TOP=55;
   // Background panel
-  const hgr=X.createLinearGradient(0,0,0,128);
-  hgr.addColorStop(0,'rgba(0,0,0,0.95)');hgr.addColorStop(1,'rgba(0,0,0,0.6)');
-  X.fillStyle=hgr;X.fillRect(0,0,VW,142);
-  X.strokeStyle='rgba(255,180,0,0.25)';X.lineWidth=1;
-  X.beginPath();X.moveTo(0,142);X.lineTo(VW,142);X.stroke();
+  const hgr=X.createLinearGradient(0,0,0,TOP+115);
+  hgr.addColorStop(0,'rgba(0,0,0,0.98)');hgr.addColorStop(1,'rgba(0,0,0,0.7)');
+  X.fillStyle=hgr;X.fillRect(0,0,VW,TOP+115);
+  X.strokeStyle='rgba(255,180,0,0.3)';X.lineWidth=1.5;
+  X.beginPath();X.moveTo(0,TOP+115);X.lineTo(VW,TOP+115);X.stroke();
 
   // PLAYER HP BAR
-  drawBar(12,14,155,22,player.hp/player.maxHp,'#e74c3c','#c0392b','HP','left');
-  // PLAYER STAMINA
-  drawBar(12,44,155,14,player.st/player.maxSt,'#f39c12','#d4780a','ST','left');
+  drawBar(12,TOP+8,148,26,player.hp/player.maxHp,'#e74c3c','#c0392b','HP','left');
+  drawBar(12,TOP+42,148,16,player.st/player.maxSt,'#f39c12','#d4780a','ST','left');
 
   // OPP HP BAR
-  drawBar(VW-167,14,155,22,opp.hp/opp.maxHp,'#e74c3c','#c0392b','HP','right');
-  // OPP STAMINA
-  drawBar(VW-167,44,155,14,opp.st/opp.maxSt,'#f39c12','#d4780a','ST','right');
+  drawBar(VW-160,TOP+8,148,26,opp.hp/opp.maxHp,'#e74c3c','#c0392b','HP','right');
+  drawBar(VW-160,TOP+42,148,16,opp.st/opp.maxSt,'#f39c12','#d4780a','ST','right');
 
   // Names
   X.fillStyle='#fff';X.font='bold 21px monospace';X.textAlign='left';
-  X.fillText('HANK',14,78);
-  X.textAlign='right';X.fillText(opp.data?opp.data.name.split(' ')[0].replace('"',''):'???',VW-14,78);
+  X.fillText('HANK',14,TOP+78);
+  X.textAlign='right';X.fillText(opp.data?opp.data.name.split(' ')[0].replace('"',''):'???',VW-14,TOP+78);
 
   // Round + Timer
   const mm=Math.floor(fight.timer/60);const ss=Math.floor(fight.timer%60);
   const timerStr=(mm>0?mm+':':(fight.timer<10?'0:':':'))+(ss<10?'0':'')+ss;
-  X.fillStyle='#fff';X.font='bold 44px monospace';X.textAlign='center';
-  X.fillText(timerStr,VW/2,52);
-  // Round pips
+  X.fillStyle='#fff';X.font='bold 38px monospace';X.textAlign='center';
+  X.fillText(timerStr,VW/2,TOP+46);
   X.font='bold 17px monospace';X.fillStyle='rgba(255,255,255,0.6)';
-  X.fillText('RND '+fight.round+' / '+fight.maxRounds,VW/2,72);
+  X.fillText('RND '+fight.round+' / '+fight.maxRounds,VW/2,TOP+68);
 
-  // Round wins
+  // Round win pips
   for(let i=0;i<fight.maxRounds;i++){
-    const dot_y=88;const dot_x=VW/2-22+i*22;
+    const dot_x=VW/2-22+i*22;
     X.fillStyle=i<fight.roundsWon?'#2ecc71':i<fight.maxRounds-fight.roundsLost?'rgba(255,255,255,0.2)':'#e74c3c';
-    X.beginPath();X.ellipse(dot_x,dot_y,7,7,0,0,Math.PI*2);X.fill();
+    X.beginPath();X.ellipse(dot_x,TOP+88,7,7,0,0,Math.PI*2);X.fill();
   }
 
-  // Money display
+  // Money
   X.fillStyle='#f1c40f';X.font='bold 23px monospace';X.textAlign='right';
-  X.fillText('$'+player.money,VW-8,112);
+  X.fillText('$'+player.money,VW-8,TOP+110);
 
-  // Combo display
+  // Combo
   if(fight.combo>1&&fight.comboT>0){
     const alpha=Math.min(1,fight.comboT);
     X.fillStyle=`rgba(0,255,200,${alpha})`;
     X.font=`bold ${28+fight.combo*2}px monospace`;
     X.textAlign='center';
-    X.fillText(fight.combo+'x COMBO!',VW/2,110);
+    X.fillText(fight.combo+'x COMBO!',VW/2,TOP+110);
   }
 }
 
