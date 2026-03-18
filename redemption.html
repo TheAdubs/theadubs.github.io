@@ -1641,7 +1641,7 @@ function drawUpgrade(){
 }
 
 function drawPreFight(){
-  prefightT+=dt;
+  prefightT=stateT;
   const od=OPPS[player.fightIndex];
   if(!od)return;
   const bg=X.createLinearGradient(0,0,0,VH);
