@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Examen | Adam Wertheim</title>
+<meta name="description" content="A guided Ignatian Examen for daily prayer and reflection — five movements through gratitude, review, feelings, prayer, and hope.">
+<meta name="author" content="Adam Wertheim">
+<meta property="og:title" content="Daily Examen">
+<meta property="og:description" content="A guided Ignatian Examen for daily prayer and reflection.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0e0c09">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e0c09; --surface: #1a1610; --surface2: #221d14;
+    --gold: #c9a84c; --gold-light: #e8c97a; --gold-dim: #7a6230;
+    --cream: #f0e8d5; --muted: #8a7a5a;
+    --border: rgba(201,168,76,0.18); --border-bright: rgba(201,168,76,0.45);
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--cream); font-family: 'EB Garamond', Georgia, serif; font-size: 18px; line-height: 1.7; }
+  body { display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
+
+  /* ── Back nav ── */
+  .site-nav {
+    width: 100%;
+    max-width: 640px;
+    padding: 1.2rem 1.5rem 0;
+    position: relative;
+    z-index: 2;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--gold-light); }
+  .back-link::before { content: '←'; font-size: 0.9rem; }
+
+  /* ── Ambient glow ── */
+  .ambient { position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 600px; height: 300px; background: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.07) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+
+  /* ── Candle ── */
+  .candle-wrap { margin-top: 2rem; display: flex; flex-direction: column; align-items: center; position: relative; z-index: 1; flex-shrink: 0; }
+  .flame-outer { width: 22px; height: 38px; background: radial-gradient(ellipse at 50% 70%, #fff8e1 0%, #f5c842 30%, #e8831a 60%, transparent 100%); border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%; animation: flicker 2.4s ease-in-out infinite alternate; filter: blur(0.5px); position: relative; z-index: 2; }
+  .flame-inner { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 10px; height: 18px; background: radial-gradient(ellipse at 50% 80%, #fffdf0 0%, #fff3b0 50%, transparent 100%); border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%; animation: flicker-inner 1.9s ease-in-out infinite alternate; }
+  .wick { width: 2px; height: 6px; background: #555; margin-top: -2px; border-radius: 1px; }
+  .candle-body { width: 28px; height: 56px; background: linear-gradient(to right, #d4c4a0 0%, #f0e8d5 40%, #e8dbc4 70%, #c8b890 100%); border-radius: 2px 2px 3px 3px; position: relative; }
+  .candle-body::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px; background: rgba(201,168,76,0.3); border-radius: 2px 2px 0 0; }
+  .candle-drip { width: 8px; height: 12px; background: #e8dbc4; border-radius: 0 0 50% 50%; position: absolute; top: 0; left: 4px; }
+  @keyframes flicker {
+    0%   { transform: scaleX(1) scaleY(1) rotate(-1deg); opacity: 1; }
+    25%  { transform: scaleX(0.92) scaleY(1.06) rotate(1.5deg); opacity: 0.95; }
+    50%  { transform: scaleX(1.05) scaleY(0.96) rotate(-0.5deg); opacity: 1; }
+    75%  { transform: scaleX(0.96) scaleY(1.04) rotate(1deg); opacity: 0.97; }
+    100% { transform: scaleX(1.02) scaleY(1.02) rotate(-1.5deg); opacity: 0.93; }
+  }
+  @keyframes flicker-inner {
+    0%   { transform: translateX(-50%) scaleY(1); opacity: 0.9; }
+    50%  { transform: translateX(-50%) scaleY(1.1); opacity: 1; }
+    100% { transform: translateX(-50%) scaleY(0.9); opacity: 0.85; }
+  }
+
+  /* ── Layout ── */
+  .app { width: 100%; max-width: 640px; padding: 0 1.5rem 4rem; position: relative; z-index: 1; }
+  .title-area { text-align: center; margin-top: 1.4rem; margin-bottom: 2rem; }
+  .title-area h1 { font-family: 'Cormorant Garamond', serif; font-size: 2.4rem; font-weight: 300; letter-spacing: 0.12em; color: var(--gold-light); line-height: 1.2; }
+  .title-area .subtitle { font-size: 0.88rem; letter-spacing: 0.22em; color: var(--muted); text-transform: uppercase; margin-top: 0.3rem; }
+  .date-line { text-align: center; font-size: 0.82rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-top: 0.4rem; }
+
+  /* ── Progress ── */
+  .progress-track { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 2.2rem; }
+  .progress-dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--gold-dim); background: transparent; transition: all 0.4s ease; cursor: pointer; flex-shrink: 0; }
+  .progress-dot.active { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 8px rgba(201,168,76,0.5); }
+  .progress-dot.completed { background: var(--gold-dim); border-color: var(--gold-dim); }
+  .progress-line { width: 40px; height: 1px; background: var(--gold-dim); opacity: 0.35; flex-shrink: 0; }
+
+  /* ── Steps ── */
+  .step { display: none; animation: fadeIn 0.6s ease; }
+  .step.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .step-header { margin-bottom: 1.6rem; }
+  .step-number { font-size: 0.76rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold-dim); display: block; margin-bottom: 0.4rem; }
+  .step-name { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 400; color: var(--gold-light); line-height: 1.15; }
+  .step-verse { border-left: 2px solid var(--border-bright); padding-left: 1rem; margin: 1.4rem 0; font-style: italic; color: var(--muted); font-size: 0.95rem; line-height: 1.65; }
+  .step-verse cite { display: block; font-style: normal; font-size: 0.82rem; letter-spacing: 0.08em; color: var(--gold-dim); margin-top: 0.4rem; }
+  .step-prompt { color: var(--cream); font-size: 1.05rem; line-height: 1.8; margin-bottom: 1.4rem; }
+  .step-prompts { list-style: none; padding: 0; margin: 0.8rem 0 1.4rem; display: flex; flex-direction: column; gap: 0.55rem; }
+  .step-prompts li { padding-left: 1.4rem; position: relative; color: var(--cream); font-size: 0.98rem; opacity: 0.88; }
+  .step-prompts li::before { content: '✦'; position: absolute; left: 0; color: var(--gold-dim); font-size: 0.65rem; top: 0.35em; }
+
+  /* ── Silence prompt ── */
+  .silence-prompt { border: 1px solid var(--border); border-radius: 4px; padding: 1rem 1.2rem; margin-bottom: 1.6rem; text-align: center; background: rgba(201,168,76,0.03); }
+  .silence-prompt p { font-size: 0.9rem; color: var(--muted); font-style: italic; line-height: 1.65; }
+  .silence-prompt .silence-icon { font-size: 1rem; color: var(--gold-dim); display: block; margin-bottom: 0.4rem; letter-spacing: 0.3em; }
+
+  /* ── Textarea ── */
+  textarea { width: 100%; min-height: 140px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; color: var(--cream); font-family: 'EB Garamond', serif; font-size: 1rem; line-height: 1.7; padding: 1rem 1.1rem; resize: vertical; outline: none; transition: border-color 0.25s; }
+  textarea::placeholder { color: var(--muted); opacity: 0.65; }
+  textarea:focus { border-color: var(--gold-dim); }
+  .textarea-label { font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.55rem; display: block; }
+
+  /* ── Buttons ── */
+  .nav-row { display: flex; align-items: center; justify-content: space-between; margin-top: 1.8rem; gap: 1rem; }
+  .btn { padding: 0.65rem 1.6rem; border-radius: 3px; font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-weight: 500; letter-spacing: 0.06em; cursor: pointer; transition: all 0.25s ease; border: 1px solid var(--border-bright); background: transparent; color: var(--gold-light); }
+  .btn:hover { background: rgba(201,168,76,0.08); border-color: var(--gold); }
+  .btn-primary { background: rgba(201,168,76,0.12); border-color: var(--gold); color: var(--gold-light); }
+  .btn-primary:hover { background: rgba(201,168,76,0.22); }
+  .btn-ghost { border-color: transparent; color: var(--muted); font-size: 0.92rem; }
+  .btn-ghost:hover { color: var(--cream); background: transparent; border-color: transparent; }
+
+  /* ── Closing ── */
+  #step-close .closing-cross { text-align: center; font-size: 2rem; color: var(--gold-dim); margin-bottom: 1.4rem; }
+  #step-close .closing-text { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 300; color: var(--gold-light); text-align: center; line-height: 1.5; margin-bottom: 1.6rem; }
+  #step-close .closing-body { text-align: center; color: var(--muted); font-size: 0.96rem; margin-bottom: 2rem; }
+  .divider { width: 60px; height: 1px; background: var(--gold-dim); opacity: 0.4; margin: 1.6rem auto; }
+
+  /* ── Anima Christi ── */
+  .anima-christi { border: 1px solid var(--border); border-radius: 4px; padding: 1.6rem 1.8rem; margin-bottom: 2rem; text-align: center; background: rgba(201,168,76,0.03); }
+  .anima-christi .prayer-title { font-family: 'Cormorant Garamond', serif; font-size: 0.8rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 1.2rem; }
+  .anima-christi p { font-style: italic; font-size: 1rem; color: var(--muted); line-height: 2; }
+
+  /* ── Summary ── */
+  .summary-section { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1.3rem; margin-bottom: 1rem; }
+  .summary-label { font-size: 0.76rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 0.5rem; display: block; }
+  .summary-text { font-size: 0.96rem; color: var(--cream); opacity: 0.85; line-height: 1.65; }
+  .summary-text.empty { color: var(--muted); font-style: italic; opacity: 0.6; }
+
+  /* ── Actions ── */
+  .action-row { display: flex; gap: 0.8rem; justify-content: center; margin-top: 1.6rem; flex-wrap: wrap; }
+  .btn-sm { padding: 0.45rem 1.1rem; font-size: 0.9rem; border-radius: 3px; cursor: pointer; background: transparent; font-family: 'Cormorant Garamond', serif; letter-spacing: 0.06em; transition: all 0.2s; border: 1px solid var(--border-bright); color: var(--gold-light); }
+  .btn-sm:hover { background: rgba(201,168,76,0.1); }
+
+  /* ── Inline confirm ── */
+  .confirm-box { display: none; background: var(--surface2); border: 1px solid var(--border-bright); border-radius: 4px; padding: 1rem 1.2rem; margin-top: 1rem; text-align: center; }
+  .confirm-box.visible { display: block; }
+  .confirm-box p { font-size: 0.95rem; color: var(--cream); margin-bottom: 0.9rem; }
+  .confirm-btns { display: flex; gap: 0.7rem; justify-content: center; }
+  .confirm-btns button { padding: 0.4rem 1.1rem; border-radius: 3px; font-family: 'Cormorant Garamond', serif; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; }
+  .confirm-yes { background: rgba(201,168,76,0.15); border: 1px solid var(--gold); color: var(--gold-light); }
+  .confirm-yes:hover { background: rgba(201,168,76,0.28); }
+  .confirm-no { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .confirm-no:hover { color: var(--cream); }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(1rem); background: var(--surface2); border: 1px solid var(--border-bright); color: var(--gold-light); padding: 0.6rem 1.4rem; border-radius: 3px; font-size: 0.9rem; opacity: 0; pointer-events: none; transition: all 0.3s ease; z-index: 100; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Footer ── */
+  .site-footer {
+    width: 100%;
+    max-width: 640px;
+    padding: 0 1.5rem 2rem;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    margin-top: -2rem;
+  }
+  .site-footer p {
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    color: var(--gold-dim);
+    opacity: 0.6;
+  }
+  .site-footer a {
+    color: var(--gold-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .site-footer a:hover { color: var(--gold-light); }
+
+  @media (max-width: 480px) {
+    .step-name { font-size: 1.7rem; }
+    .title-area h1 { font-size: 2rem; }
+    .progress-line { width: 24px; }
+    .anima-christi { padding: 1.2rem 1rem; }
+  }
+</style>
+</head>
+<body>
+<div class="ambient"></div>
+
+<!-- Back nav -->
+<nav class="site-nav">
+  <a href="index.html" class="back-link">Home</a>
+</nav>
+
+<!-- Candle -->
+<div class="candle-wrap">
+  <div class="flame-outer"><div class="flame-inner"></div></div>
+  <div class="wick"></div>
+  <div class="candle-body"><div class="candle-drip"></div></div>
+</div>
+
+<div class="app">
+  <div class="title-area">
+    <h1>Daily Examen</h1>
+    <p class="subtitle">An Ignatian Prayer of Review</p>
+    <p class="date-line" id="today-date"></p>
+  </div>
+
+  <div class="progress-track">
+    <div class="progress-dot active" onclick="goTo(0)" title="Gratitude"></div>
+    <div class="progress-line"></div>
+    <div class="progress-dot" onclick="goTo(1)" title="Review"></div>
+    <div class="progress-line"></div>
+    <div class="progress-dot" onclick="goTo(2)" title="Feelings"></div>
+    <div class="progress-line"></div>
+    <div class="progress-dot" onclick="goTo(3)" title="Prayer"></div>
+    <div class="progress-line"></div>
+    <div class="progress-dot" onclick="goTo(4)" title="Hope"></div>
+  </div>
+
+  <!-- Step 0: Gratitude -->
+  <div class="step active" id="step-0">
+    <div class="step-header"><span class="step-number">Step One of Five</span><h2 class="step-name">Gratitude</h2></div>
+    <div class="silence-prompt">
+      <span class="silence-icon">— ✦ —</span>
+      <p>Before you begin, take about sixty seconds to sit in stillness.<br>Set down whatever you were carrying. Let your breath slow.<br>Place yourself in the presence of God.</p>
+    </div>
+    <div class="step-verse" id="verse-0"></div>
+    <p class="step-prompt">Become aware that you are in the presence of God, who loves you completely and knows your day in full.</p>
+    <ul class="step-prompts">
+      <li>What small, easy-to-miss gifts appeared today?</li>
+      <li>Who showed you kindness, patience, or love?</li>
+      <li>What moment made you feel most alive?</li>
+    </ul>
+    <label class="textarea-label" for="ta-0">Your reflection</label>
+    <textarea id="ta-0" placeholder="Lord, I am grateful for…"></textarea>
+    <div class="nav-row"><span></span><button class="btn btn-primary" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- Step 1: Review -->
+  <div class="step" id="step-1">
+    <div class="step-header"><span class="step-number">Step Two of Five</span><h2 class="step-name">Review</h2></div>
+    <div class="step-verse" id="verse-1"></div>
+    <p class="step-prompt">Walk back through your day as if watching a film — gently, without judgment. See it as God sees it: with patience and mercy. Let no moment be too ordinary.</p>
+    <ul class="step-prompts">
+      <li>How did the morning begin? What was midday like?</li>
+      <li>Where did you give your best self? Where did you fall short?</li>
+      <li>What moments surprised you?</li>
+    </ul>
+    <label class="textarea-label" for="ta-1">Your reflection</label>
+    <textarea id="ta-1" placeholder="Walking through my day, I notice…"></textarea>
+    <div class="nav-row"><button class="btn btn-ghost" onclick="prev()">← Back</button><button class="btn btn-primary" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- Step 2: Feelings -->
+  <div class="step" id="step-2">
+    <div class="step-header"><span class="step-number">Step Three of Five</span><h2 class="step-name">Feelings</h2></div>
+    <div class="step-verse" id="verse-2"></div>
+    <p class="step-prompt">St. Ignatius called these movements <em>consolation</em> and <em>desolation</em>. Notice where your heart was drawn toward God today — and where it pulled away.</p>
+    <ul class="step-prompts">
+      <li>Where did you feel peace, joy, or love? (<em>consolation</em>)</li>
+      <li>Where did you feel anxious, irritable, or distant from God? (<em>desolation</em>)</li>
+      <li>What emotions are lingering with you right now?</li>
+    </ul>
+    <label class="textarea-label" for="ta-2">Your reflection</label>
+    <textarea id="ta-2" placeholder="In my heart today I felt…"></textarea>
+    <div class="nav-row"><button class="btn btn-ghost" onclick="prev()">← Back</button><button class="btn btn-primary" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- Step 3: Prayer -->
+  <div class="step" id="step-3">
+    <div class="step-header"><span class="step-number">Step Four of Five</span><h2 class="step-name">Prayer</h2></div>
+    <div class="step-verse" id="verse-3"></div>
+    <p class="step-prompt">Choose one moment from your review — one that carries weight, whether of joy or sorrow — and bring it before God. Speak freely. Ask for what you need. Offer what you are holding.</p>
+    <ul class="step-prompts">
+      <li>Is there something to confess or surrender?</li>
+      <li>Is there something to thank God for more deeply?</li>
+      <li>Is there someone you need to pray for by name?</li>
+    </ul>
+    <label class="textarea-label" for="ta-3">Your prayer</label>
+    <textarea id="ta-3" placeholder="Lord, I bring to you…"></textarea>
+    <div class="nav-row"><button class="btn btn-ghost" onclick="prev()">← Back</button><button class="btn btn-primary" onclick="next()">Continue →</button></div>
+  </div>
+
+  <!-- Step 4: Hope -->
+  <div class="step" id="step-4">
+    <div class="step-header"><span class="step-number">Step Five of Five</span><h2 class="step-name">Hope</h2></div>
+    <div class="step-verse" id="verse-4"></div>
+    <p class="step-prompt">Turn your eyes forward. Tomorrow is a new gift. Ask God for the grace you will need — not just in general, but for the specific moments, tasks, and people you will face.</p>
+    <ul class="step-prompts">
+      <li>What do you most need from God tomorrow?</li>
+      <li>Is there a relationship that needs your attention or repair?</li>
+      <li>What one intention will you carry into tomorrow?</li>
+    </ul>
+    <label class="textarea-label" for="ta-4">Your reflection</label>
+    <textarea id="ta-4" placeholder="Lord, as I look to tomorrow, I ask for…"></textarea>
+    <div class="nav-row"><button class="btn btn-ghost" onclick="prev()">← Back</button><button class="btn btn-primary" onclick="finish()">Complete Examen →</button></div>
+  </div>
+
+  <!-- Closing -->
+  <div class="step" id="step-close">
+    <div class="closing-cross">✝</div>
+    <p class="closing-text">May the peace of Christ guard your heart and mind.</p>
+    <p class="closing-body">Your examen is complete. Rest in the knowledge that you are seen, known, and loved.</p>
+
+    <div class="anima-christi">
+      <p class="prayer-title">Anima Christi</p>
+      <p>
+        Soul of Christ, sanctify me.<br>
+        Body of Christ, save me.<br>
+        Blood of Christ, inebriate me.<br>
+        Water from the side of Christ, wash me.<br>
+        Passion of Christ, strengthen me.<br>
+        O good Jesus, hear me.<br>
+        Within your wounds, hide me.<br>
+        Let me never be separated from you.<br>
+        From the evil one, deliver me.<br>
+        At the hour of my death, call me.<br>
+        And bid me come to you,<br>
+        that with your saints I may praise you<br>
+        forever and ever. Amen.
+      </p>
+    </div>
+
+    <div class="divider"></div>
+    <p style="font-size:0.82rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:1.2rem;">Tonight's Reflections</p>
+    <div id="summary-container"></div>
+
+    <div class="action-row">
+      <button class="btn-sm" onclick="printReflection()">Print / Save PDF</button>
+      <button class="btn-sm" onclick="copyToClipboard()">Copy to Clipboard</button>
+      <button class="btn-sm" onclick="toggleConfirm()">Begin Again</button>
+    </div>
+    <div class="confirm-box" id="confirm-box">
+      <p>This will clear all of tonight's reflections. Are you sure?</p>
+      <div class="confirm-btns">
+        <button class="confirm-yes" onclick="startOver()">Yes, begin again</button>
+        <button class="confirm-no" onclick="toggleConfirm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <p><a href="index.html">theadubs.github.io</a></p>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STEPS = ['Gratitude','Review','Feelings','Prayer','Hope'];
+
+const VERSE_BANKS = [
+  [
+    {text:'Give thanks to the Lord, for he is good; his mercy endures forever.',ref:'Psalm 107:1'},
+    {text:'In all circumstances give thanks, for this is the will of God for you in Christ Jesus.',ref:'1 Thessalonians 5:18'},
+    {text:'Every good gift and every perfect present is from above, coming down from the Father of lights.',ref:'James 1:17'},
+    {text:'The Lord has done great things for us; we are filled with joy.',ref:'Psalm 126:3'}
+  ],
+  [
+    {text:'Search me, God, and know my heart; try me and know my thoughts.',ref:'Psalm 139:23'},
+    {text:'Your word is a lamp for my feet, a light for my path.',ref:'Psalm 119:105'},
+    {text:'Be still and know that I am God.',ref:'Psalm 46:11'},
+    {text:'The LORD is near to all who call upon him, to all who call upon him in truth.',ref:'Psalm 145:18'}
+  ],
+  [
+    {text:'Cast all your anxieties on him, because he cares for you.',ref:'1 Peter 5:7'},
+    {text:'The Lord is my shepherd; there is nothing I lack.',ref:'Psalm 23:1'},
+    {text:'Do not be anxious about anything, but in everything, by prayer and petition, make your requests known to God.',ref:'Philippians 4:6'},
+    {text:'Even though I walk through the valley of the shadow of death, I will fear no evil, for you are with me.',ref:'Psalm 23:4'}
+  ],
+  [
+    {text:'Come to me, all you who labor and are burdened, and I will give you rest.',ref:'Matthew 11:28'},
+    {text:'Ask and it will be given to you; seek and you will find; knock and the door will be opened to you.',ref:'Matthew 7:7'},
+    {text:'The Spirit too comes to the aid of our weakness; for we do not know how to pray as we ought.',ref:'Romans 8:26'},
+    {text:'When you call me, and come and pray to me, I will listen to you.',ref:'Jeremiah 29:12'}
+  ],
+  [
+    {text:'I can do all things through him who strengthens me.',ref:'Philippians 4:13'},
+    {text:'For I know the plans I have for you — plans for your welfare and not for woe, to give you a future of hope.',ref:'Jeremiah 29:11'},
+    {text:'His mercies are not exhausted; they are renewed each morning. Great is your faithfulness!',ref:'Lamentations 3:22-23'},
+    {text:'Those who hope in the LORD will renew their strength; they will soar on wings like eagles.',ref:'Isaiah 40:31'}
+  ]
+];
+
+let current = 0;
+let sessionVerses = [];
+
+function pickVerses() {
+  sessionVerses = VERSE_BANKS.map(bank => bank[Math.floor(Math.random() * bank.length)]);
+  sessionVerses.forEach((v, i) => {
+    const el = document.getElementById('verse-' + i);
+    if (el) el.innerHTML = v.text + '<cite>— ' + v.ref + ' (NABRE)</cite>';
+  });
+}
+
+function setDate() {
+  const opts = {weekday:'long',year:'numeric',month:'long',day:'numeric'};
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-US', opts);
+}
+
+function updateProgress() {
+  document.querySelectorAll('.progress-dot').forEach((dot, i) => {
+    dot.classList.remove('active','completed');
+    if (current < 5) {
+      if (i === current) dot.classList.add('active');
+      else if (i < current) dot.classList.add('completed');
+    } else {
+      dot.classList.add('completed');
+    }
+  });
+}
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  if (n < 5) {
+    document.getElementById('step-' + n).classList.add('active');
+  } else {
+    renderSummary();
+    document.getElementById('step-close').classList.add('active');
+    document.getElementById('confirm-box').classList.remove('visible');
+  }
+  current = n;
+  updateProgress();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function next() { showStep(current + 1); }
+function prev() { if (current > 0) showStep(current - 1); }
+function goTo(n) { if (n <= current) showStep(n); }
+function finish() { showStep(5); }
+
+function toggleConfirm() {
+  document.getElementById('confirm-box').classList.toggle('visible');
+}
+
+function startOver() {
+  for (let i = 0; i < 5; i++) document.getElementById('ta-' + i).value = '';
+  pickVerses();
+  showStep(0);
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+function renderSummary() {
+  const c = document.getElementById('summary-container');
+  c.innerHTML = '';
+  STEPS.forEach((name, i) => {
+    const val = document.getElementById('ta-' + i).value.trim();
+    const div = document.createElement('div');
+    div.className = 'summary-section';
+    div.innerHTML = '<span class="summary-label">' + name + '</span>'
+      + '<p class="summary-text' + (val ? '' : ' empty') + '">'
+      + (val ? escHtml(val) : 'No reflection recorded.') + '</p>';
+    c.appendChild(div);
+  });
+}
+
+function buildText() {
+  const date = document.getElementById('today-date').textContent;
+  let out = 'Daily Examen — ' + date + '\n' + '─'.repeat(40) + '\n\n';
+  STEPS.forEach((name, i) => {
+    out += name.toUpperCase() + '\n' + (document.getElementById('ta-' + i).value.trim() || '(No reflection recorded.)') + '\n\n';
+  });
+  out += 'ANIMA CHRISTI\n'
+    + 'Soul of Christ, sanctify me.\n'
+    + 'Body of Christ, save me.\n'
+    + 'Blood of Christ, inebriate me.\n'
+    + 'Water from the side of Christ, wash me.\n'
+    + 'Passion of Christ, strengthen me.\n'
+    + 'O good Jesus, hear me.\n'
+    + 'Within your wounds, hide me.\n'
+    + 'Let me never be separated from you.\n'
+    + 'From the evil one, deliver me.\n'
+    + 'At the hour of my death, call me.\n'
+    + 'And bid me come to you,\n'
+    + 'that with your saints I may praise you\n'
+    + 'forever and ever. Amen.';
+  return out.trim();
+}
+
+function buildPrintHTML() {
+  const date = document.getElementById('today-date').textContent;
+  let rows = '';
+  STEPS.forEach((name, i) => {
+    const val = document.getElementById('ta-' + i).value.trim() || '';
+    const v = sessionVerses[i];
+    rows += '<section style="margin-bottom:2rem;page-break-inside:avoid">'
+      + '<h2 style="font-family:Georgia,serif;font-size:1.2rem;color:#7a5c1e;font-weight:normal;margin-bottom:0.3rem">' + name + '</h2>'
+      + '<blockquote style="border-left:3px solid #c9a84c;padding-left:0.8rem;margin:0.5rem 0 0.8rem;color:#666;font-style:italic;font-size:0.9rem">'
+      + v.text + '<cite style="display:block;font-style:normal;font-size:0.8rem;color:#999;margin-top:0.2rem">— ' + v.ref + ' (NABRE)</cite></blockquote>'
+      + '<p style="white-space:pre-wrap;font-size:1rem;line-height:1.7;color:#222">' + (val || '<span style="color:#aaa;font-style:italic">No reflection recorded.</span>') + '</p>'
+      + '</section>';
+  });
+  const animaLines = [
+    'Soul of Christ, sanctify me.','Body of Christ, save me.','Blood of Christ, inebriate me.',
+    'Water from the side of Christ, wash me.','Passion of Christ, strengthen me.','O good Jesus, hear me.',
+    'Within your wounds, hide me.','Let me never be separated from you.','From the evil one, deliver me.',
+    'At the hour of my death, call me.','And bid me come to you,','that with your saints I may praise you','forever and ever. Amen.'
+  ].join('<br>');
+  rows += '<section style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid #e0d0b0;page-break-inside:avoid;text-align:center">'
+    + '<h2 style="font-family:Georgia,serif;font-size:1rem;color:#7a5c1e;font-weight:normal;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:1rem">Anima Christi</h2>'
+    + '<p style="font-style:italic;color:#555;font-size:0.95rem;line-height:2.1">' + animaLines + '</p>'
+    + '</section>';
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Daily Examen — ' + date + '</title>'
+    + '<style>body{font-family:Georgia,serif;max-width:680px;margin:2rem auto;padding:0 1.5rem;color:#222}'
+    + 'h1{font-size:1.8rem;font-weight:300;color:#7a5c1e;letter-spacing:0.1em;margin-bottom:0.2rem}'
+    + 'p.sub{color:#999;font-size:0.85rem;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:2rem}'
+    + 'hr{border:none;border-top:1px solid #e0d0b0;margin:1.5rem 0}'
+    + '@media print{body{margin:0.5in}}</style>'
+    + '</head><body><h1>Daily Examen</h1><p class="sub">' + date + '</p><hr>' + rows
+    + '<script>window.onload=function(){window.print();}<\/script></body></html>';
+}
+
+function printReflection() {
+  const win = window.open('', '_blank');
+  if (!win) { showToast('Allow pop-ups in your browser to print'); return; }
+  win.document.write(buildPrintHTML());
+  win.document.close();
+}
+
+function copyToClipboard() {
+  const text = buildText();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard')).catch(() => fallbackCopy(text));
+  } else { fallbackCopy(text); }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); showToast('Copied to clipboard'); }
+  catch(e) { showToast('Could not copy — try printing instead'); }
+  document.body.removeChild(ta);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+setDate();
+pickVerses();
+updateProgress();
+</script>
+</body>
+</html>
