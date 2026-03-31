@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>5 Days in the Jungle</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+  canvas { display: block; touch-action: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+//  5 DAYS IN THE JUNGLE  ·  HTML5 Canvas  ·  theadubs.github.io
+//  Vietnam Era Survival Shooter  ·  Survive 5 days and 5 nights
+// ═══════════════════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+// ── Crisp rendering on HiDPI / Retina ──────────────────────────────────
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+let W = 0, H = 0;
+
+function resize() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+resize();
+window.addEventListener('resize', () => { resize(); });
+
+// ═══════════════════════════════════════════════════════════════════════
+//  CONFIG  — all tunable numbers live here
+// ═══════════════════════════════════════════════════════════════════════
+const CFG = {
+  HUD_H: 108,           // px reserved for bottom HUD
+
+  // Lane Y positions as fraction of game-area height (far → near)
+  LANES: [0.40, 0.55, 0.70],
+
+  // Base move speed per enemy type (px / sec at diff×1)
+  SPEED:    { scout:110, soldier:72, sniper:42, heavy:36, commander:50 },
+  // Base HP
+  HP:       { scout:40,  soldier:80, sniper:50, heavy:220,commander:500 },
+  // Damage per hit
+  DMG:      { scout:10,  soldier:15, sniper:40, heavy:30, commander:22 },
+  // Seconds between attacks
+  ATK_INT:  { scout:2.0, soldier:1.7,sniper:3.8,heavy:2.5,commander:1.0 },
+
+  // Difficulty multiplier per day (HP, damage, speed scale)
+  DIFF: [1.0, 1.45, 1.9, 2.5, 3.2],
+
+  // Player
+  SHOOT_RADIUS: 38,     // tap hit tolerance (CSS px)
+  BULLET_DMG:   25,
+  MAX_HP:       100,
+  MAX_AMMO:     30,
+  AMMO_RESERVE: 90,
+  MAX_GRENADES: 2,
+  GRENADE_DMG:  90,
+  GRENADE_RADIUS: 160,
+
+  // Night
+  SANITY_DRAIN: 3,      // sanity points/sec drained at night
+  TORCH_BASE:   290,    // torch radius at full sanity
+  TORCH_MIN:    130,    // torch radius at zero sanity
+
+  // Wave pacing
+  REST_DURATION:  4.0,  // sec rest between waves
+  SPAWN_BASE:     2.5,  // sec between enemy spawns (base)
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════════════
+let G = {};   // global game state — reset() rebuilds it fully
+
+function reset() {
+  G = {
+    screen: 'menu',        // 'menu' | 'playing' | 'gameover' | 'victory'
+    day:    1,             // 1–5
+    phase:  'day',         // 'day' | 'night'
+    wave:   1,             // wave number within this phase
+    totalWaves: 3,         // waves per phase
+
+    hp:          CFG.MAX_HP,
+    ammo:        CFG.MAX_AMMO,
+    ammoReserve: CFG.AMMO_RESERVE,
+    grenades:    CFG.MAX_GRENADES,
+    sanity:      100,
+    kills:       0,
+    score:       0,
+
+    enemies:      [],
+    drops:        [],
+    particles:    [],
+    dmgNums:      [],
+    eBullets:     [],     // enemy projectiles
+
+    // Wave manager
+    spawnQueue:   [],
+    spawnTimer:   0,
+    spawnInterval:CFG.SPAWN_BASE,
+    inRest:       false,
+    restTimer:    0,
+
+    // Input
+    crossX: -1, crossY: -1,
+    touching: false,
+
+    // Feedback
+    hitFlash: 0,          // countdown timer for red flash on taking damage
+
+    lastTime: 0,
+  };
+}
+reset();
+
+function gameH()  { return H - CFG.HUD_H; }
+function diff()   { return CFG.DIFF[G.day - 1]; }
+function laneY(i) { return CFG.LANES[i] * gameH(); }
+
+// ═══════════════════════════════════════════════════════════════════════
+//  ENEMY
+// ═══════════════════════════════════════════════════════════════════════
+class Enemy {
+  constructor(type, lane) {
+    this.type  = type;
+    this.lane  = lane;
+    this.x     = W + 60;
+    this.y     = laneY(lane);
+
+    // Far lanes appear smaller (depth illusion)
+    this.scale = [0.52, 0.76, 1.0][lane];
+
+    const d     = diff();
+    this.maxHp  = Math.round(CFG.HP[type] * d);
+    this.hp     = this.maxHp;
+    this.speed  = CFG.SPEED[type] * Math.sqrt(d);   // sqrt keeps speed sane
+    this.dmg    = CFG.DMG[type];
+    this.atkInt = CFG.ATK_INT[type];
+    this.atkT   = Math.random() * this.atkInt;       // stagger first attack
+
+    this.alive  = true;
+    this.dying  = false;
+    this.dyingT = 0;
+    this.w      = 36;   // base width  (scale applied at draw time)
+    this.h      = 60;   // base height
+  }
+
+  get hitRadius() { return this.w * this.scale * 0.65; }
+
+  update(dt) {
+    if (this.dying) { this.dyingT += dt; return; }
+    this.x    -= this.speed * dt;
+    this.atkT -= dt;
+    if (this.atkT <= 0) {
+      this.atkT = this.atkInt;
+      this._fire();
+    }
+  }
+
+  _fire() {
+    G.eBullets.push({
+      x:   this.x - this.w * this.scale * 0.5,
+      y:   this.y,
+      vx: -400,
+      vy:  (Math.random() - 0.5) * 50,
+      dmg: this.dmg,
+      alive: true,
+    });
+  }
+
+  hit(dmg) {
+    if (this.dying) return;
+    this.hp -= dmg;
+    spawnBlood(this.x, this.y);
+    spawnDmgNum(this.x, this.y - 20 * this.scale, dmg, false);
+    if (this.hp <= 0) {
+      this.dying = true;
+      this.dyingT = 0;
+      G.kills++;
+      G.score += Math.round(CFG.HP[this.type] * G.day);
+      // 28% chance to drop a pickup
+      if (Math.random() < 0.28) {
+        const types = ['ammo','health','grenade','meds'];
+        G.drops.push(new Drop(this.x, this.y, types[Math.floor(Math.random() * 4)]));
+      }
+    }
+  }
+
+  isDone() { return this.dying && this.dyingT > 0.55; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  DROP (pickup)
+// ═══════════════════════════════════════════════════════════════════════
+class Drop {
+  constructor(x, y, type) {
+    this.x     = x;
+    this.y     = y;
+    this.type  = type;
+    this.vy    = -70;
+    this.life  = 8;    // 8 sec before despawn
+    this.alive = true;
+  }
+  update(dt) {
+    this.vy   = Math.min(this.vy + 180 * dt, 0);
+    this.y   += this.vy * dt;
+    this.life -= dt;
+    if (this.life <= 0) this.alive = false;
+  }
+  collect() {
+    this.alive = false;
+    switch (this.type) {
+      case 'ammo':    G.ammoReserve = Math.min(G.ammoReserve + 15, 120); break;
+      case 'health':  G.hp = Math.min(G.hp + 25, CFG.MAX_HP); break;
+      case 'grenade': G.grenades = Math.min(G.grenades + 1, 3); break;
+      case 'meds':    G.sanity = Math.min(G.sanity + 30, 100); break;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  PARTICLES
+// ═══════════════════════════════════════════════════════════════════════
+function spawnParticles(x, y, count, colors, speedMin, speedMax, lifeRange) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const s = speedMin + Math.random() * (speedMax - speedMin);
+    const l = lifeRange[0] + Math.random() * (lifeRange[1] - lifeRange[0]);
+    G.particles.push({
+      x, y,
+      vx: Math.cos(a) * s,
+      vy: Math.sin(a) * s - 30,
+      life: l, maxLife: l,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      r: 2 + Math.random() * 3,
+    });
+  }
+}
+
+function spawnMuzzle(x, y)     { spawnParticles(x, y, 6,  ['#ffdd44','#ff9900','#ffffff'], 50, 160, [0.08, 0.18]); }
+function spawnImpact(x, y)     { spawnParticles(x, y, 4,  ['#8B6914','#aa8820'], 20, 60, [0.2, 0.35]); }
+function spawnBlood(x, y)      { spawnParticles(x, y, 8,  ['#cc2200','#991100'], 30, 100, [0.3, 0.6]); }
+function spawnGrenadeBlast(x,y){ spawnParticles(x, y, 24, ['#ffaa00','#ff6600','#888888','#ffff44'], 80, 240, [0.4, 0.85]); }
+
+function spawnDmgNum(x, y, val, isPlayer) {
+  G.dmgNums.push({ x, y, val, isPlayer, life: 0.9, maxLife: 0.9, vy: -58 });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  WAVE SYSTEM
+// ═══════════════════════════════════════════════════════════════════════
+function buildQueue(day, wave, phase) {
+  const q   = [];
+  const cnt = 4 + day * 2 + wave;
+
+  for (let i = 0; i < cnt; i++) {
+    let t;
+    if (day === 1) {
+      t = i % 3 === 0 ? 'scout' : 'soldier';
+    } else if (day === 2) {
+      t = i % 5 === 4 ? 'sniper' : (i % 2 === 0 ? 'scout' : 'soldier');
+    } else if (day === 3) {
+      t = ['scout','soldier','soldier','sniper','scout'][i % 5];
+    } else if (day === 4) {
+      t = i % 6 === 5 ? 'heavy' : ['soldier','sniper','scout','soldier'][i % 4];
+    } else {
+      // Day 5 — commander spawns as final enemy on last wave
+      t = (wave >= 3 && i === cnt - 1) ? 'commander'
+        : ['soldier','sniper','heavy','scout','soldier','heavy'][i % 6];
+    }
+    q.push(t);
+  }
+
+  if (phase === 'night') {
+    // Shuffle for night unpredictability
+    for (let i = q.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [q[i], q[j]] = [q[j], q[i]];
+    }
+    // Prepend extra scouts at night
+    for (let i = 0; i < day; i++) q.unshift('scout');
+  }
+  return q;
+}
+
+function startWave() {
+  G.enemies      = [];
+  G.eBullets     = [];
+  G.spawnQueue   = buildQueue(G.day, G.wave, G.phase);
+  G.spawnInterval= Math.max(0.65, CFG.SPAWN_BASE - (G.day - 1) * 0.28 - (G.wave - 1) * 0.12);
+  G.spawnTimer   = 0;
+  G.inRest       = false;
+  G.restTimer    = 0;
+}
+
+function spawnNext() {
+  if (!G.spawnQueue.length) return;
+  const type = G.spawnQueue.shift();
+  const lane = Math.floor(Math.random() * 3);
+  G.enemies.push(new Enemy(type, lane));
+}
+
+function advanceWave() {
+  if (G.wave < G.totalWaves) {
+    G.wave++;
+    startWave();
+  } else {
+    // Phase complete — flip day/night
+    if (G.phase === 'day') {
+      G.phase = 'night';
+      G.wave  = 1;
+      G.totalWaves = 2;
+    } else {
+      G.phase = 'day';
+      G.day++;
+      G.wave  = 1;
+      G.totalWaves = 3 + G.day;
+      // Dawn resupply
+      G.grenades    = CFG.MAX_GRENADES;
+      G.ammoReserve = Math.min(G.ammoReserve + 30, 120);
+      G.sanity      = Math.min(G.sanity + 20, 100);
+    }
+    if (G.day > 5) { G.screen = 'victory'; return; }
+    startWave();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  DRAWING
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── Utility ──────────────────────────────────────────────────────────
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);  ctx.arcTo(x+w, y,   x+w, y+r,   r);
+  ctx.lineTo(x + w, y+h-r); ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x + r, y+h);    ctx.arcTo(x, y+h,   x, y+h-r,   r);
+  ctx.lineTo(x, y + r);      ctx.arcTo(x, y,     x+r, y,      r);
+  ctx.closePath();
+}
+
+// ── Sky gradient ──────────────────────────────────────────────────────
+function drawSky() {
+  const gH    = gameH();
+  const night = G.phase === 'night';
+  const grad  = ctx.createLinearGradient(0, 0, 0, gH * 0.55);
+  if (night) {
+    grad.addColorStop(0, '#010409');
+    grad.addColorStop(0.5,'#030c18');
+    grad.addColorStop(1, '#091408');
+  } else {
+    // Sky gets slightly more overcast / ominous each day
+    const r = 95  + G.day * 8;
+    const g = 140 - G.day * 6;
+    grad.addColorStop(0, `rgb(${r},${g},162)`);
+    grad.addColorStop(0.65,'#7aac78');
+    grad.addColorStop(1,   '#3a5a28');
+  }
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, gH);
+}
+
+// ── Jungle tree silhouette layer ──────────────────────────────────────
+// Uses golden-ratio spacing (i * 137.508) for consistent tree positions.
+function drawJungleLayer(baseY, color, density, trunkH, canopyR) {
+  ctx.fillStyle = color;
+  ctx.fillRect(0, baseY, W, gameH() - baseY);
+  const count = Math.ceil(W / density);
+  for (let i = 0; i < count; i++) {
+    const px      = (i * 137.508) % W;
+    const hV      = trunkH + ((i * 997) % (trunkH * 0.4));
+    const top     = baseY - hV;
+    ctx.fillRect(px - 3, top + hV * 0.55, 6, hV * 0.45);
+    for (let j = 0; j < 3; j++) {
+      const cx = px + ((i * j * 79 + j * 41) % 24) - 12;
+      const cy = top + j * (hV * 0.12);
+      const cr = canopyR * (0.8 + j * 0.15);
+      ctx.beginPath();
+      ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+// ── Full scene background ──────────────────────────────────────────────
+function drawBackground() {
+  const gH    = gameH();
+  const night = G.phase === 'night';
+
+  drawSky();
+
+  drawJungleLayer(gH * 0.44, night ? '#061306' : '#1a3c18', 58, 38, 20);
+  drawJungleLayer(gH * 0.56, night ? '#040d04' : '#122e10', 46, 55, 28);
+
+  ctx.fillStyle = night ? '#080c06' : '#2c2006';
+  ctx.fillRect(0, gH * 0.64, W, gH * 0.36);
+
+  ctx.fillStyle = night ? '#0b100a' : '#352806';
+  for (let i = 0; i < 5; i++) ctx.fillRect(0, gH * 0.66 + i * gH * 0.10, W, 1.5);
+}
+
+// ── Foreground trees (drawn after enemies — partial occlusion) ─────────
+function drawForeground() {
+  drawJungleLayer(gameH() * 0.78, G.phase === 'night' ? '#020702' : '#0c1e0c', 86, 88, 44);
+}
+
+// ── Enemy silhouettes ─────────────────────────────────────────────────
+const ENEMY_COL = {
+  scout:'#18140a', soldier:'#0e190e', sniper:'#1a1a06', heavy:'#1a0c02', commander:'#280202',
+};
+
+function drawEnemySilhouette(type) {
+  ctx.fillStyle = ENEMY_COL[type];
+  if (type === 'scout') {
+    ctx.beginPath(); ctx.arc(2, -30, 6, 0, Math.PI*2); ctx.fill();
+    ctx.save(); ctx.rotate(0.25); ctx.fillRect(-5, -24, 10, 20); ctx.restore();
+    ctx.fillRect(-6, -3, 4, 17); ctx.fillRect(2, -3, 4, 17);
+    ctx.fillRect(-14,-20, 22, 3);
+  }
+  else if (type === 'soldier') {
+    ctx.beginPath(); ctx.arc(0, -32, 7, 0, Math.PI*2); ctx.fill();
+    ctx.fillRect(-8,-38,16,7); ctx.fillRect(-8,-25,16,24);
+    ctx.fillRect(-7,-1,5,20);  ctx.fillRect(2,-1,5,20);
+    ctx.fillRect(-17,-24,24,4);
+  }
+  else if (type === 'sniper') {
+    for (let i = -12; i <= 12; i += 6) { ctx.beginPath(); ctx.arc(i,-38,6,0,Math.PI*2); ctx.fill(); }
+    ctx.beginPath(); ctx.arc(0,-30,6,0,Math.PI*2); ctx.fill();
+    ctx.save(); ctx.rotate(-0.35); ctx.fillRect(-5,-24,10,28); ctx.restore();
+    ctx.fillRect(-26,-18,44,3); ctx.fillRect(6,-22,7,6);
+  }
+  else if (type === 'heavy') {
+    ctx.beginPath(); ctx.arc(0,-35,9,0,Math.PI*2); ctx.fill();
+    ctx.fillRect(-13,-26,26,28); ctx.fillRect(-10,2,8,22); ctx.fillRect(2,2,8,22);
+    ctx.fillRect(-22,-20,36,6);
+    ctx.beginPath(); ctx.arc(-24,-17,6,0,Math.PI*2); ctx.fill();
+  }
+  else if (type === 'commander') {
+    ctx.fillRect(-11,-46,22,5);
+    ctx.beginPath(); ctx.arc(0,-38,8,0,Math.PI*2); ctx.fill();
+    ctx.fillRect(-10,-30,20,30); ctx.fillRect(-15,-30,9,5); ctx.fillRect(6,-30,9,5);
+    ctx.fillRect(-8,0,6,22); ctx.fillRect(2,0,6,22);
+    ctx.fillRect(-20,-24,18,4);
+  }
+}
+
+function drawEnemy(e) {
+  if (!e.alive && !e.dying) return;
+  const alpha = e.dying ? Math.max(0, 1 - e.dyingT / 0.55) : 1;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(e.x, e.y);
+  ctx.scale(e.scale, e.scale);
+  if (e.dying) { ctx.rotate(e.dyingT * 3.2); ctx.translate(e.dyingT * 50, e.dyingT * 40); }
+  drawEnemySilhouette(e.type);
+  ctx.restore();
+
+  if (!e.dying && e.hp > 0) {
+    const bw = 38 * e.scale, bx = e.x - bw * 0.5, by = e.y - (e.h * 0.5 + 14) * e.scale;
+    const frac = e.hp / e.maxHp;
+    ctx.fillStyle = '#222'; ctx.fillRect(bx, by, bw, 4);
+    ctx.fillStyle = frac > 0.55 ? '#44cc44' : frac > 0.28 ? '#ffaa00' : '#ff3300';
+    ctx.fillRect(bx, by, bw * frac, 4);
+  }
+}
+
+// ── Pickups ────────────────────────────────────────────────────────────
+const DROP_COL = { ammo:'#f0c040', health:'#44dd44', grenade:'#ff8800', meds:'#44dddd' };
+const DROP_LBL = { ammo:'A', health:'+', grenade:'G', meds:'M' };
+
+function drawDrop(d) {
+  if (!d.alive) return;
+  const pulse = 0.85 + Math.sin(Date.now() * 0.006) * 0.15;
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, d.life * 0.5) * pulse;
+  ctx.fillStyle   = DROP_COL[d.type];
+  ctx.beginPath(); ctx.arc(d.x, d.y, 10, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#000'; ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(DROP_LBL[d.type], d.x, d.y);
+  ctx.restore();
+}
+
+// ── Particles ──────────────────────────────────────────────────────────
+function drawParticles() {
+  G.particles.forEach(p => {
+    const a = p.life / p.maxLife;
+    ctx.save(); ctx.globalAlpha = a * 0.9; ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * a, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ── Enemy bullets ──────────────────────────────────────────────────────
+function drawEnemyBullets() {
+  G.eBullets.forEach(b => {
+    if (!b.alive) return;
+    ctx.save(); ctx.globalAlpha = 0.85; ctx.fillStyle = '#ffdd44';
+    ctx.fillRect(b.x - 7, b.y - 2, 14, 4);
+    ctx.restore();
+  });
+}
+
+// ── Night torch overlay ────────────────────────────────────────────────
+function drawNightOverlay() {
+  if (G.phase !== 'night') return;
+  const gH = gameH();
+  const cx = (G.touching && G.crossX >= 0) ? G.crossX : W * 0.5;
+  const cy = (G.touching && G.crossY >= 0) ? G.crossY : gH * 0.5;
+
+  const sanFrac = G.sanity / 100;
+  const baseR   = CFG.TORCH_MIN + (CFG.TORCH_BASE - CFG.TORCH_MIN) * sanFrac;
+  const flicker = 1 + Math.sin(Date.now() * 0.0075) * 0.04;
+  const torchR  = baseR * flicker;
+
+  // Soft glow halo
+  const glow = ctx.createRadialGradient(cx, cy, torchR * 0.25, cx, cy, torchR * 1.15);
+  glow.addColorStop(0, 'rgba(0,0,0,0)');
+  glow.addColorStop(0.7,'rgba(0,0,0,0.1)');
+  glow.addColorStop(1,  'rgba(0,0,0,0.97)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, gH);
+
+  // Hard darkness mask with evenodd cutout
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.97)';
+  ctx.beginPath();
+  ctx.rect(0, 0, W, gH);
+  ctx.arc(cx, cy, torchR, 0, Math.PI * 2, true);
+  ctx.fill('evenodd');
+  ctx.restore();
+
+  // Warm amber tint inside torch
+  const warm = ctx.createRadialGradient(cx, cy, 0, cx, cy, torchR * 0.6);
+  warm.addColorStop(0, 'rgba(255,160,40,0.06)');
+  warm.addColorStop(1, 'rgba(255,160,40,0)');
+  ctx.fillStyle = warm; ctx.fillRect(0, 0, W, gH);
+}
+
+// ── Crosshair ──────────────────────────────────────────────────────────
+function drawCrosshair() {
+  if (G.screen !== 'playing') return;
+  const gH = gameH();
+  const x  = G.crossX >= 0 ? G.crossX : W * 0.5;
+  const y  = G.crossY >= 0 ? G.crossY : gH * 0.45;
+  if (y >= gH) return;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.88)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x-28,y); ctx.lineTo(x-21,y);
+  ctx.moveTo(x+21,y); ctx.lineTo(x+28,y);
+  ctx.moveTo(x,y-28); ctx.lineTo(x,y-21);
+  ctx.moveTo(x,y+21); ctx.lineTo(x,y+28);
+  ctx.stroke();
+  ctx.fillStyle = '#ff3333';
+  ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+// ── Damage numbers ──────────────────────────────────────────────────────
+function drawDmgNums() {
+  G.dmgNums.forEach(n => {
+    if (n.life <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = n.life / n.maxLife;
+    ctx.fillStyle   = n.isPlayer ? '#ff4444' : '#ffee44';
+    ctx.font        = `bold ${n.isPlayer ? 19 : 14}px monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(n.isPlayer ? `-${n.val}` : `${n.val}`, n.x, n.y);
+    ctx.restore();
+  });
+}
+
+// ── HUD ────────────────────────────────────────────────────────────────
+function drawHUD() {
+  const hy  = gameH();
+  const pad = 16;
+  const bS  = 48;
+  const bY  = hy + CFG.HUD_H - bS - 8;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.84)';
+  ctx.fillRect(0, hy, W, CFG.HUD_H);
+  ctx.strokeStyle = '#243a24'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, hy); ctx.lineTo(W, hy); ctx.stroke();
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillStyle = G.phase === 'night' ? '#6688ff' : '#88cc44';
+  ctx.font = 'bold 12px monospace';
+  ctx.fillText(G.phase === 'night' ? `NIGHT ${G.day}` : `DAY ${G.day}`, W * 0.5, hy + 6);
+  ctx.fillStyle = '#4a6644'; ctx.font = '10px monospace';
+  ctx.fillText(`WAVE  ${G.wave} / ${G.totalWaves}`, W * 0.5, hy + 22);
+
+  ctx.textAlign = 'right'; ctx.fillStyle = '#557755'; ctx.font = '10px monospace';
+  ctx.fillText(G.score, W - pad, hy + 6);
+  ctx.fillText(`${G.kills} KIA`, W - pad, hy + 20);
+
+  const barW = Math.min(W * 0.32, 120);
+  const hpF  = G.hp / CFG.MAX_HP;
+  ctx.fillStyle = '#1e321e'; ctx.fillRect(pad, hy + 10, barW, 7);
+  ctx.fillStyle = hpF > 0.5 ? '#44cc44' : hpF > 0.25 ? '#ffaa00' : '#ff3333';
+  ctx.fillRect(pad, hy + 10, barW * hpF, 7);
+  ctx.textAlign = 'left'; ctx.fillStyle = '#aaa'; ctx.font = '9px monospace';
+  ctx.fillText(`HP  ${G.hp}`, pad, hy + 22);
+
+  const sanF = G.sanity / 100;
+  ctx.fillStyle = '#1a1030'; ctx.fillRect(pad, hy + 34, barW, 7);
+  ctx.fillStyle = '#8844cc'; ctx.fillRect(pad, hy + 34, barW * sanF, 7);
+  ctx.fillText(`SAN ${G.sanity}`, pad, hy + 46);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = G.ammo === 0 ? '#ff5555' : '#ffffff';
+  ctx.font = 'bold 22px monospace';
+  ctx.fillText(G.ammo, W - pad, hy + 30);
+  ctx.fillStyle = '#556655'; ctx.font = '11px monospace';
+  ctx.fillText(`/ ${G.ammoReserve}`, W - pad, hy + 48);
+  ctx.fillStyle = '#445544'; ctx.font = '9px monospace';
+  ctx.fillText('AMMO', W - pad, hy + 62);
+
+  // Grenade button
+  ctx.fillStyle = G.grenades > 0 ? '#1e2e12' : '#1a1a18';
+  roundRect(pad, bY, bS, bS, 6); ctx.fill();
+  ctx.strokeStyle = G.grenades > 0 ? '#4a7a22' : '#333'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = G.grenades > 0 ? '#bbdd55' : '#445544';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '9px monospace'; ctx.fillText('GRN', pad + bS * 0.5, bY + 16);
+  ctx.font = 'bold 16px monospace'; ctx.fillText(`\xd7${G.grenades}`, pad + bS * 0.5, bY + 34);
+
+  // Reload button
+  const needsReload = G.ammo < CFG.MAX_AMMO && G.ammoReserve > 0;
+  ctx.fillStyle = needsReload ? '#111830' : '#161618';
+  roundRect(W - pad - bS, bY, bS, bS, 6); ctx.fill();
+  ctx.strokeStyle = needsReload ? '#2244aa' : '#333'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = needsReload ? '#4488ff' : '#445566';
+  ctx.font = '9px monospace'; ctx.fillText('RLD', W - pad - bS * 0.5, bY + 16);
+  ctx.font = 'bold 12px monospace'; ctx.fillText('(R)', W - pad - bS * 0.5, bY + 34);
+
+  if (G.ammo === 0) {
+    ctx.fillStyle = '#ff4444'; ctx.font = 'bold 13px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('\u25cf RELOAD \u25cf', W * 0.5, hy - 18);
+  }
+
+  if (G.inRest) {
+    const prog = G.restTimer / CFG.REST_DURATION;
+    ctx.fillStyle = 'rgba(136,204,68,0.18)'; ctx.fillRect(0, hy, W * prog, 3);
+    ctx.fillStyle = '#88cc44'; ctx.fillRect(0, hy, W * prog, 1);
+  }
+}
+
+// ── Wave-clear banner ──────────────────────────────────────────────────
+function drawWaveBanner() {
+  if (!G.inRest) return;
+  const p = G.restTimer / CFG.REST_DURATION;
+  const a = p < 0.15 ? p/0.15 : p > 0.80 ? (1-p)/0.20 : 1;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  roundRect(W*0.5-130, gameH()*0.5-32, 260, 64, 6); ctx.fill();
+  ctx.fillStyle = '#88cc44'; ctx.font = 'bold 20px monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('WAVE CLEAR', W*0.5, gameH()*0.5-10);
+  ctx.fillStyle = '#667766'; ctx.font = '11px monospace';
+  ctx.fillText(G.wave < G.totalWaves ? `Wave ${G.wave+1} incoming\u2026` : 'Advancing\u2026', W*0.5, gameH()*0.5+12);
+  ctx.restore();
+}
+
+// ── Hit flash ─────────────────────────────────────────────────────────
+function drawHitFlash() {
+  if (G.hitFlash <= 0) return;
+  ctx.save(); ctx.globalAlpha = G.hitFlash * 0.38;
+  ctx.fillStyle = '#ff0000'; ctx.fillRect(0, 0, W, gameH());
+  ctx.restore();
+}
+
+// ── Menu screen ────────────────────────────────────────────────────────
+function drawMenu() {
+  ctx.fillStyle = '#030b03'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#0a160a';
+  for (let i = 0; i < 14; i++) {
+    const px = (i * 137.508) % W;
+    const r  = 36 + (i * 23 % 26);
+    ctx.beginPath(); ctx.arc(px, H * 0.52, r, 0, Math.PI*2); ctx.fill();
+    ctx.fillRect(px - 7, H * 0.52, 14, H * 0.5);
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#4a6640'; ctx.font = '11px monospace';
+  ctx.fillText('V I E T N A M  \xb7  1 9 6 8', W*0.5, H*0.26);
+  ctx.fillStyle = '#c8dc80';
+  ctx.font = `bold ${Math.min(36, W*0.088)}px monospace`;
+  ctx.fillText('5 DAYS IN', W*0.5, H*0.34);
+  ctx.fillStyle = '#88ff44';
+  ctx.font = `bold ${Math.min(42, W*0.105)}px monospace`;
+  ctx.fillText('THE JUNGLE', W*0.5, H*0.43);
+  ctx.fillStyle = '#5a7050'; ctx.font = '11px monospace';
+  ctx.fillText('Survive 5 days and 5 nights at all costs.', W*0.5, H*0.52);
+
+  const bW = 200, bH = 50, bX = W*0.5-100, bY = H*0.61;
+  const pulse = 0.78 + Math.sin(Date.now() * 0.004) * 0.22;
+  ctx.save(); ctx.globalAlpha = pulse;
+  ctx.fillStyle = '#1a4a18'; roundRect(bX, bY, bW, bH, 5); ctx.fill();
+  ctx.strokeStyle = '#55aa33'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = '#88ff44'; ctx.font = 'bold 16px monospace';
+  ctx.fillText('BEGIN MISSION', W*0.5, bY + bH*0.5);
+
+  ctx.fillStyle = '#2e3e2e'; ctx.font = '10px monospace';
+  ctx.fillText('TAP/CLICK TO SHOOT   \xb7   G = GRENADE   \xb7   R = RELOAD', W*0.5, H*0.75);
+  ctx.fillText('COLLECT DROPS BY TAPPING THEM  \xb7  SURVIVE ALL 10 PHASES', W*0.5, H*0.80);
+}
+
+// ── Game Over screen ───────────────────────────────────────────────────
+function drawGameOver() {
+  ctx.fillStyle = 'rgba(0,0,0,0.9)'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#cc2200';
+  ctx.font = `bold ${Math.min(52, W*0.13)}px monospace`;
+  ctx.fillText('K.I.A.', W*0.5, H*0.27);
+  ctx.fillStyle = '#667766'; ctx.font = '13px monospace';
+  ctx.fillText("You didn\u2019t make it home, soldier.", W*0.5, H*0.37);
+
+  const px = W*0.5-145, py = H*0.45;
+  ctx.fillStyle = '#111c11'; roundRect(px, py, 290, 88, 6); ctx.fill();
+  ctx.textAlign = 'left'; ctx.font = '12px monospace'; ctx.fillStyle = '#556655';
+  ctx.fillText('Days survived:', px+20, py+22);
+  ctx.fillText('Enemy kills:',   px+20, py+44);
+  ctx.fillText('Score:',         px+20, py+66);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#aabbaa';
+  ctx.fillText(G.day,   px+270, py+22);
+  ctx.fillText(G.kills, px+270, py+44);
+  ctx.fillText(G.score, px+270, py+66);
+
+  const bX = W*0.5-100, bY = H*0.66;
+  ctx.fillStyle = '#3a0808'; roundRect(bX, bY, 200, 48, 5); ctx.fill();
+  ctx.strokeStyle = '#aa2222'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = '#ff4444'; ctx.font = 'bold 16px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('TRY AGAIN', W*0.5, bY+24);
+}
+
+// ── Victory screen ─────────────────────────────────────────────────────
+function drawVictory() {
+  ctx.fillStyle = 'rgba(0,4,0,0.93)'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffdd44';
+  ctx.font = `bold ${Math.min(16, W*0.04)}px monospace`;
+  ctx.fillText('E X T R A C T I O N   C O M P L E T E', W*0.5, H*0.24);
+  ctx.fillStyle = '#88ff44';
+  ctx.font = `bold ${Math.min(40, W*0.10)}px monospace`;
+  ctx.fillText('YOU SURVIVED', W*0.5, H*0.34);
+  ctx.fillStyle = '#556655'; ctx.font = '13px monospace';
+  ctx.fillText(`${G.kills} enemies eliminated`, W*0.5, H*0.44);
+  ctx.fillText(`Score: ${G.score}`, W*0.5, H*0.51);
+
+  const bX = W*0.5-100, bY = H*0.62;
+  ctx.fillStyle = '#1a3a08'; roundRect(bX, bY, 200, 48, 5); ctx.fill();
+  ctx.strokeStyle = '#88ff44'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = '#ffff44'; ctx.font = 'bold 16px monospace';
+  ctx.fillText('PLAY AGAIN', W*0.5, bY+24);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  GAME LOGIC
+// ═══════════════════════════════════════════════════════════════════════
+function shoot(x, y) {
+  if (G.inRest || y >= gameH()) return;
+  if (G.ammo <= 0) return;
+  G.ammo--;
+  spawnMuzzle(x, y);
+
+  const acc  = 0.68 + (G.sanity / 100) * 0.32;  // low sanity = shaky aim
+  const hitR = CFG.SHOOT_RADIUS * acc;
+  const dmg  = Math.round(CFG.BULLET_DMG * acc);
+
+  // Collect nearby drops first
+  G.drops.forEach(d => {
+    if (d.alive && Math.hypot(d.x-x, d.y-y) < 26) d.collect();
+  });
+
+  // Hit nearest enemy within tolerance
+  const live = G.enemies.filter(e => e.alive && !e.dying);
+  live.sort((a, b) => Math.hypot(a.x-x,a.y-y) - Math.hypot(b.x-x,b.y-y));
+  for (const e of live) {
+    if (Math.hypot(e.x-x, e.y-y) < hitR + e.hitRadius) { e.hit(dmg); return; }
+  }
+  spawnImpact(x, y);
+}
+
+function throwGrenade() {
+  if (G.grenades <= 0 || G.inRest) return;
+  G.grenades--;
+  const bx = W * 0.56, by = gameH() * 0.53;
+  spawnGrenadeBlast(bx, by);
+  G.hitFlash = 0.2;
+  G.enemies.filter(e => e.alive && !e.dying).forEach(e => {
+    const d = Math.hypot(e.x-bx, e.y-by);
+    if (d < CFG.GRENADE_RADIUS) e.hit(Math.round(CFG.GRENADE_DMG * (1 - d / CFG.GRENADE_RADIUS)));
+  });
+}
+
+function reload() {
+  const need  = CFG.MAX_AMMO - G.ammo;
+  const avail = Math.min(need, G.ammoReserve);
+  G.ammo += avail; G.ammoReserve -= avail;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  UPDATE (per-frame logic)
+// ═══════════════════════════════════════════════════════════════════════
+function update(dt) {
+  if (G.phase === 'night') G.sanity = Math.max(0, G.sanity - CFG.SANITY_DRAIN * dt);
+  G.hitFlash = Math.max(0, G.hitFlash - dt * 3.5);
+
+  G.particles.forEach(p => { p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 140*dt; p.life -= dt; });
+  G.particles = G.particles.filter(p => p.life > 0);
+
+  G.dmgNums.forEach(n => { n.y += n.vy*dt; n.life -= dt; });
+  G.dmgNums = G.dmgNums.filter(n => n.life > 0);
+
+  G.drops.forEach(d => d.update(dt));
+  G.drops = G.drops.filter(d => d.alive);
+
+  G.eBullets.forEach(b => {
+    if (!b.alive) return;
+    b.x += b.vx*dt; b.y += b.vy*dt;
+    if (b.x < W * 0.12) {
+      b.alive = false;
+      G.hp = Math.max(0, G.hp - b.dmg);
+      G.hitFlash = 0.4;
+      spawnDmgNum(W*0.22, gameH()*0.62, b.dmg, true);
+      if (G.hp <= 0) G.screen = 'gameover';
+    }
+    if (b.x < -20) b.alive = false;
+  });
+  G.eBullets = G.eBullets.filter(b => b.alive);
+
+  if (G.inRest) {
+    G.restTimer += dt;
+    if (G.restTimer >= CFG.REST_DURATION) advanceWave();
+    return;
+  }
+
+  if (G.spawnQueue.length > 0) {
+    G.spawnTimer += dt;
+    if (G.spawnTimer >= G.spawnInterval) { G.spawnTimer = 0; spawnNext(); }
+  }
+
+  G.enemies.forEach(e => e.update(dt));
+
+  G.enemies.forEach(e => {
+    if (!e.alive || e.dying || e.x >= -30) return;
+    G.hp = Math.max(0, G.hp - e.dmg * 2);
+    G.hitFlash = 0.45;
+    spawnDmgNum(W*0.25, gameH()*0.65, e.dmg*2, true);
+    e.dying = true;
+    if (G.hp <= 0) G.screen = 'gameover';
+  });
+
+  G.enemies = G.enemies.filter(e => !e.isDone());
+
+  const allSpawned = G.spawnQueue.length === 0;
+  const allDone    = G.enemies.filter(e => e.alive || e.dying).length === 0;
+  if (allSpawned && allDone) {
+    G.inRest = true; G.restTimer = 0;
+    G.hp = Math.min(G.hp + 8, CFG.MAX_HP);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════════════════════════════
+function buttonAt(x, y) {
+  const hy = gameH(), pad = 16, bS = 48, bY = hy + CFG.HUD_H - bS - 8;
+  if (x >= pad && x <= pad+bS && y >= bY && y <= bY+bS) return 'grenade';
+  if (x >= W-pad-bS && x <= W-pad && y >= bY && y <= bY+bS) return 'reload';
+  return null;
+}
+
+function menuBtnHit(x, y) {
+  const bX = W*0.5-100, bY = H*0.61;
+  return x >= bX && x <= bX+200 && y >= bY && y <= bY+50;
+}
+
+function onTap(x, y) {
+  if (G.screen === 'menu') {
+    if (menuBtnHit(x, y)) { reset(); G.screen = 'playing'; startWave(); }
+    return;
+  }
+  if (G.screen === 'gameover' || G.screen === 'victory') { reset(); G.screen = 'menu'; return; }
+  if (G.screen === 'playing') {
+    const btn = buttonAt(x, y);
+    if (btn === 'grenade') { throwGrenade(); return; }
+    if (btn === 'reload')  { reload(); return; }
+    shoot(x, y);
+  }
+}
+
+// ── Multi-touch safe (touch ID tracking prevents ghost inputs) ──────────
+const touchMap = {};
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    touchMap[t.identifier] = { x: t.clientX, y: t.clientY };
+    G.crossX = t.clientX; G.crossY = t.clientY; G.touching = true;
+    onTap(t.clientX, t.clientY);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (!touchMap[t.identifier]) continue;
+    touchMap[t.identifier] = { x: t.clientX, y: t.clientY };
+    if (t.clientY < gameH()) { G.crossX = t.clientX; G.crossY = t.clientY; }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) delete touchMap[t.identifier];
+  if (Object.keys(touchMap).length === 0) G.touching = false;
+}, { passive: false });
+
+canvas.addEventListener('mousemove', e => { G.crossX = e.clientX; G.crossY = e.clientY; });
+canvas.addEventListener('mousedown', e => onTap(e.clientX, e.clientY));
+canvas.addEventListener('mouseleave', () => { G.crossX = -1; G.crossY = -1; });
+
+window.addEventListener('keydown', e => {
+  if (G.screen !== 'playing') return;
+  if (e.key.toLowerCase() === 'r') reload();
+  if (e.key.toLowerCase() === 'g') throwGrenade();
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════════════════════════════
+function loop(ts) {
+  const dt = Math.min((ts - (G.lastTime || ts)) / 1000, 0.05);
+  G.lastTime = ts;
+  ctx.clearRect(0, 0, W, H);
+
+  if (G.screen === 'menu')     { drawMenu(); }
+  else if (G.screen === 'gameover') { drawGameOver(); }
+  else if (G.screen === 'victory')  { drawVictory(); }
+  else {
+    update(dt);
+    drawBackground();
+    [...G.enemies].sort((a,b) => a.lane - b.lane).forEach(drawEnemy);
+    drawForeground();
+    drawEnemyBullets();
+    drawParticles();
+    G.drops.forEach(drawDrop);
+    drawDmgNums();
+    drawNightOverlay();
+    drawHitFlash();
+    drawCrosshair();
+    drawHUD();
+    drawWaveBanner();
+  }
+  requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
