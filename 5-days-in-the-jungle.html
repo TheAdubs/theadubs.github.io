@@ -63,8 +63,8 @@ const CFG = {
   BULLET_DMG:   25,
   MAX_HP:       100,
   MAX_AMMO:     30,
-  AMMO_RESERVE: 150,   // bigger starting reserve
-  AMMO_RESERVE_CAP: 180,
+  AMMO_RESERVE: 240,        // generous starting reserve
+  AMMO_RESERVE_CAP: 300,
   MAX_GRENADES: 2,
   GRENADE_DMG:  90,
   GRENADE_RADIUS: 160,
@@ -453,7 +453,7 @@ class Drop {
     this.alive = false;
     SFX.pickup();
     if (this.type === 'ammoBox') {
-      G.ammoReserve = Math.min(G.ammoReserve + 45, CFG.AMMO_RESERVE_CAP);
+      G.ammoReserve = Math.min(G.ammoReserve + 60, CFG.AMMO_RESERVE_CAP);
       if (G.ammo === 0) { G.ammo = Math.min(CFG.MAX_AMMO, G.ammoReserve); G.ammoReserve -= G.ammo; }
     } else if (this.type === 'health') {
       G.hp = Math.min(G.hp + 25, CFG.MAX_HP);
@@ -579,7 +579,7 @@ function advanceWave() {
       G.wave = 1; G.totalWaves = 3 + G.day;
       // Dawn resupply
       G.grenades    = CFG.MAX_GRENADES;
-      G.ammoReserve = Math.min(G.ammoReserve + 60, CFG.AMMO_RESERVE_CAP);
+      G.ammoReserve = Math.min(G.ammoReserve + 90, CFG.AMMO_RESERVE_CAP);
       G.ammo        = CFG.MAX_AMMO;
       G.sanity      = Math.min(G.sanity + 20, 100);
       setTimeout(() => {
@@ -958,8 +958,16 @@ function drawHUD() {
 
   const sanF = G.sanity / 100;
   ctx.fillStyle = '#1a1030'; ctx.fillRect(pad, hy + 34, barW, 7);
-  ctx.fillStyle = '#8844cc'; ctx.fillRect(pad, hy + 34, barW * sanF, 7);
-  ctx.fillText(`SAN ${G.sanity}`, pad, hy + 46);
+  ctx.fillStyle = sanF > 0.5 ? '#8844cc' : sanF > 0.25 ? '#cc44aa' : '#ff2288';
+  ctx.fillRect(pad, hy + 34, barW * sanF, 7);
+  ctx.fillStyle = '#aaa'; ctx.font = '9px monospace';
+  ctx.fillText(`SANITY  ${G.sanity}`, pad, hy + 46);
+  // Only show the "draining" warning at night so player understands what it does
+  if (G.phase === 'night' && G.sanity < 60) {
+    ctx.fillStyle = sanF < 0.25 ? '#ff2288' : '#cc44aa';
+    ctx.font = '8px monospace';
+    ctx.fillText('(drains at night — find MEDS)', pad + barW + 4, hy + 40);
+  }
 
   ctx.textAlign = 'right';
   ctx.fillStyle = G.ammo === 0 ? '#ff5555' : CFG.WEAPONS[G.weapon].color;
@@ -1244,7 +1252,7 @@ function drawVictory() {
 //  GAME LOGIC
 // ═══════════════════════════════════════════════════════════════════════
 function shoot(x, y) {
-  if (G.inRest || y >= gameH()) return;
+  if (G.cutscene || G.inRest || y >= gameH()) return;
   if (G.inCover) return;  // can't shoot while covering
   if (G.ammo <= 0) { SFX.emptyClick(); return; }
   G.ammo--;
@@ -1388,7 +1396,7 @@ function update(dt) {
     G.inRest = true; G.restTimer = 0;
     G.hp = Math.min(G.hp + 18, CFG.MAX_HP);
     // Guaranteed ammo scavenge between waves — always top up reserve a little
-    G.ammoReserve = Math.min(G.ammoReserve + 20, CFG.AMMO_RESERVE_CAP);
+    G.ammoReserve = Math.min(G.ammoReserve + 35, CFG.AMMO_RESERVE_CAP);
     // Auto-reload if mag is dry
     if (G.ammo === 0 && G.weapon === 'm16') {
       const refill = Math.min(CFG.MAX_AMMO, G.ammoReserve);
@@ -1423,6 +1431,7 @@ function onTap(x, y) {
   }
   if (G.screen === 'gameover' || G.screen === 'victory') { reset(); G.screen = 'menu'; return; }
   if (G.screen === 'playing') {
+    if (G.cutscene) return;  // all input blocked during cutscene
     const btn = buttonAt(x, y);
     if (btn === 'grenade') { throwGrenade(); return; }
     if (btn === 'reload')  { reload(); return; }
