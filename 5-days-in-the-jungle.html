@@ -76,6 +76,15 @@ const CFG = {
   // Wave pacing
   REST_DURATION:  4.0,  // sec rest between waves
   SPAWN_BASE:     2.5,  // sec between enemy spawns (base)
+
+  // Weapon drops — temporary upgrades, 15 sec duration each
+  WEAPONS: {
+    m16:  { label:'M16',    dmg:25, radius:38, ammo:30, color:'#88cc44' },
+    m60:  { label:'M60 MG', dmg:18, radius:50, ammo:80, color:'#ffaa00' },
+    m79:  { label:'M79 GL', dmg:70, radius:65, ammo:6,  color:'#ff6600' },
+    xm21: { label:'XM21',   dmg:55, radius:28, ammo:20, color:'#44ddff' },
+  },
+  WEAPON_DURATION: 15,
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -188,6 +197,13 @@ const SFX = {
     setTimeout(() => playNoise(0.2, 0.002, 0.06, 1200, 3), 140);
   },
 
+  // Weapon pickup — ascending power chord
+  weaponPickup() {
+    playTone(440, 'square', 0.18, 0.005, 0.12);
+    setTimeout(() => playTone(660, 'square', 0.16, 0.005, 0.14), 80);
+    setTimeout(() => playTone(880, 'sine',   0.18, 0.005, 0.20), 160);
+  },
+
   // Out of ammo dry click
   emptyClick() {
     playTone(1100, 'square', 0.1, 0.002, 0.03);
@@ -246,6 +262,10 @@ function reset() {
     sanity:      100,
     kills:       0,
     score:       0,
+
+    // Active weapon — 'm16' is the default, others are temporary drops
+    weapon:      'm16',
+    weaponTimer: 0,    // counts down; when 0 reverts to m16
 
     enemies:      [],
     drops:        [],
@@ -339,10 +359,22 @@ class Enemy {
       G.kills++;
       G.score += Math.round(CFG.HP[this.type] * G.day);
       SFX.enemyDie();
-      // 40% chance to drop a pickup
+      // 40% chance to drop a pickup — weighted table
       if (Math.random() < 0.40) {
-        const types = ['ammo','health','grenade','meds'];
-        G.drops.push(new Drop(this.x, this.y, types[Math.floor(Math.random() * 4)]));
+        // weights: ammoBox 30%, health 25%, grenade 15%, meds 15%, weapon 15%
+        const roll = Math.random();
+        let dropType;
+        if      (roll < 0.30) dropType = 'ammoBox';
+        else if (roll < 0.55) dropType = 'health';
+        else if (roll < 0.70) dropType = 'grenade';
+        else if (roll < 0.85) dropType = 'meds';
+        else {
+          // Random weapon drop — heavier types appear later
+          const weapons = ['m60','m79','xm21'];
+          const wIdx = Math.min(Math.floor(Math.random() * G.day), weapons.length - 1);
+          dropType = 'weapon_' + weapons[wIdx];
+        }
+        G.drops.push(new Drop(this.x, this.y, dropType));
       }
     }
   }
@@ -371,11 +403,23 @@ class Drop {
   collect() {
     this.alive = false;
     SFX.pickup();
-    switch (this.type) {
-      case 'ammo':    G.ammoReserve = Math.min(G.ammoReserve + 15, 120); break;
-      case 'health':  G.hp = Math.min(G.hp + 25, CFG.MAX_HP); break;
-      case 'grenade': G.grenades = Math.min(G.grenades + 1, 3); break;
-      case 'meds':    G.sanity = Math.min(G.sanity + 30, 100); break;
+    if (this.type === 'ammoBox') {
+      // Big ammo crate — refills reserve by 30, auto-reloads if empty
+      G.ammoReserve = Math.min(G.ammoReserve + 30, 120);
+      if (G.ammo === 0) { G.ammo = Math.min(CFG.MAX_AMMO, G.ammoReserve); G.ammoReserve -= G.ammo; }
+    } else if (this.type === 'health') {
+      G.hp = Math.min(G.hp + 25, CFG.MAX_HP);
+    } else if (this.type === 'grenade') {
+      G.grenades = Math.min(G.grenades + 1, 3);
+    } else if (this.type === 'meds') {
+      G.sanity = Math.min(G.sanity + 30, 100);
+    } else if (this.type.startsWith('weapon_')) {
+      const key = this.type.replace('weapon_', '');
+      const wep = CFG.WEAPONS[key];
+      G.weapon      = key;
+      G.weaponTimer = CFG.WEAPON_DURATION;
+      G.ammo        = wep.ammo;   // weapon comes pre-loaded
+      SFX.weaponPickup();
     }
   }
 }
@@ -630,19 +674,72 @@ function drawEnemy(e) {
 }
 
 // ── Pickups ────────────────────────────────────────────────────────────
-const DROP_COL = { ammo:'#f0c040', health:'#44dd44', grenade:'#ff8800', meds:'#44dddd' };
-const DROP_LBL = { ammo:'A', health:'+', grenade:'G', meds:'M' };
+function dropVisuals(type) {
+  if (type === 'ammoBox')          return { col:'#f0c040', lbl:'AMO', shape:'box' };
+  if (type === 'health')           return { col:'#44dd44', lbl:'+HP', shape:'cross' };
+  if (type === 'grenade')          return { col:'#ff8800', lbl:'GRN', shape:'circle' };
+  if (type === 'meds')             return { col:'#44dddd', lbl:'MED', shape:'circle' };
+  if (type.startsWith('weapon_'))  {
+    const key = type.replace('weapon_','');
+    const w   = CFG.WEAPONS[key];
+    return { col: w.color, lbl: key.toUpperCase(), shape:'gun' };
+  }
+  return { col:'#aaaaaa', lbl:'?', shape:'circle' };
+}
 
 function drawDrop(d) {
   if (!d.alive) return;
   const pulse = 0.85 + Math.sin(Date.now() * 0.006) * 0.15;
+  const alpha = Math.min(1, d.life * 0.5) * pulse;
+  const vis   = dropVisuals(d.type);
   ctx.save();
-  ctx.globalAlpha = Math.min(1, d.life * 0.5) * pulse;
-  ctx.fillStyle   = DROP_COL[d.type];
-  ctx.beginPath(); ctx.arc(d.x, d.y, 10, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#000'; ctx.font = 'bold 11px monospace';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(DROP_LBL[d.type], d.x, d.y);
+  ctx.globalAlpha = alpha;
+
+  if (vis.shape === 'box') {
+    // Ammo crate — olive drab rectangle
+    ctx.fillStyle = '#5a6e20';
+    ctx.fillRect(d.x - 13, d.y - 9, 26, 18);
+    ctx.strokeStyle = vis.col; ctx.lineWidth = 1.5;
+    ctx.strokeRect(d.x - 13, d.y - 9, 26, 18);
+    ctx.fillStyle = vis.col;
+    ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('AMMO', d.x, d.y);
+  } else if (vis.shape === 'gun') {
+    // Weapon drop — glowing diamond
+    ctx.fillStyle = vis.col + '33';  // dim fill
+    ctx.strokeStyle = vis.col; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(d.x, d.y - 13); ctx.lineTo(d.x + 11, d.y);
+    ctx.lineTo(d.x, d.y + 13); ctx.lineTo(d.x - 11, d.y);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = vis.col;
+    ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(vis.lbl, d.x, d.y);
+  } else if (vis.shape === 'cross') {
+    // Health cross
+    ctx.fillStyle = '#cc0000';
+    ctx.fillRect(d.x - 4, d.y - 11, 8, 22);
+    ctx.fillRect(d.x - 11, d.y - 4, 22, 8);
+    ctx.strokeStyle = '#ffaaaa'; ctx.lineWidth = 1;
+    ctx.strokeRect(d.x - 4, d.y - 11, 8, 22);
+    ctx.strokeRect(d.x - 11, d.y - 4, 22, 8);
+  } else {
+    // Default circle
+    ctx.fillStyle = vis.col;
+    ctx.beginPath(); ctx.arc(d.x, d.y, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#000'; ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(vis.lbl, d.x, d.y);
+  }
+
+  // Despawn countdown ring — appears when < 3 sec left
+  if (d.life < 3) {
+    const frac = d.life / 3;
+    ctx.strokeStyle = vis.col; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, 15, -Math.PI/2, -Math.PI/2 + Math.PI*2*frac);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -773,13 +870,32 @@ function drawHUD() {
   ctx.fillText(`SAN ${G.sanity}`, pad, hy + 46);
 
   ctx.textAlign = 'right';
-  ctx.fillStyle = G.ammo === 0 ? '#ff5555' : '#ffffff';
+  ctx.fillStyle = G.ammo === 0 ? '#ff5555' : CFG.WEAPONS[G.weapon].color;
   ctx.font = 'bold 22px monospace';
   ctx.fillText(G.ammo, W - pad, hy + 30);
   ctx.fillStyle = '#556655'; ctx.font = '11px monospace';
   ctx.fillText(`/ ${G.ammoReserve}`, W - pad, hy + 48);
-  ctx.fillStyle = '#445544'; ctx.font = '9px monospace';
-  ctx.fillText('AMMO', W - pad, hy + 62);
+
+  // Weapon name — coloured when upgraded
+  const wep = CFG.WEAPONS[G.weapon];
+  ctx.fillStyle = wep.color; ctx.font = 'bold 9px monospace';
+  ctx.fillText(wep.label, W - pad, hy + 62);
+
+  // Weapon timer bar — only visible when holding a temp weapon
+  if (G.weapon !== 'm16' && G.weaponTimer > 0) {
+    const frac  = G.weaponTimer / CFG.WEAPON_DURATION;
+    const barW2 = 80;
+    const barX  = W - pad - barW2;
+    const barY2 = hy + 70;
+    ctx.fillStyle = '#1a1a1a'; ctx.fillRect(barX, barY2, barW2, 4);
+    ctx.fillStyle = frac > 0.4 ? wep.color : '#ff4444';
+    ctx.fillRect(barX, barY2, barW2 * frac, 4);
+    // Flash warning when < 4 sec remaining
+    if (G.weaponTimer < 4 && Math.sin(Date.now() * 0.012) > 0) {
+      ctx.fillStyle = '#ff4444'; ctx.font = '9px monospace';
+      ctx.fillText('EXPIRING!', W - pad, hy + 82);
+    }
+  }
 
   // Grenade button
   ctx.fillStyle = G.grenades > 0 ? '#1e2e12' : '#1a1a18';
@@ -791,7 +907,8 @@ function drawHUD() {
   ctx.font = 'bold 16px monospace'; ctx.fillText(`\xd7${G.grenades}`, pad + bS * 0.5, bY + 34);
 
   // Reload button
-  const needsReload = G.ammo < CFG.MAX_AMMO && G.ammoReserve > 0;
+  const wepMaxAmmo  = CFG.WEAPONS[G.weapon].ammo;
+  const needsReload = G.ammo < wepMaxAmmo && G.ammoReserve > 0 && G.weapon === 'm16';
   ctx.fillStyle = needsReload ? '#111830' : '#161618';
   roundRect(W - pad - bS, bY, bS, bS, 6); ctx.fill();
   ctx.strokeStyle = needsReload ? '#2244aa' : '#333'; ctx.lineWidth = 1; ctx.stroke();
@@ -933,8 +1050,9 @@ function shoot(x, y) {
   spawnMuzzle(x, y);
 
   const acc  = 0.68 + (G.sanity / 100) * 0.32;  // low sanity = shaky aim
-  const hitR = CFG.SHOOT_RADIUS * acc;
-  const dmg  = Math.round(CFG.BULLET_DMG * acc);
+  const wep  = CFG.WEAPONS[G.weapon];
+  const hitR = wep.radius * acc;
+  const dmg  = Math.round(wep.dmg * acc);
 
   // Collect nearby drops first
   G.drops.forEach(d => {
@@ -965,6 +1083,7 @@ function throwGrenade() {
 }
 
 function reload() {
+  if (G.weapon !== 'm16') return;  // temp weapons don't use ammo reserve
   const need  = CFG.MAX_AMMO - G.ammo;
   const avail = Math.min(need, G.ammoReserve);
   if (avail > 0) SFX.reload();
@@ -977,6 +1096,16 @@ function reload() {
 function update(dt) {
   if (G.phase === 'night') G.sanity = Math.max(0, G.sanity - CFG.SANITY_DRAIN * dt);
   G.hitFlash = Math.max(0, G.hitFlash - dt * 3.5);
+
+  // Weapon timer — revert to M16 when it expires
+  if (G.weapon !== 'm16' && G.weaponTimer > 0) {
+    G.weaponTimer -= dt;
+    if (G.weaponTimer <= 0) {
+      G.weapon      = 'm16';
+      G.weaponTimer = 0;
+      G.ammo        = Math.min(G.ammo, CFG.MAX_AMMO); // cap to M16 mag size
+    }
+  }
 
   G.particles.forEach(p => { p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 140*dt; p.life -= dt; });
   G.particles = G.particles.filter(p => p.life > 0);
