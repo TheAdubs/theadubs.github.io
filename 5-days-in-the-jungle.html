@@ -51,9 +51,9 @@ const CFG = {
   // Base HP
   HP:       { scout:40,  soldier:80, sniper:50, heavy:220,commander:500 },
   // Damage per hit
-  DMG:      { scout:10,  soldier:15, sniper:40, heavy:30, commander:22 },
-  // Seconds between attacks
-  ATK_INT:  { scout:2.0, soldier:1.7,sniper:3.8,heavy:2.5,commander:1.0 },
+  DMG:      { scout:7,   soldier:10, sniper:28, heavy:18, commander:14 },
+  // Seconds between attacks — generously spaced so Day 1 feels fair
+  ATK_INT:  { scout:3.5, soldier:3.0,sniper:5.5,heavy:4.0,commander:2.0 },
 
   // Difficulty multiplier per day (HP, damage, speed scale)
   DIFF: [1.0, 1.45, 1.9, 2.5, 3.2],
@@ -76,6 +76,154 @@ const CFG = {
   // Wave pacing
   REST_DURATION:  4.0,  // sec rest between waves
   SPAWN_BASE:     2.5,  // sec between enemy spawns (base)
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+//  AUDIO  — Web Audio API synth, no external files needed
+//  All sounds are procedurally generated with oscillators + noise.
+//  AudioContext is created on first user interaction (browser policy).
+// ═══════════════════════════════════════════════════════════════════════
+let AC = null;   // AudioContext — lazy init
+
+function getAC() {
+  if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  // Resume if suspended (mobile autoplay policy)
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+
+// ── Low-level helpers ──────────────────────────────────────────────────
+
+// White noise buffer (1 sec, reused)
+let _noiseBuf = null;
+function noiseBuf() {
+  if (_noiseBuf) return _noiseBuf;
+  const ac   = getAC();
+  const len  = ac.sampleRate;
+  _noiseBuf  = ac.createBuffer(1, len, ac.sampleRate);
+  const data = _noiseBuf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  return _noiseBuf;
+}
+
+// Play a tone via oscillator
+function playTone(freq, type, gainPeak, attackT, decayT, startFreq) {
+  const ac  = getAC();
+  const osc = ac.createOscillator();
+  const env = ac.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(startFreq || freq, ac.currentTime);
+  if (startFreq) osc.frequency.exponentialRampToValueAtTime(freq, ac.currentTime + attackT);
+  env.gain.setValueAtTime(0, ac.currentTime);
+  env.gain.linearRampToValueAtTime(gainPeak, ac.currentTime + attackT);
+  env.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + attackT + decayT);
+  osc.connect(env); env.connect(ac.destination);
+  osc.start(ac.currentTime);
+  osc.stop(ac.currentTime + attackT + decayT + 0.05);
+}
+
+// Play filtered noise burst
+function playNoise(gainPeak, attackT, decayT, filterFreq, filterQ) {
+  const ac  = getAC();
+  const src = ac.createBufferSource();
+  src.buffer = noiseBuf();
+  src.loop   = true;
+  const flt  = ac.createBiquadFilter();
+  flt.type   = 'bandpass';
+  flt.frequency.value = filterFreq;
+  flt.Q.value = filterQ;
+  const env  = ac.createGain();
+  env.gain.setValueAtTime(0, ac.currentTime);
+  env.gain.linearRampToValueAtTime(gainPeak, ac.currentTime + attackT);
+  env.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + attackT + decayT);
+  src.connect(flt); flt.connect(env); env.connect(ac.destination);
+  src.start(ac.currentTime);
+  src.stop(ac.currentTime + attackT + decayT + 0.05);
+}
+
+// ── Named sound effects ───────────────────────────────────────────────
+
+const SFX = {
+  // Player gunshot — sharp crack + noise tail
+  shoot() {
+    playNoise(0.9, 0.002, 0.08, 2800, 0.8);    // crack
+    playTone(120, 'sawtooth', 0.3, 0.003, 0.12, 180); // body thud
+  },
+
+  // Enemy bullet impact / near-miss whistle
+  enemyFire() {
+    playTone(1200, 'sine', 0.08, 0.002, 0.06, 1800); // whistle
+    playNoise(0.25, 0.001, 0.06, 1800, 1.2);
+  },
+
+  // Player taking a hit
+  playerHit() {
+    playNoise(0.6, 0.001, 0.18, 400, 0.5);
+    playTone(90, 'sawtooth', 0.4, 0.002, 0.22, 130);
+  },
+
+  // Enemy death thud
+  enemyDie() {
+    playTone(180, 'sawtooth', 0.35, 0.005, 0.18, 260);
+    playNoise(0.3, 0.002, 0.12, 300, 0.6);
+  },
+
+  // Grenade launch click
+  grenadeThrow() {
+    playTone(600, 'square', 0.2, 0.003, 0.06);
+    playNoise(0.15, 0.002, 0.05, 900, 2);
+  },
+
+  // Grenade explosion — deep boom + rumble
+  grenadeExplode() {
+    playNoise(1.2, 0.005, 0.35, 180, 0.4);      // boom body
+    playNoise(0.6, 0.002, 0.55, 60,  0.3);       // low rumble
+    playTone(55,  'sawtooth', 0.5, 0.004, 0.4, 80); // sub thud
+  },
+
+  // Reload click-clack
+  reload() {
+    playTone(900, 'square', 0.15, 0.003, 0.04);
+    setTimeout(() => playTone(700, 'square', 0.12, 0.003, 0.04), 80);
+    setTimeout(() => playNoise(0.2, 0.002, 0.06, 1200, 3), 140);
+  },
+
+  // Out of ammo dry click
+  emptyClick() {
+    playTone(1100, 'square', 0.1, 0.002, 0.03);
+  },
+
+  // Wave clear chime — two rising tones
+  waveClear() {
+    playTone(660, 'sine', 0.22, 0.01, 0.22);
+    setTimeout(() => playTone(880, 'sine', 0.18, 0.01, 0.3), 160);
+  },
+
+  // Pickup collect pop
+  pickup() {
+    playTone(1320, 'sine', 0.18, 0.005, 0.12, 880);
+  },
+
+  // Day/night transition drone
+  phaseChange() {
+    playTone(110, 'sine', 0.25, 0.08, 0.6);
+    playTone(165, 'sine', 0.12, 0.10, 0.5);
+  },
+
+  // Victory fanfare
+  victory() {
+    [0, 160, 320, 500].forEach((t, i) => {
+      const freqs = [523, 659, 784, 1047];
+      setTimeout(() => playTone(freqs[i], 'sine', 0.28, 0.02, 0.35), t);
+    });
+  },
+
+  // Game over sting
+  gameOver() {
+    playTone(330, 'sawtooth', 0.3, 0.02, 0.3);
+    setTimeout(() => playTone(220, 'sawtooth', 0.3, 0.02, 0.5), 280);
+    setTimeout(() => playTone(110, 'sawtooth', 0.3, 0.02, 0.8), 560);
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -169,6 +317,7 @@ class Enemy {
   }
 
   _fire() {
+    SFX.enemyFire();
     G.eBullets.push({
       x:   this.x - this.w * this.scale * 0.5,
       y:   this.y,
@@ -189,8 +338,9 @@ class Enemy {
       this.dyingT = 0;
       G.kills++;
       G.score += Math.round(CFG.HP[this.type] * G.day);
-      // 28% chance to drop a pickup
-      if (Math.random() < 0.28) {
+      SFX.enemyDie();
+      // 40% chance to drop a pickup
+      if (Math.random() < 0.40) {
         const types = ['ammo','health','grenade','meds'];
         G.drops.push(new Drop(this.x, this.y, types[Math.floor(Math.random() * 4)]));
       }
@@ -220,6 +370,7 @@ class Drop {
   }
   collect() {
     this.alive = false;
+    SFX.pickup();
     switch (this.type) {
       case 'ammo':    G.ammoReserve = Math.min(G.ammoReserve + 15, 120); break;
       case 'health':  G.hp = Math.min(G.hp + 25, CFG.MAX_HP); break;
@@ -321,17 +472,19 @@ function advanceWave() {
       G.phase = 'night';
       G.wave  = 1;
       G.totalWaves = 2;
+      SFX.phaseChange();
     } else {
       G.phase = 'day';
       G.day++;
       G.wave  = 1;
       G.totalWaves = 3 + G.day;
+      SFX.phaseChange();
       // Dawn resupply
       G.grenades    = CFG.MAX_GRENADES;
       G.ammoReserve = Math.min(G.ammoReserve + 30, 120);
       G.sanity      = Math.min(G.sanity + 20, 100);
     }
-    if (G.day > 5) { G.screen = 'victory'; return; }
+    if (G.day > 5) { G.screen = 'victory'; SFX.victory(); return; }
     startWave();
   }
 }
@@ -774,8 +927,9 @@ function drawVictory() {
 // ═══════════════════════════════════════════════════════════════════════
 function shoot(x, y) {
   if (G.inRest || y >= gameH()) return;
-  if (G.ammo <= 0) return;
+  if (G.ammo <= 0) { SFX.emptyClick(); return; }
   G.ammo--;
+  SFX.shoot();
   spawnMuzzle(x, y);
 
   const acc  = 0.68 + (G.sanity / 100) * 0.32;  // low sanity = shaky aim
@@ -799,8 +953,10 @@ function shoot(x, y) {
 function throwGrenade() {
   if (G.grenades <= 0 || G.inRest) return;
   G.grenades--;
+  SFX.grenadeThrow();
   const bx = W * 0.56, by = gameH() * 0.53;
   spawnGrenadeBlast(bx, by);
+  SFX.grenadeExplode();
   G.hitFlash = 0.2;
   G.enemies.filter(e => e.alive && !e.dying).forEach(e => {
     const d = Math.hypot(e.x-bx, e.y-by);
@@ -811,6 +967,7 @@ function throwGrenade() {
 function reload() {
   const need  = CFG.MAX_AMMO - G.ammo;
   const avail = Math.min(need, G.ammoReserve);
+  if (avail > 0) SFX.reload();
   G.ammo += avail; G.ammoReserve -= avail;
 }
 
@@ -835,10 +992,14 @@ function update(dt) {
     b.x += b.vx*dt; b.y += b.vy*dt;
     if (b.x < W * 0.12) {
       b.alive = false;
-      G.hp = Math.max(0, G.hp - b.dmg);
-      G.hitFlash = 0.4;
-      spawnDmgNum(W*0.22, gameH()*0.62, b.dmg, true);
-      if (G.hp <= 0) G.screen = 'gameover';
+      // Only 55% of enemy shots actually connect — cover mechanic
+      if (Math.random() < 0.55) {
+        G.hp = Math.max(0, G.hp - b.dmg);
+        G.hitFlash = 0.4;
+        SFX.playerHit();
+        spawnDmgNum(W*0.22, gameH()*0.62, b.dmg, true);
+        if (G.hp <= 0) { G.screen = 'gameover'; SFX.gameOver(); }
+      }
     }
     if (b.x < -20) b.alive = false;
   });
@@ -861,9 +1022,10 @@ function update(dt) {
     if (!e.alive || e.dying || e.x >= -30) return;
     G.hp = Math.max(0, G.hp - e.dmg * 2);
     G.hitFlash = 0.45;
+    SFX.playerHit();
     spawnDmgNum(W*0.25, gameH()*0.65, e.dmg*2, true);
     e.dying = true;
-    if (G.hp <= 0) G.screen = 'gameover';
+    if (G.hp <= 0) { G.screen = 'gameover'; SFX.gameOver(); }
   });
 
   G.enemies = G.enemies.filter(e => !e.isDone());
@@ -872,7 +1034,8 @@ function update(dt) {
   const allDone    = G.enemies.filter(e => e.alive || e.dying).length === 0;
   if (allSpawned && allDone) {
     G.inRest = true; G.restTimer = 0;
-    G.hp = Math.min(G.hp + 8, CFG.MAX_HP);
+    G.hp = Math.min(G.hp + 18, CFG.MAX_HP);
+    SFX.waveClear();
   }
 }
 
