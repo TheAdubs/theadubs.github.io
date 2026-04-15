@@ -162,7 +162,6 @@ const SPAWN_DIST  = 0.72;   // fraction of W between walls
 
 let walls = [];
 let wallSpeed, gapFraction, dist;
-let spawnX;
 
 function makeWall(x) {
   // Gap center floats toward player Y (hunting), clamped
@@ -178,7 +177,6 @@ function makeWall(x) {
 
 // ─── VISUAL ───────────────────────────────────────────────────
 let shakeMag = 0;
-let deathAlpha = 0;
 
 function drawBackground() {
   ctx.fillStyle = '#0a0a0a';
@@ -210,7 +208,7 @@ function drawPlayer(sx, sy) {
     }
   }
 
-  const glow = `rgba(255,${Math.floor(45 + dangerRatio * 0)},${Math.floor(45 * (1 - dangerRatio))},${0.15 + dangerRatio * 0.35})`;
+  const glow = `rgba(255,${Math.floor(45 + dangerRatio * 210)},${Math.floor(45 * (1 - dangerRatio))},${0.15 + dangerRatio * 0.35})`;
   const core = dangerRatio > 0.7 ? '#ff2d2d' : '#ffffff';
 
   // outer glow
@@ -335,7 +333,6 @@ function initGame() {
   gapFraction = GAP_START;
   dist = 0;
   walls = [];
-  spawnX = W;
 
   // pre-seed walls — first one has extra breathing room
   const firstCenter = H * 0.5;
@@ -355,7 +352,7 @@ function loop() {
     frameCount++;
     wallSpeed = Math.min(WALL_SPEED_MAX, WALL_SPEED_START + frameCount * WALL_SPEED_INC);
     gapFraction = Math.max(GAP_MIN, GAP_START - frameCount * GAP_SHRINK);
-    dist = Math.floor(frameCount * wallSpeed / 100);
+    dist += wallSpeed;
 
     updatePlayer();
 
@@ -368,16 +365,11 @@ function loop() {
     }
     walls = walls.filter(w => w.x + WALL_W > -20);
 
-    // spawn
-    if (spawnX - wallSpeed * frameCount < W + 100) {
-      const lastX = walls.length ? walls[walls.length - 1].x : PLAYER.x + W * 0.5;
-      const newX = lastX + W * SPAWN_DIST;
-      walls.push(makeWall(newX));
-      spawnX = newX;
+    // spawn: trigger when last wall scrolls close enough to right edge
+    const lastWallX = walls.length ? walls[walls.length - 1].x : 0;
+    if (lastWallX < W + 50) {
+      walls.push(makeWall(lastWallX + W * SPAWN_DIST));
     }
-
-    // screen shake
-    if (shakeMag > 0.2) shakeMag *= 0.78;
 
     // collision
     if (checkCollision()) {
@@ -385,9 +377,12 @@ function loop() {
       return;
     }
 
-    scoreEl.textContent = dist;
+    scoreEl.textContent = Math.floor(dist / 100);
     scoreEl.className = 'val' + (wallSpeed > 6 ? ' danger' : '');
   }
+
+  // decay shake regardless of state so it doesn't freeze on death
+  if (shakeMag > 0.2) shakeMag *= 0.78;
 
   // ── RENDER ──
   let sx = 0, sy = 0;
@@ -410,9 +405,8 @@ function die() {
   shakeMag = 18;
 
   if (dist > best) {
-    best = dist;
+    best = Math.floor(dist / 100);
     bestEl.textContent = best;
-    bestEl.className = 'val danger';
   }
 
   // flash
@@ -446,10 +440,10 @@ function onUp(e) {
   pressing = false;
 }
 
-canvas.addEventListener('touchstart', onDown, { passive: false });
-canvas.addEventListener('touchend', onUp, { passive: false });
-canvas.addEventListener('mousedown', onDown);
-canvas.addEventListener('mouseup', onUp);
+document.addEventListener('touchstart', onDown, { passive: false });
+document.addEventListener('touchend', onUp, { passive: false });
+document.addEventListener('mousedown', onDown);
+document.addEventListener('mouseup', onUp);
 
 // kick off render on start screen (just background)
 (function startIdle() {
