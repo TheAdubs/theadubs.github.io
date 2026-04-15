@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HOLD THE LINE</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a0a; }
+  canvas { display: block; touch-action: none; }
+  #ui {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  #start-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #0a0a0a;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0;
+    z-index: 10;
+  }
+  .game-title {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(42px, 12vw, 72px);
+    font-weight: 900;
+    letter-spacing: -2px;
+    color: #fff;
+    line-height: 1;
+    text-align: center;
+  }
+  .game-title span { color: #ff2d2d; }
+  .subtitle {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(11px, 3vw, 14px);
+    color: #555;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 16px;
+    text-align: center;
+  }
+  .instruction-block {
+    margin-top: 48px;
+    text-align: center;
+  }
+  .instruction-block p {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(13px, 3.5vw, 16px);
+    color: #888;
+    line-height: 1.8;
+    letter-spacing: 1px;
+  }
+  .instruction-block p strong { color: #fff; }
+  .tap-to-start {
+    margin-top: 56px;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(14px, 4vw, 18px);
+    color: #ff2d2d;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  #hud {
+    position: fixed; top: 0; left: 0; width: 100%;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 20px 24px;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .hud-item {
+    font-family: 'Courier New', monospace;
+    font-size: clamp(11px, 3vw, 13px);
+    letter-spacing: 2px;
+    color: #333;
+    text-transform: uppercase;
+    line-height: 1.4;
+  }
+  .hud-item .val {
+    font-size: clamp(20px, 5vw, 28px);
+    font-weight: 900;
+    color: #fff;
+    display: block;
+    letter-spacing: -1px;
+  }
+  .hud-item .val.danger { color: #ff2d2d; }
+  #death-flash {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #ff2d2d;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 20;
+    transition: opacity 0.05s;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="start-screen">
+  <div class="game-title">HOLD<br><span>THE LINE</span></div>
+  <div class="subtitle">one mechanic. no mercy.</div>
+  <div class="instruction-block">
+    <p><strong>HOLD</strong> to rise. <strong>RELEASE</strong> to fall.</p>
+    <p>Stay inside the gap.</p>
+    <p>The gap gets smaller.</p>
+  </div>
+  <div class="tap-to-start">tap to start</div>
+</div>
+
+<div id="hud" style="display:none;">
+  <div class="hud-item">DIST<span class="val" id="score-val">0</span></div>
+  <div class="hud-item" style="text-align:right;">BEST<span class="val" id="best-val">0</span></div>
+</div>
+
+<div id="death-flash"></div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const startScreen = document.getElementById('start-screen');
+const hud = document.getElementById('hud');
+const scoreEl = document.getElementById('score-val');
+const bestEl = document.getElementById('best-val');
+const deathFlash = document.getElementById('death-flash');
+
+let W, H;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ─── GAME STATE ───────────────────────────────────────────────
+let state = 'start'; // start | play | dead
+let pressing = false;
+let best = 0;
+let raf;
+
+// ─── PLAYER ───────────────────────────────────────────────────
+const PLAYER = {
+  x: 0, y: 0,
+  vy: 0,
+  r: 10,           // radius
+  GRAVITY: 0.38,
+  LIFT: -0.55,     // applied every frame while held — additive
+  DRAG: 0.92,      // velocity damping (momentum = frustration)
+  MAX_VY: 14,
+};
+
+// ─── WALLS ────────────────────────────────────────────────────
+const WALL_W = 28;
+const WALL_SPEED_START = 3.2;
+const WALL_SPEED_MAX   = 8.5;
+const WALL_SPEED_INC   = 0.0012; // per frame
+const GAP_START   = 0.38;   // fraction of H
+const GAP_MIN     = 0.14;   // fraction of H — brutally narrow
+const GAP_SHRINK  = 0.00004; // per frame
+const SPAWN_DIST  = 0.72;   // fraction of W between walls
+
+let walls = [];
+let wallSpeed, gapFraction, dist;
+let spawnX;
+
+function makeWall(x) {
+  // Gap center floats toward player Y (hunting), clamped
+  const margin = gapFraction * H * 0.5 + PLAYER.r + 6;
+  const minCenter = margin;
+  const maxCenter = H - margin;
+  // bias toward player with some random offset
+  const bias = PLAYER.y + (Math.random() - 0.5) * H * 0.22;
+  const center = Math.max(minCenter, Math.min(maxCenter, bias));
+  const half = (gapFraction * H) / 2;
+  return { x, top: center - half, bot: center + half, passed: false };
+}
+
+// ─── VISUAL ───────────────────────────────────────────────────
+let shakeMag = 0;
+let deathAlpha = 0;
+
+function drawBackground() {
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+
+  // subtle grid lines — tension
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  const gridH = 40;
+  for (let y = 0; y < H; y += gridH) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+}
+
+function drawPlayer(sx, sy) {
+  const px = PLAYER.x + sx;
+  const py = PLAYER.y + sy;
+
+  // danger proximity glow
+  let dangerRatio = 0;
+  if (walls.length) {
+    const next = walls.find(w => w.x + WALL_W > PLAYER.x - PLAYER.r - 2);
+    if (next) {
+      const distToTop = PLAYER.y - PLAYER.r - next.top;
+      const distToBot = next.bot - (PLAYER.y + PLAYER.r);
+      const minDist = Math.min(distToTop, distToBot);
+      const gapH = next.bot - next.top;
+      dangerRatio = 1 - Math.max(0, Math.min(1, minDist / (gapH * 0.4)));
+    }
+  }
+
+  const glow = `rgba(255,${Math.floor(45 + dangerRatio * 0)},${Math.floor(45 * (1 - dangerRatio))},${0.15 + dangerRatio * 0.35})`;
+  const core = dangerRatio > 0.7 ? '#ff2d2d' : '#ffffff';
+
+  // outer glow
+  const grad = ctx.createRadialGradient(px, py, 0, px, py, PLAYER.r * 3.5);
+  grad.addColorStop(0, glow);
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(px, py, PLAYER.r * 3.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // core dot
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(px, py, PLAYER.r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // velocity trail
+  ctx.strokeStyle = `rgba(255,255,255,${0.04 + dangerRatio * 0.06})`;
+  ctx.lineWidth = 2;
+  for (let i = 1; i <= 5; i++) {
+    ctx.beginPath();
+    ctx.arc(px - i * 4, py + PLAYER.vy * i * 0.3, PLAYER.r * (1 - i * 0.15), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function drawWall(w, sx, sy) {
+  // color shifts red as gap shrinks
+  const danger = 1 - Math.max(0, (gapFraction - GAP_MIN) / (GAP_START - GAP_MIN));
+  const r = Math.floor(50 + danger * 205);
+  const g = Math.floor(50 - danger * 40);
+  const wallColor = `rgb(${r},${g},50)`;
+
+  ctx.fillStyle = wallColor;
+  // top slab
+  ctx.fillRect(w.x + sx, 0 + sy, WALL_W, w.top);
+  // bot slab
+  ctx.fillRect(w.x + sx, w.bot + sy, WALL_W, H - w.bot);
+
+  // inner edge glow — shows danger zone
+  const edgeGrad = ctx.createLinearGradient(w.x + sx, 0, w.x + WALL_W + sx, 0);
+  edgeGrad.addColorStop(0, `rgba(255,${g},50,0.0)`);
+  edgeGrad.addColorStop(1, `rgba(255,${g},50,0.18)`);
+  ctx.fillStyle = edgeGrad;
+  ctx.fillRect(w.x + sx, 0 + sy, WALL_W, w.top);
+  ctx.fillRect(w.x + sx, w.bot + sy, WALL_W, H - w.bot);
+
+  // gap edge lines — makes precision feel possible
+  ctx.strokeStyle = `rgba(255,255,255,0.25)`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(w.x + sx, w.top + sy);
+  ctx.lineTo(w.x + WALL_W + sx, w.top + sy);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(w.x + sx, w.bot + sy);
+  ctx.lineTo(w.x + WALL_W + sx, w.bot + sy);
+  ctx.stroke();
+}
+
+function drawHint() {
+  // draw a faint target line showing where the player "should" be
+  if (!walls.length) return;
+  const next = walls.find(w => w.x + WALL_W > PLAYER.x);
+  if (!next || next.x - PLAYER.x > W * 0.55) return;
+  const center = (next.top + next.bot) / 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.setLineDash([6, 12]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PLAYER.x, center);
+  ctx.lineTo(next.x, center);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ─── DISTANCE / SCORE DISPLAY ─────────────────────────────────
+function drawProgressBar() {
+  const barW = W * 0.5;
+  const barH = 3;
+  const bx = (W - barW) / 2;
+  const by = H - 28;
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fillRect(bx, by, barW, barH);
+  // fills based on speed — higher speed = closer to doom
+  const prog = Math.min(1, (wallSpeed - WALL_SPEED_START) / (WALL_SPEED_MAX - WALL_SPEED_START));
+  const danger = prog > 0.6;
+  ctx.fillStyle = danger ? '#ff2d2d' : `rgba(255,255,255,${0.3 + prog * 0.4})`;
+  ctx.fillRect(bx, by, barW * prog, barH);
+}
+
+// ─── PHYSICS ──────────────────────────────────────────────────
+function updatePlayer() {
+  if (pressing) {
+    PLAYER.vy += PLAYER.LIFT;
+  } else {
+    PLAYER.vy += PLAYER.GRAVITY;
+  }
+  PLAYER.vy *= PLAYER.DRAG;
+  PLAYER.vy = Math.max(-PLAYER.MAX_VY, Math.min(PLAYER.MAX_VY, PLAYER.vy));
+  PLAYER.y += PLAYER.vy;
+}
+
+function checkCollision() {
+  if (PLAYER.y - PLAYER.r <= 0 || PLAYER.y + PLAYER.r >= H) return true;
+  for (const w of walls) {
+    if (PLAYER.x + PLAYER.r > w.x && PLAYER.x - PLAYER.r < w.x + WALL_W) {
+      if (PLAYER.y - PLAYER.r < w.top || PLAYER.y + PLAYER.r > w.bot) return true;
+    }
+  }
+  return false;
+}
+
+// ─── INIT / RESET ─────────────────────────────────────────────
+function initGame() {
+  PLAYER.x = W * 0.22;
+  PLAYER.y = H * 0.5;
+  PLAYER.vy = 0;
+  pressing = false;
+  wallSpeed = WALL_SPEED_START;
+  gapFraction = GAP_START;
+  dist = 0;
+  walls = [];
+  spawnX = W;
+
+  // pre-seed walls — first one has extra breathing room
+  const firstCenter = H * 0.5;
+  const half = (gapFraction * H) / 2;
+  walls.push({ x: W * 0.75, top: firstCenter - half * 1.3, bot: firstCenter + half * 1.3, passed: false });
+  walls.push({ x: W * 0.75 + W * SPAWN_DIST, ...makeWall(W * 0.75 + W * SPAWN_DIST) });
+  spawnX = W * 0.75 + W * SPAWN_DIST * 2;
+}
+
+// ─── MAIN LOOP ────────────────────────────────────────────────
+let frameCount = 0;
+
+function loop() {
+  raf = requestAnimationFrame(loop);
+
+  if (state === 'play') {
+    frameCount++;
+    wallSpeed = Math.min(WALL_SPEED_MAX, WALL_SPEED_START + frameCount * WALL_SPEED_INC);
+    gapFraction = Math.max(GAP_MIN, GAP_START - frameCount * GAP_SHRINK);
+    dist = Math.floor(frameCount * wallSpeed / 100);
+
+    updatePlayer();
+
+    // move & cull walls
+    for (const w of walls) {
+      w.x -= wallSpeed;
+      if (!w.passed && w.x + WALL_W < PLAYER.x) {
+        w.passed = true;
+      }
+    }
+    walls = walls.filter(w => w.x + WALL_W > -20);
+
+    // spawn
+    if (spawnX - wallSpeed * frameCount < W + 100) {
+      const lastX = walls.length ? walls[walls.length - 1].x : PLAYER.x + W * 0.5;
+      const newX = lastX + W * SPAWN_DIST;
+      walls.push(makeWall(newX));
+      spawnX = newX;
+    }
+
+    // screen shake
+    if (shakeMag > 0.2) shakeMag *= 0.78;
+
+    // collision
+    if (checkCollision()) {
+      die();
+      return;
+    }
+
+    scoreEl.textContent = dist;
+    scoreEl.className = 'val' + (wallSpeed > 6 ? ' danger' : '');
+  }
+
+  // ── RENDER ──
+  let sx = 0, sy = 0;
+  if (shakeMag > 0.2) {
+    sx = (Math.random() - 0.5) * shakeMag * 2;
+    sy = (Math.random() - 0.5) * shakeMag * 2;
+  }
+
+  drawBackground();
+  drawHint();
+  for (const w of walls) drawWall(w, sx, sy);
+  drawPlayer(sx, sy);
+  drawProgressBar();
+}
+
+// ─── DEATH ────────────────────────────────────────────────────
+function die() {
+  state = 'dead';
+  pressing = false;
+  shakeMag = 18;
+
+  if (dist > best) {
+    best = dist;
+    bestEl.textContent = best;
+    bestEl.className = 'val danger';
+  }
+
+  // flash
+  deathFlash.style.opacity = '0.7';
+  setTimeout(() => { deathFlash.style.opacity = '0'; }, 120);
+
+  // auto-restart — brutally fast
+  setTimeout(() => {
+    frameCount = 0;
+    initGame();
+    state = 'play';
+  }, 380);
+}
+
+// ─── INPUT ────────────────────────────────────────────────────
+function onDown(e) {
+  e.preventDefault();
+  if (state === 'start') {
+    startScreen.style.display = 'none';
+    hud.style.display = 'flex';
+    initGame();
+    frameCount = 0;
+    state = 'play';
+    loop();
+  }
+  pressing = true;
+}
+
+function onUp(e) {
+  e.preventDefault();
+  pressing = false;
+}
+
+canvas.addEventListener('touchstart', onDown, { passive: false });
+canvas.addEventListener('touchend', onUp, { passive: false });
+canvas.addEventListener('mousedown', onDown);
+canvas.addEventListener('mouseup', onUp);
+
+// kick off render on start screen (just background)
+(function startIdle() {
+  drawBackground();
+})();
+</script>
+</body>
+</html>
