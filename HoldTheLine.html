@@ -144,21 +144,21 @@ const PLAYER = {
   x: 0, y: 0,
   vy: 0,
   r: 10,           // radius
-  GRAVITY: 0.38,
-  LIFT: -0.55,     // applied every frame while held — additive
-  DRAG: 0.92,      // velocity damping (momentum = frustration)
-  MAX_VY: 14,
+  GRAVITY: 0.52,   // was 0.38 — drops faster
+  LIFT: -0.62,     // was -0.55 — slightly more lift to compensate, still hard to control
+  DRAG: 0.88,      // was 0.92 — more momentum, harder to stop
+  MAX_VY: 16,      // was 14
 };
 
 // ─── WALLS ────────────────────────────────────────────────────
-const WALL_W = 28;
-const WALL_SPEED_START = 3.2;
-const WALL_SPEED_MAX   = 8.5;
-const WALL_SPEED_INC   = 0.0012; // per frame
-const GAP_START   = 0.38;   // fraction of H
-const GAP_MIN     = 0.14;   // fraction of H — brutally narrow
-const GAP_SHRINK  = 0.00004; // per frame
-const SPAWN_DIST  = 0.72;   // fraction of W between walls
+const WALL_W = 32;
+const WALL_SPEED_START = 5.0;   // was 3.2 — starts fast, no warmup
+const WALL_SPEED_MAX   = 13.0;  // was 8.5 — gets brutal
+const WALL_SPEED_INC   = 0.003; // was 0.0012 — ramps up 2.5x faster
+const GAP_START   = 0.28;   // was 0.38 — starts tighter
+const GAP_MIN     = 0.11;   // was 0.14 — ends nearly impossible
+const GAP_SHRINK  = 0.00012; // was 0.00004 — shrinks 3x faster
+const SPAWN_DIST  = 0.58;   // was 0.72 — walls closer together
 
 let walls = [];
 let wallSpeed, gapFraction, dist;
@@ -334,11 +334,11 @@ function initGame() {
   dist = 0;
   walls = [];
 
-  // pre-seed walls — first one has extra breathing room
+  // pre-seed walls — no grace period
   const firstCenter = H * 0.5;
   const half = (gapFraction * H) / 2;
-  walls.push({ x: W * 0.75, top: firstCenter - half * 1.3, bot: firstCenter + half * 1.3, passed: false });
-  walls.push({ x: W * 0.75 + W * SPAWN_DIST, ...makeWall(W * 0.75 + W * SPAWN_DIST) });
+  walls.push({ x: W * 0.65, top: firstCenter - half, bot: firstCenter + half, passed: false });
+  walls.push(makeWall(W * 0.65 + W * SPAWN_DIST));
   spawnX = W * 0.75 + W * SPAWN_DIST * 2;
 }
 
