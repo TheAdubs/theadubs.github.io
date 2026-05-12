@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KM DRILL FORGE v2 — Complete Krav Maga + Combat Conditioning</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0d0d; --surface: #131313; --card: #191919; --border: #242424;
+  --accent: #c8a84b; --red: #c8392b; --green: #3a6b4a; --text: #d0ccc4;
+  --muted: #585450; --tag: #1e261e; --cond: #1a2535;
+  --cond-border: rgba(42,80,170,.45); --cond-text: #7aaadd;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; min-height: 100vh;
+  background-image:
+    repeating-linear-gradient(0deg,transparent 0,transparent 39px,rgba(255,255,255,.013) 39px,rgba(255,255,255,.013) 40px),
+    repeating-linear-gradient(90deg,transparent 0,transparent 39px,rgba(255,255,255,.013) 39px,rgba(255,255,255,.013) 40px);
+}
+header { background:var(--surface); border-bottom:2px solid var(--accent); padding:14px 28px; display:flex; align-items:center; gap:20px; position:sticky; top:0; z-index:100; }
+.logo { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:5px; color:var(--accent); line-height:1; }
+.logo em { color:var(--red); font-style:normal; }
+.logo sup { font-size:.7rem; color:var(--muted); }
+.sub { font-family:'Share Tech Mono',monospace; font-size:.58rem; color:var(--muted); letter-spacing:2px; }
+.header-right { margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.stat-pill { font-family:'Share Tech Mono',monospace; font-size:.58rem; letter-spacing:1px; padding:4px 10px; border:1px solid var(--border); color:var(--muted); }
+.stat-pill span { color:var(--accent); }
+.hbtn { font-family:'Bebas Neue',sans-serif; font-size:.9rem; letter-spacing:2px; padding:7px 14px; border:1px solid; cursor:pointer; transition:all .15s; }
+.hbtn-gold { border-color:var(--accent); color:var(--accent); background:transparent; }
+.hbtn-gold:hover { background:var(--accent); color:#0d0d0d; }
+.hbtn-dim { border-color:var(--border); color:var(--muted); background:transparent; }
+.hbtn-dim:hover { border-color:var(--text); color:var(--text); }
+.controls { padding:12px 28px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.filter-group { display:flex; gap:4px; flex-wrap:wrap; }
+.filter-btn { font-family:'Share Tech Mono',monospace; font-size:.6rem; letter-spacing:1px; text-transform:uppercase; padding:5px 10px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:all .15s; }
+.filter-btn:hover { border-color:var(--accent); color:var(--accent); }
+.filter-btn.active { background:var(--accent); color:#0d0d0d; border-color:var(--accent); font-weight:700; }
+.belt-yellow.active { background:#b8a030; border-color:#b8a030; }
+.belt-orange.active { background:#c8621a; border-color:#c8621a; }
+.belt-green.active  { background:#3a6b2a; border-color:#3a6b2a; color:#d0ccc4; }
+.belt-blue.active   { background:#1a4a8a; border-color:#1a4a8a; color:#d0ccc4; }
+.belt-brown.active  { background:#5a3018; border-color:#5a3018; color:#d0ccc4; }
+.divider { width:1px; height:26px; background:var(--border); margin:0 2px; }
+.search-wrap { margin-left:auto; position:relative; }
+.search-wrap input { background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'Share Tech Mono',monospace; font-size:.72rem; padding:7px 28px 7px 12px; width:200px; outline:none; }
+.search-wrap input:focus { border-color:var(--accent); }
+.search-wrap input::placeholder { color:var(--muted); }
+.s-clear { position:absolute; right:8px; top:50%; transform:translateY(-50%); color:var(--muted); cursor:pointer; display:none; }
+.grid-wrap { padding:22px 28px; }
+.results-lbl { font-family:'Share Tech Mono',monospace; font-size:.58rem; color:var(--muted); letter-spacing:2px; margin-bottom:14px; }
+.results-lbl span { color:var(--accent); }
+.drill-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(370px,1fr)); gap:18px; }
+.drill-card { background:var(--card); border:1px solid var(--border); position:relative; overflow:hidden; transition:border-color .2s, transform .2s; animation:fadeUp .25s ease both; }
+.drill-card:hover { border-color:rgba(200,168,75,.4); transform:translateY(-2px); }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.belt-stripe { height:3px; width:100%; }
+.belt-yellow .belt-stripe { background:linear-gradient(90deg,#b8a030,#d4b840); }
+.belt-orange .belt-stripe { background:linear-gradient(90deg,#c8621a,#e07830); }
+.belt-green  .belt-stripe { background:linear-gradient(90deg,#2a5a1a,#3a7a28); }
+.belt-blue   .belt-stripe { background:linear-gradient(90deg,#1a3a8a,#2a50aa); }
+.belt-brown  .belt-stripe { background:linear-gradient(90deg,#4a2010,#6a3820); }
+.card-head { padding:13px 16px 10px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+.card-meta { font-family:'Share Tech Mono',monospace; font-size:.56rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
+.card-title { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:2px; color:var(--text); line-height:1.1; }
+.card-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:7px; }
+.tag { font-family:'Share Tech Mono',monospace; font-size:.52rem; letter-spacing:1px; text-transform:uppercase; padding:2px 6px; background:var(--tag); border:1px solid rgba(58,107,74,.4); color:#6aaa7a; }
+.tag.red { background:rgba(200,57,43,.1); border-color:rgba(200,57,43,.3); color:#c87060; }
+.dur-box { flex-shrink:0; border:1px solid rgba(200,168,75,.3); padding:5px 10px; text-align:center; min-width:66px; }
+.dur-label { font-family:'Share Tech Mono',monospace; font-size:.52rem; color:var(--muted); letter-spacing:1px; display:block; margin-bottom:2px; }
+.dur-val { font-family:'Bebas Neue',sans-serif; font-size:.95rem; letter-spacing:1px; color:var(--accent); }
+.cond-block { background:var(--cond); border-bottom:1px solid var(--cond-border); padding:8px 16px; display:flex; align-items:center; gap:10px; }
+.cond-icon { font-size:.85rem; flex-shrink:0; }
+.cond-label { font-family:'Share Tech Mono',monospace; font-size:.55rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase; white-space:nowrap; }
+.cond-exercise { font-family:'Bebas Neue',sans-serif; font-size:.95rem; letter-spacing:2px; color:var(--cond-text); }
+.card-body { padding:11px 16px; display:flex; flex-direction:column; gap:9px; }
+.sec-lbl { font-family:'Share Tech Mono',monospace; font-size:.53rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+.sec-lbl::after { content:''; flex:1; height:1px; background:var(--border); }
+.goal-txt { font-size:.78rem; line-height:1.5; color:var(--text); font-style:italic; opacity:.85; }
+.steps { list-style:none; display:flex; flex-direction:column; gap:5px; }
+.steps li { display:flex; gap:8px; font-size:.76rem; line-height:1.4; }
+.sn { font-family:'Share Tech Mono',monospace; font-size:.58rem; color:var(--accent); flex-shrink:0; width:18px; padding-top:1px; }
+.intensity-row { display:flex; gap:6px; align-items:center; }
+.int-bar { flex:1; height:5px; background:var(--border); overflow:hidden; }
+.int-fill { height:100%; background:linear-gradient(90deg,#3a6b4a,var(--accent),var(--red)); }
+.int-lbl { font-family:'Share Tech Mono',monospace; font-size:.56rem; color:var(--muted); width:52px; text-align:right; }
+.no-results { text-align:center; padding:80px 40px; color:var(--muted); font-family:'Share Tech Mono',monospace; font-size:.73rem; letter-spacing:2px; grid-column:1/-1; }
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:500; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+.modal-overlay.open { display:flex; }
+.modal-box { background:var(--card); border:1px solid var(--accent); max-width:580px; width:90%; max-height:88vh; overflow-y:auto; animation:modalIn .2s ease; }
+@keyframes modalIn { from{opacity:0;transform:scale(.95) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+.modal-header { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--surface); position:sticky; top:0; }
+.modal-title { font-family:'Bebas Neue',sans-serif; font-size:1rem; letter-spacing:3px; color:var(--accent); }
+.modal-close { background:transparent; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-size:.75rem; padding:4px 10px; font-family:'Share Tech Mono',monospace; letter-spacing:1px; }
+.modal-close:hover { border-color:var(--red); color:var(--red); }
+.modal-body { padding:18px; }
+.modal-reshuffle { width:100%; margin-top:14px; font-family:'Bebas Neue',sans-serif; font-size:1.05rem; letter-spacing:3px; padding:11px; background:var(--accent); color:#0d0d0d; border:none; cursor:pointer; }
+.modal-reshuffle:hover { background:#d9b75a; }
+.planner-overlay { display:none; position:fixed; inset:0; z-index:400; pointer-events:none; }
+.planner-overlay.open { display:block; }
+.planner-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.6); pointer-events:all; }
+.planner-drawer { position:absolute; right:0; top:0; bottom:0; width:min(600px,95vw); background:var(--surface); border-left:2px solid var(--accent); overflow-y:auto; pointer-events:all; transform:translateX(100%); transition:transform .3s ease; }
+.planner-overlay.open .planner-drawer { transform:translateX(0); }
+.planner-head { padding:16px 22px; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center; }
+.planner-title { font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:4px; color:var(--accent); }
+.planner-config { padding:16px 22px; border-bottom:1px solid var(--border); display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+.cfg-group { display:flex; flex-direction:column; gap:5px; }
+.cfg-label { font-family:'Share Tech Mono',monospace; font-size:.56rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase; }
+.cfg-select { background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'Share Tech Mono',monospace; font-size:.7rem; padding:7px 10px; outline:none; cursor:pointer; }
+.cfg-select:focus { border-color:var(--accent); }
+.btn-build { font-family:'Bebas Neue',sans-serif; font-size:1.05rem; letter-spacing:3px; padding:9px 20px; background:var(--accent); color:#0d0d0d; border:none; cursor:pointer; align-self:flex-end; }
+.btn-build:hover { background:#d9b75a; }
+.session-output { padding:18px 22px; }
+.session-empty { text-align:center; padding:60px 20px; font-family:'Share Tech Mono',monospace; font-size:.68rem; color:var(--muted); letter-spacing:2px; line-height:2; }
+.session-hdr { background:var(--bg); border:1px solid var(--border); padding:13px 16px; margin-bottom:16px; }
+.session-title { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:3px; color:var(--accent); margin-bottom:5px; }
+.session-meta { display:flex; gap:14px; flex-wrap:wrap; }
+.smeta { font-family:'Share Tech Mono',monospace; font-size:.6rem; color:var(--muted); letter-spacing:1px; }
+.smeta span { color:var(--text); }
+.session-phase { margin-bottom:16px; }
+.phase-hdr { display:flex; align-items:center; gap:10px; margin-bottom:9px; padding-bottom:7px; border-bottom:1px solid var(--border); }
+.phase-num { font-family:'Bebas Neue',sans-serif; font-size:1.25rem; letter-spacing:2px; color:var(--accent); }
+.phase-name { font-family:'Bebas Neue',sans-serif; font-size:1.05rem; letter-spacing:2px; color:var(--text); }
+.phase-time { font-family:'Share Tech Mono',monospace; font-size:.58rem; color:var(--muted); margin-left:auto; letter-spacing:1px; }
+.sdr { background:var(--card); border:1px solid var(--border); padding:9px 13px; margin-bottom:7px; display:flex; gap:11px; align-items:flex-start; border-left:3px solid var(--border); cursor:pointer; transition:border-left-color .15s; }
+.sdr:hover { border-left-color:var(--accent); }
+.sdr.belt-yellow { border-left-color:#b8a030; } .sdr.belt-orange { border-left-color:#c8621a; }
+.sdr.belt-green  { border-left-color:#3a7a28; } .sdr.belt-blue   { border-left-color:#2a50aa; }
+.sdr.belt-brown  { border-left-color:#6a3820; }
+.sdr-time { font-family:'Bebas Neue',sans-serif; font-size:.95rem; color:var(--accent); flex-shrink:0; min-width:52px; }
+.sdr-info { flex:1; }
+.sdr-title { font-family:'Bebas Neue',sans-serif; font-size:.95rem; letter-spacing:2px; color:var(--text); line-height:1.1; }
+.sdr-sub { font-family:'Share Tech Mono',monospace; font-size:.55rem; color:var(--muted); margin-top:2px; }
+.sdr-dur { font-family:'Share Tech Mono',monospace; font-size:.55rem; color:var(--muted); flex-shrink:0; }
+.btn-print-session { width:100%; margin-top:14px; font-family:'Bebas Neue',sans-serif; font-size:1.05rem; letter-spacing:3px; padding:11px; background:transparent; color:var(--accent); border:1px solid var(--accent); cursor:pointer; }
+.btn-print-session:hover { background:var(--accent); color:#0d0d0d; }
+@media print {
+  header,.controls,.modal-overlay,.planner-overlay{display:none!important}
+  body{background:white}
+  .drill-card{border:1px solid #ccc;break-inside:avoid;transform:none!important}
+  .card-title,.cond-exercise{color:#000}
+  .belt-stripe{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-thumb{background:var(--border)}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo">KM <em>DRILL</em> FORGE <sup>V2</sup></div>
+    <div class="sub">// COMPLETE KRAV MAGA × COMBAT CONDITIONING — LEVINE, WHITMAN &amp; FUREY</div>
+  </div>
+  <div class="header-right">
+    <div class="stat-pill">DRILLS: <span id="totalCount">0</span></div>
+    <div class="stat-pill">SHOWN: <span id="shownCount">0</span></div>
+    <button class="hbtn hbtn-gold" onclick="openRandom()">⚡ RANDOM</button>
+    <button class="hbtn hbtn-dim" onclick="openPlanner()">📋 SESSION</button>
+    <button class="hbtn hbtn-dim" onclick="window.print()">⎙ PRINT</button>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="filter-group" id="beltFilters">
+    <button class="filter-btn active" onclick="setFilter('belt','all',this)">ALL</button>
+    <button class="filter-btn belt-yellow" onclick="setFilter('belt','Yellow Belt',this)">YELLOW</button>
+    <button class="filter-btn belt-orange" onclick="setFilter('belt','Orange Belt',this)">ORANGE</button>
+    <button class="filter-btn belt-green"  onclick="setFilter('belt','Green Belt',this)">GREEN</button>
+    <button class="filter-btn belt-blue"   onclick="setFilter('belt','Blue Belt',this)">BLUE</button>
+    <button class="filter-btn belt-brown"  onclick="setFilter('belt','Brown Belt',this)">BROWN</button>
+  </div>
+  <div class="divider"></div>
+  <div class="filter-group" id="catFilters">
+    <button class="filter-btn active" onclick="setFilter('cat','all',this)">ALL TYPES</button>
+    <button class="filter-btn" onclick="setFilter('cat','Strike',this)">STRIKES</button>
+    <button class="filter-btn" onclick="setFilter('cat','Defense',this)">DEFENSE</button>
+    <button class="filter-btn" onclick="setFilter('cat','Groundfighting',this)">GROUND</button>
+    <button class="filter-btn" onclick="setFilter('cat','Weapon Defense',this)">WEAPONS</button>
+    <button class="filter-btn" onclick="setFilter('cat','Combination',this)">COMBOS</button>
+    <button class="filter-btn" onclick="setFilter('cat','Self-Defense',this)">SELF-DEF</button>
+  </div>
+  <div class="divider"></div>
+  <div class="filter-group" id="condFilters">
+    <button class="filter-btn active" onclick="setFilter('cond','all',this)">ALL CONDITIONING</button>
+    <button class="filter-btn" onclick="setFilter('cond','Hindu Squats',this)">HINDU SQUATS</button>
+    <button class="filter-btn" onclick="setFilter('cond','Hindu Push-ups',this)">HINDU PUSH-UPS</button>
+    <button class="filter-btn" onclick="setFilter('cond','Bridge',this)">BRIDGE</button>
+    <button class="filter-btn" onclick="setFilter('cond','Sprint',this)">SPRINT</button>
+    <button class="filter-btn" onclick="setFilter('cond','Burpees',this)">BURPEES</button>
+  </div>
+  <div class="search-wrap">
+    <input type="text" id="searchBox" placeholder="SEARCH..." oninput="onSearch(this)">
+    <span class="s-clear" id="searchClear" onclick="clearSearch()">✕</span>
+  </div>
+</div>
+
+<div class="grid-wrap">
+  <div class="results-lbl">SHOWING <span id="shownCount2">0</span> OF <span id="totalCount2">0</span> DRILLS</div>
+  <div class="drill-grid" id="drillGrid"></div>
+</div>
+
+<div class="modal-overlay" id="randomModal" onclick="if(event.target===this)closeRandom()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">⚡ RANDOM DRILL</div>
+      <button class="modal-close" onclick="closeRandom()">✕ CLOSE</button>
+    </div>
+    <div class="modal-body" id="randomBody"></div>
+  </div>
+</div>
+
+<div class="planner-overlay" id="plannerOverlay">
+  <div class="planner-backdrop" onclick="closePlanner()"></div>
+  <div class="planner-drawer">
+    <div class="planner-head">
+      <div class="planner-title">📋 SESSION PLANNER</div>
+      <button class="modal-close" onclick="closePlanner()">✕ CLOSE</button>
+    </div>
+    <div class="planner-config">
+      <div class="cfg-group">
+        <div class="cfg-label">Duration</div>
+        <select class="cfg-select" id="planDuration">
+          <option value="30">30 min</option><option value="45">45 min</option>
+          <option value="60" selected>60 min</option><option value="90">90 min</option>
+        </select>
+      </div>
+      <div class="cfg-group">
+        <div class="cfg-label">Belt Level</div>
+        <select class="cfg-select" id="planBelt">
+          <option value="all">All Levels</option>
+          <option value="Yellow Belt">Yellow Belt</option><option value="Orange Belt">Orange Belt</option>
+          <option value="Green Belt">Green Belt</option><option value="Blue Belt">Blue Belt</option>
+          <option value="Brown Belt">Brown Belt</option>
+        </select>
+      </div>
+      <div class="cfg-group">
+        <div class="cfg-label">Focus</div>
+        <select class="cfg-select" id="planCat">
+          <option value="all">Balanced</option><option value="Strike">Strikes</option>
+          <option value="Defense">Defense</option><option value="Groundfighting">Groundfighting</option>
+          <option value="Weapon Defense">Weapons</option><option value="Combination">Combinations</option>
+        </select>
+      </div>
+      <button class="btn-build" onclick="buildSession()">BUILD CLASS</button>
+    </div>
+    <div class="session-output" id="sessionOutput">
+      <div class="session-empty">Configure above and hit<br>BUILD CLASS to generate a plan.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DRILLS = [
+// ═══ YELLOW BELT ═══
+{id:1,belt:"Yellow Belt",category:"Strike",title:"Jab & Cross Power Builder",technique:"Left Straight Punch / Cross-body Punch",conditioning:"25 Hindu Squats",condType:"Hindu Squats",
+goal:"Develop punch mechanics and hip rotation under leg fatigue — forcing the body to transfer power from a fatigued lower half, mimicking the demands of a real fight.",
+duration:"4 min",intensity:3,intensityLabel:"Moderate",
+steps:["Complete 25 Hindu Squats: swing arms back on descent, forward on rise. Full depth. No stopping.",
+"Immediately go to the pad — no rest. Fire 10 left jabs: rotate hip and shoulder together, elbow stays down.",
+"Add the cross: jab/cross x10. Drive through the rear hip — fatigued legs force you to generate power correctly.",
+"Partner calls 'GO' randomly — fire the combo from passive stance each time, resetting completely between calls.",
+"Final 60 sec: partner presses pad toward you at random while you fire jab/cross on contact."],
+tags:["pad work","hip power","fatigue drill"]},
+
+{id:2,belt:"Yellow Belt",category:"Strike",title:"Elbow Arsenal",technique:"Elbow Strikes #1–#7 (all angles)",conditioning:"10 Hindu Push-ups",condType:"Hindu Push-ups",
+goal:"Build all seven elbow angles as instinctive weapons. The push-up pre-load fires the shoulders so elbows must come from body rotation, not arm strength.",
+duration:"5 min",intensity:3,intensityLabel:"Moderate",
+steps:["10 Hindu push-ups: from downward-dog position, dive through with chest low, finish with head raised. Full shoulder chain.",
+"Immediately drill Elbows #1–#3 on a pad — 5 reps each, both sides.",
+"Partner calls elbow numbers 1–7 randomly. Fire each with full hip rotation, not just arm swing.",
+"Close-quarters drill: partner steps INTO you, removing punching distance — switch to elbows automatically.",
+"Finisher: 10 more Hindu push-ups, then 20 seconds of rapid-fire elbow calls."],
+tags:["elbows","close range","shoulder conditioning"]},
+
+{id:3,belt:"Yellow Belt",category:"Strike",title:"Front Kick Engine",technique:"Front Kick (Regular) / Front Kick (Vertical Target)",conditioning:"15 Jump Squats",condType:"Hindu Squats",
+goal:"Develop explosive hip extension in the front kick. Jump squats pre-load the fast-twitch fibers — the kick is a direct output of that power.",
+duration:"3 min",intensity:3,intensityLabel:"Moderate",
+steps:["15 jump squats: deep squat, explode upward, land softly, repeat immediately. No pause at the top.",
+"Immediately drive a front kick to a pad at groin/hip height — chamber the knee first, thrust with the heel.",
+"Vertical target: raise pad to chest height. Drive the ball of the foot through the target.",
+"Partner moves the pad unpredictably — re-chamber and redirect the kick mid-step.",
+"Combo: front kick to create distance / close and deliver jab-cross / front kick again to disengage."],
+tags:["front kick","explosive power","distance"]},
+
+{id:4,belt:"Yellow Belt",category:"Strike",title:"Knee & Round Knee Clinch",technique:"Knee Strike / Round Knee Strike",conditioning:"10 Burpees",condType:"Burpees",
+goal:"Execute powerful clinch knees from genuine cardiovascular stress — the heart rate from burpees replicates the adrenal state of a real clinch fight.",
+duration:"2 x 90 sec",intensity:4,intensityLabel:"High",
+steps:["10 burpees: full squat thrust, chest to floor, jump and clap overhead. No half-reps.",
+"Immediately clinch — both hands grip behind partner's head/neck. Drive alternating knees to the pad at their midsection.",
+"On each knee, pull the partner INTO you as it rises — do not wait for them to come forward.",
+"Round knee variation: drive the knee across the centerline targeting the outer hip/thigh.",
+"Final 10 sec of each round: max-speed knees until partner steps away. 10 more burpees, then round 2."],
+tags:["clinch","knee strike","cardio fatigue"]},
+
+{id:5,belt:"Yellow Belt",category:"Strike",title:"Hammerfist 360°",technique:"Hammerfist to the Side / Back / Forward / Downward",conditioning:"20 Hindu Squats",condType:"Hindu Squats",
+goal:"Train the hammerfist as a 360° weapon — striking in any direction without repositioning the feet. The hips lead the strike.",
+duration:"3 min",intensity:2,intensityLabel:"Low",
+steps:["20 Hindu squats to warm the hips and establish a grounded stance.",
+"Partner calls a direction (side, back, forward, down) and moves the pad there. Pivot and deliver without shuffling feet.",
+"The rotation drives the hammerfist — the arm follows the hip, not the other way around.",
+"Speed round: partner moves continuously, you track and strike each position as fast as called.",
+"Blind drill: eyes closed, feel the pad tap your shoulder — open eyes, find pad, fire."],
+tags:["hammerfist","360 striking","rotation"]},
+
+{id:6,belt:"Yellow Belt",category:"Strike",title:"Round Kick Pivot Drill",technique:"Round Kick",conditioning:"20 Hindu Squats",condType:"Hindu Squats",
+goal:"Build round kick power through correct pivot mechanics. Hindu squats warm the standing-leg pivot chain — the source of kick power.",
+duration:"4 min",intensity:3,intensityLabel:"Moderate",
+steps:["20 Hindu squats — on each rise, actively rotate the feet outward, warming the lateral hip.",
+"Round kick to the body: partner holds Thai pad at midsection. Drive the shin through — not a slap, a push-through.",
+"Key check: the standing foot must pivot fully on the ball. No pivot = no power.",
+"Alternate legs every 10 kicks. Give the weaker side extra reps.",
+"Combo: jab/cross/rear round kick. Partner retreats one step after each combo — maintain range."],
+tags:["round kick","pivot","pad work","Hindu squats"]},
+
+{id:7,belt:"Yellow Belt",category:"Defense",title:"Inside Defense Reflex",technique:"Inside Defense against Straight Punch",conditioning:"Sprint 15 yards + turn",condType:"Sprint",
+goal:"Train the inside defense from a heart-rate-elevated passive stance — the sprint simulates adrenaline of being approached before an attack.",
+duration:"5 min",intensity:3,intensityLabel:"Moderate",
+steps:["Sprint 15 yards, turn, immediately face a partner throwing a slow straight punch. Defend with inside defense and counter.",
+"After 5 reps, partner speeds up the punch. The defense must fire before conscious thought.",
+"Simultaneous drill: the defense and the counter-strike complete at the same moment — not block then punch.",
+"Stress layer: second partner pushes you from the side while you defend the punch.",
+"Eyes closed final: passive stance, feel for the punch, react to contact only."],
+tags:["inside defense","simultaneous","reflex","sprint"]},
+
+{id:8,belt:"Yellow Belt",category:"Defense",title:"360° Blind Attack Circuit",technique:"Inside Defense and 360° Defense against Punches",conditioning:"20 Mountain Climbers",condType:"Burpees",
+goal:"Train 360° defenses from complete surprise under physical stress. Mountain climbers elevate heart rate — the most realistic starting condition for any street attack.",
+duration:"6 min",intensity:4,intensityLabel:"High",
+steps:["20 mountain climbers at full speed: drive knees to chest alternately, hips level.",
+"Stand in passive stance, eyes closed. Two partners move around you — one attacks from any angle.",
+"React to contact: 360° defense and immediate counter. Open eyes only after the defense fires.",
+"Third partner adds random pad shoves throughout for balance disruption.",
+"Every 90 sec: 20 more mountain climbers, then immediately back to passive stance."],
+tags:["360 defense","blind drill","multi-attacker","stress"]},
+
+{id:9,belt:"Yellow Belt",category:"Self-Defense",title:"Wrist Release Gauntlet",technique:"Wrist Releases: all 5 variations",conditioning:"10 Hindu Push-ups",condType:"Hindu Push-ups",
+goal:"Build all five wrist releases into automatic responses. Forearm fatigue from push-ups means the technique must depend on mechanics, not grip strength.",
+duration:"4 min",intensity:2,intensityLabel:"Low",
+steps:["10 Hindu push-ups — feel the forearm pump. Releases must work despite this.",
+"Partner applies each of the five grips in random order. Identify and apply the correct release.",
+"Immediate counterattack after every release — at minimum a push to create distance.",
+"Gauntlet: walk a line of 4 partners. Each applies a different random grip. Release and counter each without stopping.",
+"Final round: partner applies holds with increasing resistance. Mechanics must overcome strength."],
+tags:["wrist release","mechanics","partner drill","Hindu push-ups"]},
+
+{id:10,belt:"Yellow Belt",category:"Self-Defense",title:"Choke Front: Burst & Counter",technique:"Choke Defense from the Front",conditioning:"10 Burpees",condType:"Burpees",
+goal:"Train the pluck-and-counter under real cardiovascular fatigue — a choke often arrives when you are already physically spent.",
+duration:"4 min",intensity:3,intensityLabel:"Moderate",
+steps:["10 burpees — no rest. Stand in passive stance, hands at sides.",
+"Partner applies choke from the front immediately. Pluck and simultaneous counterattack — both happen at once.",
+"After 5 reps, partner increases pressure to 60–70% of their grip strength.",
+"Blind variation: eyes closed in passive stance. Choke applied without warning — react on contact.",
+"Repeat the full cycle (burpees → choke) 3 times. Does quality degrade under fatigue?"],
+tags:["choke defense","stress inoculation","fatigue","burpees"]},
+
+{id:11,belt:"Yellow Belt",category:"Groundfighting",title:"Ground Movement & Bridge",technique:"Back Position / Side Position / Getting Up",conditioning:"Wrestler's Bridge 30 sec",condType:"Bridge",
+goal:"Develop ground movement with a conditioned neck and spine. Furey's bridge builds neck strength that protects you when you hit the ground unexpectedly.",
+duration:"5 min",intensity:3,intensityLabel:"Moderate",
+steps:["Hold a Wrestler's Bridge for 30 seconds: lie back, plant feet and top of head, press hips to ceiling. Drive the neck.",
+"Immediately transition to back position. Partner circles — track them with your feet at all times.",
+"On cue, transition to side position and kick with the top leg toward the threat.",
+"On second cue, execute the standard KM get-up — eyes stay on the threat throughout.",
+"Add: partner tries to step around your kicks as you get up. Time the get-up to a safe gap."],
+tags:["groundfighting","neck strength","bridge","get-up"]},
+
+{id:12,belt:"Yellow Belt",category:"Combination",title:"Passive Stance Surprise Circuit",technique:"Multiple Yellow Belt Techniques",conditioning:"Full Royal Court: 25 Hindu Squats + 10 Hindu Push-ups + 20 sec Bridge",condType:"Hindu Squats",
+goal:"The defining Yellow Belt stress test — face all major threats from completely unprepared after a full Royal Court. Technique must survive both surprise and fatigue.",
+duration:"8 min",intensity:5,intensityLabel:"Max Effort",
+steps:["Royal Court: 25 Hindu squats → 10 Hindu push-ups → 20-sec wrestler's bridge. No rest between.",
+"Immediately stand in passive stance. Three partners rotate Yellow Belt attacks at random: choke, wrist grab, straight punch, push.",
+"Defend, counter, reset to passive stance before the next attack. Pad holders provide constant shoving throughout.",
+"Every 2 minutes: repeat the Royal Court, then back to passive stance immediately.",
+"Rule: if defender pre-loads into a fighting stance before the attack, the rep does not count."],
+tags:["scenario","max intensity","royal court","stress inoculation"]},
+
+// ═══ ORANGE BELT ═══
+{id:13,belt:"Orange Belt",category:"Strike",title:"Hook Punch & Bob Flow",technique:"Hook Punch / Bobbing and Weaving",conditioning:"30 Hindu Squats",condType:"Hindu Squats",
+goal:"Integrate the hook with the bob-and-weave as a single unit. Hindu squats build the leg-driven drop that makes the bob safe — not a backward lean.",
+duration:"3 x 2 min",intensity:4,intensityLabel:"High",
+steps:["30 Hindu squats — the squatting motion IS the bob mechanics. Feel how the knees drive the drop.",
+"Round 1: jab/cross/left hook on pad. Partner adds resistance on the hook. Elbow stays at 90° throughout.",
+"Round 2: partner throws hooks back — you bob (drop through the knees, not a lean) under each one.",
+"Round 3: full integration — you throw combos, partner throws hooks between. Bob every incoming hook, counter immediately.",
+"After every round: 15 Hindu squats before the next begins. Keep the legs involved."],
+tags:["hook","bob and weave","leg drive","partner drill"]},
+
+{id:14,belt:"Orange Belt",category:"Strike",title:"Uppercut Power Chain",technique:"Uppercut Punch",conditioning:"20 Jump Squats",condType:"Hindu Squats",
+goal:"Develop the correct uppercut drive — legs first, then hip, then arm. Jump squats make the leg-to-punch transfer unmistakable.",
+duration:"3 min",intensity:3,intensityLabel:"Moderate",
+steps:["20 jump squats: full depth, explosive upward, land controlled. Feel the hip-to-shoulder chain on each jump.",
+"Partner holds a pad angled downward at 45°. Throw the uppercut: bend knees first, drive up through the legs, rotate the hip.",
+"The arm should feel like it follows — the power comes from below.",
+"10 left uppercuts then 10 right, then alternate L/R/L/R.",
+"Resistance drill: partner wraps arms around pad and resists — generate enough leg drive to push them back a full step."],
+tags:["uppercut","leg drive","power","pad work"]},
+
+{id:15,belt:"Orange Belt",category:"Combination",title:"5-Count Combo Under Fire",technique:"Left/Right/Left Hook/Right Uppercut / Left Punch/Right Elbow",conditioning:"15 Hindu Push-ups",condType:"Hindu Push-ups",
+goal:"Build a full combination under push-up fatigue — every punch must be driven by the body when the arms are pre-loaded.",
+duration:"2 x 3 min",intensity:5,intensityLabel:"Max Effort",
+steps:["15 Hindu push-ups — shoulder burn is present. Combos must now come from hip rotation, not arm strength.",
+"Fire jab/cross/hook/uppercut/rear elbow at full speed on the pad.",
+"After each combo, second partner immediately shoves you from behind — regain stance and repeat.",
+"Partner randomly drops the pad mid-combo — switch to body kicks or knees and continue.",
+"Final 30 sec of each round: max output, no pause between combos. Then 15 more Hindu push-ups for round 2."],
+tags:["combo","max intensity","push-up fatigue","stress"]},
+
+{id:16,belt:"Orange Belt",category:"Strike",title:"Side & Back Kick Distance",technique:"Side Kick / Back Kick",conditioning:"25 Hindu Squats",condType:"Hindu Squats",
+goal:"Train side and back kick as automatic distance-creating responses to a flanking or rear approach. Squats warm the hip abductors for side kick chamber.",
+duration:"4 min",intensity:3,intensityLabel:"Moderate",
+steps:["25 Hindu squats — on each rise, feel the hips open laterally. This is the side kick chamber.",
+"Walk forward naturally. Partner approaches from the rear — fire a back kick without turning first.",
+"Partner flanks to the side — pivot and fire a side kick to their midsection pad.",
+"Eyes-closed walking: partner approaches from any angle. Kick by sound and feel.",
+"After every kick: immediately regain balance and escape in the opposite direction."],
+tags:["side kick","back kick","awareness","partner drill"]},
+
+{id:17,belt:"Orange Belt",category:"Defense",title:"Slip & Counter",technique:"Slipping",conditioning:"20 Hindu Squats",condType:"Hindu Squats",
+goal:"Ingrain the slip as an offensive tool — moving offline while already delivering a counter. The slip lives in the legs.",
+duration:"3 min",intensity:3,intensityLabel:"Moderate",
+steps:["20 Hindu squats. The knee-bend in the slip is the same movement — short, sharp drop through the legs.",
+"Partner throws slow jabs. Slip outside: drive the lead knee slightly outward, rotate body, counter with rear hook.",
+"Slip inside the jab: lean into the centerline, counter with a cross to the body.",
+"Mix drill: partner throws jab and cross alternately — slip each and counter appropriately.",
+"Speed round: partner increases pace. Chin down and eyes forward throughout — no leaning backward."],
+tags:["slipping","head movement","counter","Hindu squats"]},
+
+{id:18,belt:"Orange Belt",category:"Defense",title:"Fall Break Conditioning",technique:"Back Fall Break / Side Fall Break",conditioning:"Bear Crawl 10 yards",condType:"Burpees",
+goal:"Build automatic fall breaks from genuine exertion. The bear crawl warms shoulders and wrists so the slap reflex is primed, not stiff.",
+duration:"5 min",intensity:2,intensityLabel:"Low",
+steps:["Bear crawl 10 yards: hands and feet (knees off ground), move forward — shoulders over wrists throughout.",
+"Back fall break: lower to squat, roll back, slap both hands at 45° before shoulders land. Chin stays tucked.",
+"Progress to standing back fall break — fall straight back and trust the slap timing.",
+"Side fall break: fall right, slap arm and leg simultaneously. Then left.",
+"Partner push drill: bear crawl back to start, partner pushes without warning. Fall and break correctly from motion."],
+tags:["fall break","bear crawl","shoulder conditioning","safety"]},
+
+{id:19,belt:"Orange Belt",category:"Defense",title:"Front Kick Defense Circuit",technique:"Reflexive Defense / Outside Stabbing Defense / Stop Kick against Front Kick",conditioning:"Sprint 20 yards + turn",condType:"Sprint",
+goal:"Train three front-kick defense options from a sprinting start — heart rate elevated, limbs pumping. Reaction quality must hold despite cardio stress.",
+duration:"5 min",intensity:3,intensityLabel:"Moderate",
+steps:["Sprint 20 yards, turn, face partner who delivers a slow front kick. Use reflexive defense.",
+"After 5 reps, partner adds speed. Now all three defenses are available — use whatever is there.",
+"Decision drill: partner kicks without calling which defense to use. You read and react.",
+"Sprint again, turn: partner might kick or might not — read the chamber before committing.",
+"Debrief: which defense fires most naturally at speed and why?"],
+tags:["front kick defense","decision drill","sprint fatigue"]},
+
+{id:20,belt:"Orange Belt",category:"Self-Defense",title:"Bearhug Escape Medley",technique:"Bearhugs: all variations",conditioning:"10 Burpees",condType:"Burpees",
+goal:"Build explosive bearhug responses under heart-rate stress — burpees simulate physical exertion before the grab occurs.",
+duration:"5 min",intensity:3,intensityLabel:"Moderate",
+steps:["10 burpees — stand immediately. Partner applies bearhug from behind, arms free.",
+"Drop weight, stomp, drive elbow back, turn and follow up with strikes.",
+"Arms pinned from behind: hip escape, head butt or stomp to instep, then turn.",
+"From front, arms pinned: create leverage on the neck/nose and counter.",
+"Stress variation: partner approaches from behind while you strike a pad. Feel the grab and react."],
+tags:["bearhug","self-defense","stress inoculation","burpees"]},
+
+{id:21,belt:"Orange Belt",category:"Self-Defense",title:"Wall Choke Burst",technique:"Choke Defense against a Wall",conditioning:"10 Hindu Push-ups",condType:"Hindu Push-ups",
+goal:"Train the most constrained choke scenario — no retreat. Pre-load with push-up fatigue so the burst is mechanical and forward, not strength-based.",
+duration:"4 min",intensity:3,intensityLabel:"Moderate",
+steps:["10 Hindu push-ups. Stand with back 6 inches from a wall — arms still warm.",
+"Partner applies choke from the front at realistic pressure. Pluck and counter — drive forward into the attacker.",
+"After the defense, use an elbow or knee to create space. You cannot step away.",
+"Stress variation: eyes closed against the wall. Choke applied without warning — react on contact.",
+"Progression: partner pins one arm against the wall before choking — adapt single-hand pluck."],
+tags:["choke defense","wall","restricted space","Hindu push-ups"]},
+
+{id:22,belt:"Orange Belt",category:"Groundfighting",title:"Mount Escape Under Strikes",technique:"Trap and Roll / Elbow Escape (Shrimping)",conditioning:"15 Burpees",condType:"Burpees",
+goal:"Train mount escapes under genuine fatigue and real striking pressure — the burpees ensure the same physical state as a real fight.",
+duration:"4 min",intensity:4,intensityLabel:"High",
+steps:["15 burpees — drop immediately to the floor. Partner mounts.",
+"Partner delivers light strikes to head and body. Time your escape between strikes.",
+"After escape: get to feet immediately and create distance before partner recovers.",
+"Partner varies mount position to prevent you predicting the weight distribution.",
+"Switch roles every 2 min. The mounting partner also does 15 burpees before mounting."],
+tags:["mount escape","groundfighting","pressure drill","fatigue"]},
+
+{id:23,belt:"Orange Belt",category:"Groundfighting",title:"Top Mount Control & Strike",technique:"Mount—Top Position / Maintaining Mount / Strikes",conditioning:"15 Hindu Push-ups",condType:"Hindu Push-ups",
+goal:"Develop offensive top mount. Push-up pre-load forces mount maintenance through base and weight distribution, not arm grip.",
+duration:"4 min",intensity:4,intensityLabel:"High",
+steps:["15 Hindu push-ups — mount must be held through base, not gripping.",
+"Achieve full mount. Partner begins bucking and bridging. Maintain 30 sec using weight and knee pinch.",
+"Deliver controlled palm strikes and elbows while maintaining base — strikes from the hips.",
+"Partner attempts elbow escape (shrimping) — follow their hips to maintain position.",
+"Partner attempts trap and roll — post your arm and redistribute weight. Switch roles after 2 min."],
+tags:["mount top","groundfighting","control","push-up base"]},
+
+{id:24,belt:"Orange Belt",category:"Defense",title:"Hook & Uppercut Defense",technique:"Defense against Hook Punch (Extended/Covering) / Defense against Uppercut",conditioning:"20 Hindu Squats",condType:"Hindu Squats",
+goal:"Train defenses against the two punches most likely to land undetected. Squats activate the legs needed to bob under hooks.",
+duration:"5 min",intensity:3,intensityLabel:"Moderate",
+steps:["20 Hindu squats — the drop motion IS the bob motion. Feel it.",
+"Partner throws slow extended hooks — defend with forearm block and immediate counter.",
+"Partner throws slow uppercuts — deflect downward with a forearm intercept and counter.",
+"Mix drill: hooks, uppercuts, and straight punches in random order. Defend each correctly.",
+"Eyes on the torso, not the hands — identify attacks from shoulder/elbow movement."],
+tags:["hook defense","uppercut defense","reflex","Hindu squats"]},
+
+{id:25,belt:"Orange Belt",category:"Combination",title:"Exhaustion Groundfighting",technique:"Mount Escapes / Fall Breaks / Get-Up",conditioning:"Full Royal Court: 25 Hindu Squats + 10 Hindu Push-ups + 20 sec Bridge",condType:"Hindu Squats",
+goal:"Ground survival under genuine physical exhaustion — the Royal Court recreates the adrenal fatigue state after a real altercation.",
+duration:"8 min",intensity:5,intensityLabel:"Max Effort",
+steps:["Royal Court: 25 Hindu squats → 10 Hindu push-ups → 20-sec wrestler's bridge. No rest.",
+"Drop to the ground immediately — partner mounts. Escape, get to feet, sprint 5 steps.",
+"Drop again — partner mounts from the side. Escape, get up, receive two punches, go to ground.",
+"Partner applies choke from behind — escape, get up, create distance.",
+"Instructor tracks time. Goal: keep escape quality high despite fatigue. Repeat the circuit."],
+tags:["groundfighting","royal court","exhaustion drill","max intensity"]},
+
+// ═══ GREEN BELT ═══
+{id:26,belt:"Green Belt",category:"Strike",title:"Headbutt & Bridge Neck",technique:"Forward Headbutt / Upward Headbutt / Headbutt to the Side",conditioning:"Wrestler's Bridge 45 sec",condType:"Bridge",
+goal:"The headbutt demands a strong, conditioned neck. Furey's bridge is the foundational exercise — a trained neck delivers power; an untrained neck gets injured.",
+duration:"4 min",intensity:2,intensityLabel:"Low",
+steps:["Wrestler's bridge for 45 seconds: feet flat, top of head on mat, hips pressed high. Feel the neck engage.",
+"Forward headbutt to a foam pad held at face level — drive with the forehead hairline, not the crown. Power from neck and upper back.",
+"Upward headbutt: from under the chin angle, drop slightly, drive upward through the pad.",
+"Side headbutt: from a side clinch, snap the temple toward the partner's nose area (pad protected).",
+"Safety rule: all contact at 30% force maximum. This drill trains mechanics, not impact."],
+tags:["headbutt","neck strength","bridge","close range"]},
+
+{id:27,belt:"Green Belt",category:"Strike",title:"Offensive Back Kick Pivot",technique:"Offensive Back Kick",conditioning:"25 Hindu Squats",condType:"Hindu Squats",
+goal:"Train the initiated back kick — not reactive, but used to create distance while facing the opponent. The squat pre-load warms the standing-leg pivot.",
+duration:"3 min",intensity:3,intensityLabel:"Moderate",
+steps:["25 Hindu squats — focus on the pivot of the standing foot on each rep. That pivot IS the back kick pivot.",
+"From fighting stance: step lead foot forward, pivot 180° explosively, drive the heel back before weight settles.",
+"Partner holds pad behind you at stomach height — contact must be simultaneous with pivot completion.",
+"Do NOT telegraph with the shoulders. The pivot should be sudden — no wind-up.",
+"Combo: jab/cross (draw opponent forward), pivot and back kick as they close."],
+tags:["back kick","offensive","pivot","Hindu squats"]},
+
+{id:28,belt:"Green Belt",category:"Strike",title:"Heel Kick Follow-Through",technique:"Heel Kick",conditioning:"15 Jump Squats",condType:"Hindu Squats",
+goal:"Develop the heel kick as a finishing tool. The jump squat pre-load powers the downward drive — this is not a stomp, it is a leg extension through the target.",
+duration:"3 min",intensity:2,intensityLabel:"Low",
+steps:["15 jump squats — feel the hip extension at the top of each jump. The heel kick is that extension directed downward.",
+"Partner kneels, holds a pad at head height. Chamber the knee high, drive heel through the pad as the leg straightens.",
+"Standing variation: partner bends forward. Deliver heel kick to a pad on their upper back.",
+"Combo: knee strike to midsection forces partner to bend — immediately deliver heel kick (pad on back of neck).",
+"Ground finish: partner on hands and knees — controlled heel kick to pad on their back, then disengage."],
+tags:["heel kick","finishing","jump squats","combo"]},
+
+{id:29,belt:"Green Belt",category:"Strike",title:"Slap Kick Range Control",technique:"Inside Slap Kick / Outside Slap Kick",conditioning:"20 Hindu Squats",condType:"Hindu Squats",
+goal:"Train slap kicks as range-disrupting tools before closing for strikes — not power kicks, but tactical openers that work off the same hip mechanics as the Hindu squat.",
+duration:"3 min",intensity:3,intensityLabel:"Moderate",
+steps:["20 Hindu squats — wide stance, feel the inner and outer hip drive. Both slap kick directions live here.",
+"Inside slap kick: drive the instep inward across the opponent's lead thigh — disrupt their base.",
+"Outside slap kick: swing outward to clear their leg and open their stance.",
+"Combo: inside slap kick / cross / hook / outside slap kick to disengage.",
+"Partner blocks randomly — adjust angle and still land. This kick is about disruption, not power."],
+tags:["slap kick","range control","base disruption","Hindu squats"]},
+
+{id:30,belt:"Green Belt",category:"Strike",title:"Inward Angle Knee",technique:"Inward Angle Knee",conditioning:"10 Burpees",condType:"Burpees",
+goal:"Develop the inward angle knee as a clinch weapon targeting the outer thigh — requires inward hip rotation trained independently from the standard straight knee.",
+duration:"3 min",intensity:3,intensityLabel:"Moderate",
+steps:["10 burpees — stand and immediately clinch partner.",
+"Inward angle knee: drive the knee across your centerline into the partner's outer thigh pad. Hip rotates inward, not just forward.",
+"Alternate: inward angle knee (thigh) → straight knee (midsection). Partner adjusts pad between.",
+"The inward knee lowers the opponent's guard — follow with straight knee to the exposed midsection.",
+"Resistance: partner steps their leg back. Adjust angle and hip rotation to still make contact."],
+tags:["knee","clinch","inward angle","hip rotation"]},
+
+{id:31,belt:"Green Belt",category:"Defense",title:"Outside Defense Circuit",technique:"Outside Defense #1–#5",conditioning:"Sprint 20 yards + turn",condType:"Sprint",
+goal:"Train all five outside defense angles from a sprinting approach — replicating the moment when a moving defender must instantly transition to a defense.",
+duration:"6 min",intensity:3,intensityLabel:"Moderate",
+steps:["Sprint 20 yards, turn, face partner. They throw a punch at one of five angles — defend and counter.",
+"First 2 min: partner calls the angle before throwing. Use the correct outside defense.",
+"Next 2 min: no call. React to the attack angle and pick the defense.",
+"Speed round: rapid-fire alternating angles, no pauses between attacks.",
+"Final: partner mixes outside-angle with straight punches. Use outside OR inside defense as appropriate."],
+tags:["outside defense","reflex","sprint approach","decision drill"]},
+
+{id:32,belt:"Green Belt",category:"Defense",title:"High Round Kick Defense",technique:"Defense against High Round Kick (Reflexive Defense / Two Contact Points)",conditioning:"10 Hindu Push-ups",condType:"Hindu Push-ups",
+goal:"Build the reflex cover against high kicks so it fires automatically. Push-up pre-load raises the shoulders, making the cover position more natural.",
+duration:"4 min",intensity:3,intensityLabel:"Moderate",
+steps:["10 Hindu push-ups — shoulders elevated and warm.",
+"Partner delivers slow high round kicks. Cover: forearm absorbs on the meat, not the wrist. Counter immediately.",
+"Two contact points: step into the kick, shoulder and forearm both absorbing, disrupting the kick's arc.",
+"Partner mixes high kicks with punches — defend each without knowing what is coming.",
+"Fatigue drill: 10 more Hindu push-ups, then immediately receive 10 mixed attacks. Maintain defense quality."],
+tags:["high kick defense","cover","reflex","Hindu push-ups"]},
+
+{id:33,belt:"Green Belt",category:"Defense",title:"Punching Defense: Simultaneous",technique:"Outside Defense against Right Punch (Punching Defense)",conditioning:"15 Hindu Squats",condType:"Hindu Squats",
+goal:"Train the punching defense so the redirect and counterstrike arrive simultaneously — not block then punch, but both at once.",
+duration:"4 min",intensity:3,intensityLabel:"Moderate",
+steps:["15 Hindu squats — establish loose, reactive hip position.",
+"Partner throws slow right cross. Your left hand redirects while your right cross fires — both complete at the same moment.",
+"Drill in slow motion until the timing is perfect. One movement, not two.",
+"Speed up gradually. The defense fails if the block fires before the punch.",
+"Partner mixes right cross with left jabs — punching defense for the cross, inside defense for the jab."],
+tags:["punching defense","simultaneous","timing","partner drill"]},
+
+{id:34,belt:"Green Belt",category:"Groundfighting",title:"Guillotine Survival",technique:"Standing Reverse Headlock (Guillotine) / Guard—Guillotine",conditioning:"Wrestler's Bridge 30 sec",condType:"Bridge",
+goal:"A guillotine compresses the neck — bridge work directly strengthens the neck structures that resist that compression. Not just a warmup: foundational prep.",
+duration:"5 min",intensity:4,intensityLabel:"High",
+steps:["Wrestler's bridge for 30 seconds — hold steady, breathe.",
+"Standing guillotine: partner catches a headlock. Turn into the attacker, posture up, and escape.",
+"Guard guillotine: partner catches your neck from guard. Posture, tuck chin, pass the guard to escape.",
+"Apply increasing resistance each rep. Tap system required.",
+"Scenario drill: standing combo ends mid-fight with partner catching a guillotine. Escape and continue."],
+tags:["guillotine","groundfighting","neck strength","bridge"]},
+
+{id:35,belt:"Green Belt",category:"Groundfighting",title:"Side Mount Control & Transition",technique:"Side Mount (Basic / Arm Lock / Strikes / Transition to Full Mount)",conditioning:"20 Mountain Climbers",condType:"Burpees",
+goal:"Develop offensive side mount. Mountain climbers pre-load the core that maintains base while the bottom player resists and attempts escapes.",
+duration:"4 min",intensity:3,intensityLabel:"Moderate",
+steps:["20 mountain climbers — core engaged and warm.",
+"Achieve side mount. Partner bridges and rolls actively — maintain 30 sec using weight and hip pressure.",
+"Deliver knees to head and body while maintaining base. Each knee must not compromise your base.",
+"Attempt arm lock — partner defends with elbow tuck. Read and adjust.",
+"Transition to full mount on cue — the transition must be continuous, not a two-step."],
+tags:["side mount","groundfighting","control","core conditioning"]},
+
+{id:36,belt:"Green Belt",category:"Groundfighting",title:"Guard Reversal & Sweep",technique:"Guard Reversal (Sit Up and Sweep) / Side Mount Disengage (Knee to Belly)",conditioning:"12 Burpees",condType:"Burpees",
+goal:"Train the guard sweep and knee-to-belly disengage from genuine exertion — these techniques are most needed exactly when you are most tired.",
+duration:"5 min",intensity:4,intensityLabel:"High",
+steps:["12 burpees — drop immediately to the guard position.",
+"Partner postures upright in your guard. Sit up explosively, overhook the arm, sweep to the side.",
+"Follow into top position immediately — never stay on your back after the sweep.",
+"Knee-to-belly: from side mount bottom, frame against partner, insert knee to create space, disengage and stand.",
+"Chain drill: if sweep fails, transition directly to knee-to-belly. Train both as a connected fallback."],
+tags:["guard","sweep","reversal","knee to belly","groundfighting"]},
+
+{id:37,belt:"Green Belt",category:"Groundfighting",title:"Roll & Recover",technique:"Forward Roll / Backward Roll / Forward Roll + Back Fall Break (High Speed)",conditioning:"Bear Crawl 15 yards",condType:"Burpees",
+goal:"Build rolls as evasive and recovery tools. The bear crawl warms wrists and shoulders for impact absorption and trains spatial awareness needed for safe rolling.",
+duration:"4 min",intensity:2,intensityLabel:"Low",
+steps:["Bear crawl 15 yards: hands and feet, knees off floor, controlled shoulder positioning throughout.",
+"Forward roll: tuck chin, lead with shoulder (not head), roll diagonally across back, spring to fighting stance.",
+"10 forward rolls in a line, each finishing immediately in fighting stance facing back to start.",
+"Backward roll: roll back over one shoulder — avoid the spine.",
+"High-speed combination: forward roll at a sprint → directly into a back fall break."],
+tags:["rolls","fall break","bear crawl","shoulder conditioning"]},
+
+{id:38,belt:"Green Belt",category:"Combination",title:"Multi-Angle Strike & Defend",technique:"Outside Defenses / Headbutt / Slap Kicks / Offensive Back Kick",conditioning:"Full Royal Court: 25 Hindu Squats + 10 Hindu Push-ups + 20 sec Bridge",condType:"Hindu Squats",
+goal:"Combine all Green Belt offensive and defensive tools in a chaotic multi-angle environment — after the Royal Court, quality must not drop.",
+duration:"8 min",intensity:5,intensityLabel:"Max Effort",
+steps:["Royal Court: 25 Hindu squats → 10 Hindu push-ups → 20-sec bridge. Immediately face the drill.",
+"Two partners from different angles — one punches (outside defense), one kicks (kick defense). Defend and counter.",
+"Third partner adds a slap kick from the side — create range and counter.",
+"No script — all three attackers move freely. Prioritize the most immediate threat.",
+"Every 90 sec: 10 Hindu squats, then immediately back into the drill."],
+tags:["multi-attacker","outside defense","combo","max intensity","royal court"]},
+
+// ═══ BLUE BELT ═══
+{id:39,belt:"Blue Belt",category:"Strike",title:"Chop Strike Arsenal",technique:"Inside Chop / Outside Chop / Mouth of Hand",conditioning:"15 Hindu Push-ups",condType:"Hindu Push-ups",
+goal:"Build three edge-of-hand strikes as alternatives to punching. Hindu push-ups condition the forearm edge that delivers the strike, and force the strikes to come from body rotation.",
+duration:"4 min",intensity:2,intensityLabel:"Low",
+steps:["15 Hindu push-ups — feel the blade of the hand bearing weight at the bottom of each rep. That surface is the striking surface.",
+"Inside chop: drive the blade of the hand inward across pad at throat height. Hip rotation drives this, not arm swing.",
+"Outside chop: swing outward to the side of the neck or base of skull. Elbow slightly bent.",
+"Mouth of hand: web between thumb and forefinger into the throat. Useful at very close range.",
+"Combo: jab/cross to create flinch → inside chop to the throat as the guard rises."],
+tags:["chop","edge of hand","close range","Hindu push-ups"]},
+
+{id:40,belt:"Blue Belt",category:"Strike",title:"Axe Kick Precision",technique:"Axe Kick",conditioning:"20 Jump Squats",condType:"Hindu Squats",
+goal:"Build the axe kick's downward drive. Jump squats fire the hip flexors and extensors in the exact sequence needed for a high chamber and sharp downward finish.",
+duration:"3 min",intensity:2,intensityLabel:"Low",
+steps:["20 jump squats — focus on driving hips through at the top of each jump. The heel of the axe kick uses this same hip thrust.",
+"Partner holds a horizontal pad at collarbone height. Chamber high, drive heel down through the pad.",
+"Static first: 5 reps from standing still. Then from a 2-step approach.",
+"Partner lowers the pad unpredictably — re-chamber and adjust the heel's trajectory mid-kick.",
+"Combo: jab/cross/axe kick to the collarbone or shoulder to break the opponent's guard."],
+tags:["axe kick","precision","jump squats","hip drive"]},
+
+{id:41,belt:"Blue Belt",category:"Strike",title:"Spinning Kick Integration",technique:"Spinning Outside Slap Kick / Spinning Heel Kick",conditioning:"30 Hindu Squats",condType:"Hindu Squats",
+goal:"Integrate spinning kicks into real combinations. The squat pre-load makes the pivot leg reliable under fatigue, and trains blind-side awareness.",
+duration:"4 min",intensity:4,intensityLabel:"High",
+steps:["30 Hindu squats — final 10 reps, add a quarter-turn pivot at the top. Train the pivot reflex.",
+"Set up with jab/cross to occupy partner. Pivot and deliver spinning outside slap kick to the body.",
+"Spinning heel kick: partner holds pad at head/neck height. Drive the heel through on the spin.",
+"After every spinning kick, immediately check for a second opponent behind you. Build this habit.",
+"Missed kick rule: if you miss the spin, drop to base and cover — never chase a missed spinning kick."],
+tags:["spinning kick","pivot","Hindu squats","combo"]},
+
+{id:42,belt:"Blue Belt",category:"Defense",title:"Sliding High Kick Defense",technique:"General Defense against Medium/High Kicks / Sliding Defense against High Round Kick / Sliding Defense against Spinning Heel Kick",conditioning:"Sprint 20 yards + turn",condType:"Sprint",
+goal:"Train the sliding defense as a forward-burst counter. A sprinting approach primes the legs for the step-in rather than the reflexive step-back.",
+duration:"5 min",intensity:3,intensityLabel:"Moderate",
+steps:["Sprint 20 yards, turn, face partner delivering slow high round kicks. Cover block first.",
+"Sliding defense: on the kick chamber, step diagonally forward into the attacker — jam the hip before the kick generates power.",
+"Spinning heel kick: read the shoulder rotation that telegraphs the spin. Burst forward before the heel arrives.",
+"After each slide-in: immediately clinch and deliver knees.",
+"Decision drill: partner delivers round kick or straight punch. Slide into the kick; defend the punch normally."],
+tags:["sliding defense","high kick","burst","sprint approach"]},
+
+{id:43,belt:"Blue Belt",category:"Weapon Defense",title:"Stick Defense Flow",technique:"Stick Defenses: Overhead / Overhead Off-Angle / Baseball Bat Swing",conditioning:"15 Hindu Push-ups",condType:"Hindu Push-ups",
+goal:"Train stick defenses against all three angles — push-up fatigue forces the arms to follow the body burst rather than block with arm strength alone.",
+duration:"6 min",intensity:4,intensityLabel:"High",
+steps:["15 Hindu push-ups — arms pre-loaded. The defense must come from the burst, not the arms.",
+"Overhead swing: burst inside (or outside), redirect the weapon, deliver continuous counterattacks.",
+"Overhead off-angle (dead side): one burst handles weapon control and distance-closing simultaneously.",
+"Baseball bat swing (horizontal): burst inside or outside based on angle. Do not retreat.",
+"Three-strike combo: partner delivers overhead → off-angle → horizontal. Defend first, ride second, counter on third."],
+tags:["stick defense","burst","weapon","Hindu push-ups"]},
+
+{id:44,belt:"Blue Belt",category:"Weapon Defense",title:"Gun Front: Burst & Control",technique:"Gun Defense from the Front",conditioning:"10 Burpees",condType:"Burpees",
+goal:"Train the gun burst and redirect from elevated heart rate — burpees simulate the physical state when a threat suddenly appears at close range.",
+duration:"5 min",intensity:4,intensityLabel:"High",
+steps:["10 burpees — stand, heart rate elevated. Partner presses rubber gun to your chest.",
+"Burst offline and redirect simultaneously — both feet move AND the hand deflects at the same moment.",
+"Stress drill: eyes closed, striking a pad. Partner silently presses gun to chest. React on contact.",
+"Weapon strip: after redirect, partner resists. Apply the correct cavalier. Do not release the weapon hand.",
+"Walk-away: after strip, 3 steps of distance before pointing gun back. Teach the escape, not just the disarm."],
+tags:["gun defense","weapon","burst","stress inoculation","burpees"]},
+
+{id:45,belt:"Blue Belt",category:"Weapon Defense",title:"Gun to Head: Live & Dead Side",technique:"Gun to the Side of the Head / Rear Threat",conditioning:"Sprint 15 yards + turn",condType:"Sprint",
+goal:"Train gun defenses at the head from a sprinting approach — replicating the moment of being approached before a weapon appears.",
+duration:"4 min",intensity:4,intensityLabel:"High",
+steps:["Sprint 15 yards, turn, partner holds rubber gun to side of head.",
+"Burst the feet offline first — move before the hands. Redirect is secondary to getting off the line.",
+"Partner calls 'bang' at any point: if you haven't moved offline, the rep fails.",
+"Rear threat: gun pressed to back of the head. Burst to the live side, redirect barrel, turn and counter.",
+"Eyes closed variation: gun placed without warning. React on contact — feel the barrel."],
+tags:["gun defense","head threat","live side","dead side","sprint"]},
+
+{id:46,belt:"Blue Belt",category:"Defense",title:"Cavalier Lock Circuit",technique:"Cavalier #1 / #2 / #3 / #4",conditioning:"10 Hindu Push-ups",condType:"Hindu Push-ups",
+goal:"Train all four cavalier wrist locks in sequence including transitions when countered. Push-up fatigue requires the locks to be mechanical, not grip-dependent.",
+duration:"5 min",intensity:2,intensityLabel:"Low",
+steps:["10 Hindu push-ups — forearms warm. The grip must be relaxed; the lock is a structure, not a squeeze.",
+"Partner presents a grabbed wrist. Cavalier #1: apply standard wrist lock — partner taps.",
+"Partner resists #1 by bending the elbow. Transition immediately to #2 — no reset.",
+"Drill all four in sequence, then drill transitions: #1 fails → #2, etc.",
+"Flow round: partner resists randomly. Read the movement and switch locks without counting."],
+tags:["cavalier","wrist lock","transitions","Hindu push-ups"]},
+
+{id:47,belt:"Blue Belt",category:"Groundfighting",title:"Triangle Choke Setup",technique:"Triangle Choke / Guard—Guillotine / Defense against Guillotine",conditioning:"Wrestler's Bridge 30 sec",condType:"Bridge",
+goal:"Train guard attacks from a conditioned neck and strong hip bridge. Furey's bridge trains the hip elevation and neck resilience that make the triangle effective.",
+duration:"4 min",intensity:3,intensityLabel:"Moderate",
+steps:["Wrestler's bridge for 30 seconds. The triangle uses this exact hip drive.",
+"From guard: partner postures forward. Identify arm-in, arm-out. Frame, hip escape, lock the triangle.",
+"Partner resists by stacking — adjust hip angle and maintain. Do not release.",
+"Defense: partner catches a triangle on you — posture, stack, apply counter-pressure to escape.",
+"Chain: triangle fails → transition to armbar or overhook sweep. Do not abandon the position."],
+tags:["triangle choke","guard","hip bridge","bridge conditioning"]},
+
+{id:48,belt:"Blue Belt",category:"Self-Defense",title:"Takedown Circuit",technique:"Takedown #1: Simple Takedown / #2: Double-Leg / #3: Toe-Pick",conditioning:"25 Hindu Squats",condType:"Hindu Squats",
+goal:"Train all three takedowns. The Hindu squat level-change is the exact movement that makes the double-leg explosive — this is not coincidental.",
+duration:"6 min",intensity:4,intensityLabel:"High",
+steps:["25 Hindu squats — the level-change in the double-leg is this movement done explosively.",
+"Simple takedown: from collar-and-elbow clinch, step outside, drive hip into the opponent's center.",
+"Double-leg: level-change explosively from outside range, shoulder into the hips, finish to the side.",
+"Toe-pick: close range, strip the ankle while pushing the upper body in the opposite direction.",
+"Decision drill: partner stands in a static base — identify which takedown is available and execute within 2 seconds."],
+tags:["takedown","double leg","Hindu squats","level change"]},
+
+{id:49,belt:"Blue Belt",category:"Combination",title:"Weapon Stress Scenario",technique:"Gun Defense / Stick Defense / Cavaliers / Chop Strikes",conditioning:"Full Royal Court: 25 Hindu Squats + 10 Hindu Push-ups + 20 sec Bridge",condType:"Hindu Squats",
+goal:"Train weapon defenses under maximum physical stress — after the Royal Court, read an unknown threat and respond with the correct defense from a fully fatigued state.",
+duration:"8 min",intensity:5,intensityLabel:"Max Effort",
+steps:["Royal Court: 25 Hindu squats → 10 Hindu push-ups → 20-sec bridge. Immediately face the threat.",
+"Partner presents a gun, stick, or empty-hand attack without announcement. Defend correctly.",
+"After each defense: 5 more Hindu squats, then face the next threat.",
+"Partner adds verbal misdirection before threatening — train the decision moment.",
+"Debrief: which threat was hardest to read under fatigue and why?"],
+tags:["weapon defense","stress inoculation","royal court","max intensity"]},
+
+// ═══ BROWN BELT ═══
+{id:50,belt:"Brown Belt",category:"Weapon Defense",title:"Knife: Upward Stab Defense",technique:"Knife Defense against Upward Stab",conditioning:"15 Burpees",condType:"Burpees",
+goal:"Train the 360° defense against an upward knife attack under genuine cardio stress — an attacker with a knife will often close fast after an exhausting engagement.",
+duration:"5 min",intensity:4,intensityLabel:"High",
+steps:["15 burpees — stand immediately in passive stance.",
+"Partner delivers slow upward stab with rubber knife. Defend with 360° arc and simultaneous counterattack.",
+"Critical: look at the attacker's torso, NOT the knife. React to body movement.",
+"Stress drill: partner mixes upward stab with overhead attack — defender responds to attack type, not the weapon.",
+"After knife strip: deliver continuous counterattacks until the threat is completely neutralized."],
+tags:["knife defense","upward stab","360 defense","burpees"]},
+
+{id:51,belt:"Brown Belt",category:"Weapon Defense",title:"Knife: Straight Stab Live & Dead Side",technique:"Knife Defense against Straight Stab (Dead Side) / (Live Side)",conditioning:"Sprint 20 yards + turn",condType:"Sprint",
+goal:"Train both burst directions against a straight stab. The sprint primes the footwork and makes the offline burst instinctive rather than thought-out.",
+duration:"5 min",intensity:4,intensityLabel:"High",
+steps:["Sprint 20 yards, turn, face partner with rubber knife at close range.",
+"Dead-side burst: step offline away from the attacking arm. Redirect and control the weapon hand throughout.",
+"Live-side burst: step into the attacker's body. Simultaneously redirect and counter with elbow or knee.",
+"Speed drill: partner randomizes which side they attack from. Read and burst correctly — no hesitation.",
+"Partner advances during the stab — time your burst to their footstep, not the hand."],
+tags:["knife defense","straight stab","live side","dead side","sprint"]},
+
+{id:52,belt:"Brown Belt",category:"Weapon Defense",title:"Knife Slash Defense",technique:"Knife Defense against Forward Slash / Backhand Slash",conditioning:"15 Hindu Push-ups",condType:"Hindu Push-ups",
+goal:"Defend the slash series — both the first slash and the follow-through backhand. Push-up fatigue tests whether the defense holds up when the arms are pre-loaded.",
+duration:"4 min",intensity:4,intensityLabel:"High",
+steps:["15 Hindu push-ups — arms pre-loaded. Defense cannot rely on arm strength.",
+"Partner delivers slow forehand slash. Defend (burst in or redirect), counter, control the weapon hand.",
+"Backhand slash: partner delivers follow-through backhand immediately after. Defend both.",
+"Combination: forehand → backhand. Defend both and counter before partner can reset.",
+"No-look drill: eyes on attacker's torso throughout. React to body movement, not the blade."],
+tags:["knife defense","slash","backhand","Hindu push-ups"]},
+
+{id:53,belt:"Brown Belt",category:"Weapon Defense",title:"Edged Weapon Under Pressure",technique:"Combined Knife Defenses: Upward / Straight / Slash",conditioning:"Full Royal Court: 25 Hindu Squats + 10 Hindu Push-ups + 20 sec Bridge",condType:"Hindu Squats",
+goal:"All knife defenses under maximum fatigue and chaos — the Royal Court recreates the exhausted state in which a knife attack is most dangerous.",
+duration:"6 min",intensity:5,intensityLabel:"Max Effort",
+steps:["Royal Court: 25 Hindu squats → 10 Hindu push-ups → 20-sec bridge. No rest.",
+"Partner attacks with any combination of upward stab, straight stab, or slash — no pattern announced.",
+"Defend each attack with the correct response. Strip and continue counters.",
+"Second partner shoves from behind after each defense — maintain balance and continue.",
+"Debrief: which attack was hardest to read under fatigue? Identify the pre-attack visual cue for each."],
+tags:["knife defense","mixed attacks","royal court","max intensity"]},
+
+{id:54,belt:"Brown Belt",category:"Self-Defense",title:"Hip Throw in Context",technique:"Hip Throw / One-Arm Shoulder Throw",conditioning:"25 Hindu Squats",condType:"Hindu Squats",
+goal:"Integrate the hip throw into a real fighting context — from a clinch or after a blocked punch. Hindu squats build the deep hip entry that makes the throw work.",
+duration:"4 min",intensity:4,intensityLabel:"High",
+steps:["25 Hindu squats — the deep squat position is the hip throw entry.",
+"Jab/cross combo: partner catches the last punch in a clinch. Drive into the hip entry and throw.",
+"Partner resists the hip entry — transition to the one-arm shoulder throw instead.",
+"After the throw: immediately control with a strike to prevent get-up.",
+"Opposite drill: partner attempts a hip throw on you — sprawl and maintain base."],
+tags:["hip throw","shoulder throw","Hindu squats","clinch"]},
+
+{id:55,belt:"Brown Belt",category:"Self-Defense",title:"Sacrifice Throw",technique:"Face-to-Face Flip (Sacrifice Throw)",conditioning:"Wrestler's Bridge 30 sec",condType:"Bridge",
+goal:"The sacrifice throw requires complete commitment to falling backward. The bridge pre-loads the back, neck, and core trust that makes this feel natural rather than terrifying.",
+duration:"4 min",intensity:3,intensityLabel:"Moderate",
+steps:["Wrestler's bridge for 30 seconds. Feel the back and neck engaged, not compressed.",
+"From front clinch: grip the shoulders, drop weight backward, drive the foot into the partner's hip. Extend and push.",
+"Partner must have solid fall breaks before this drill. Practice their landing independently first.",
+"Slow motion: 5 reps each side at 20% speed. Progress to 60% once the landing is clean.",
+"Context: partner blocks a hip throw — transition directly to sacrifice throw without resetting."],
+tags:["sacrifice throw","bridge","partner drill","safety required"]},
+
+{id:56,belt:"Brown Belt",category:"Self-Defense",title:"Double-Leg Takedown Defense",technique:"Defense against Double-Leg Takedown / Sprawl",conditioning:"20 Hindu Squats",condType:"Hindu Squats",
+goal:"Train the sprawl as the primary defense against a double-leg. Hindu squats build the explosive hip-to-the-ground movement that makes the sprawl instinctive.",
+duration:"4 min",intensity:4,intensityLabel:"High",
+steps:["20 Hindu squats — the hip drop at the bottom of each rep is the sprawl mechanics trained slowly.",
+"Partner shoots a slow double-leg. Sprawl: hips down and back, push their head down, land chest-to-back on top.",
+"From the sprawl: transition immediately to side mount or rear naked choke attempt.",
+"Partner shoots faster — time the sprawl to their first step, not the hand contact.",
+"Chain: sprawl fails → guillotine from the clinch as backup. Train both as a connected sequence."],
+tags:["sprawl","double leg defense","Hindu squats","hip drive"]},
+
+{id:57,belt:"Brown Belt",category:"Self-Defense",title:"Machine Gun Takedown",technique:"Machine Gun Takedown",conditioning:"20 Hindu Push-ups",condType:"Hindu Push-ups",
+goal:"Train continuous forward-pressure striking that transitions into a takedown. Push-up pre-load forces the driving power to come from the legs and momentum, not exhausted arms.",
+duration:"3 min",intensity:5,intensityLabel:"Max Effort",
+steps:["20 Hindu push-ups — arms pre-loaded. Drive forward from the legs.",
+"Rapid palm strikes/elbows while driving forward. Partner holds their ground against your pressure.",
+"On the 4th–6th strike, grab the back of the head and drive it down while knee comes up.",
+"Continue driving through — do not stop until the attacker is grounded. Momentum is the weapon.",
+"Follow with ground control. Never stand still over a downed opponent."],
+tags:["takedown","aggression","Hindu push-ups","max intensity"]},
+
+{id:58,belt:"Brown Belt",category:"Self-Defense",title:"Third-Party Protection",technique:"Third-Party Protection Principles",conditioning:"Sprint 15 yards",condType:"Sprint",
+goal:"Train the unique challenge of protecting another person. The sprint to position replicates running toward a threat to protect someone else.",
+duration:"6 min",intensity:4,intensityLabel:"High",
+steps:["Sprint 15 yards toward the scene. Arrive — position yourself between the threat and the protectee.",
+"Attacker threatens the third party. Defender intercepts and neutralizes — keep protectee behind you throughout.",
+"Weapon threat: attacker holds gun to third party. Create angle, burst without endangering the protectee.",
+"Two-attacker variation: one grabs the protectee, one attacks the defender. Handle both.",
+"Debrief: what changes when protecting someone else? Discuss positioning, angles, and escape options."],
+tags:["third-party protection","scenario","multi-attacker","sprint"]},
+
+{id:59,belt:"Brown Belt",category:"Weapon Defense",title:"Rifle Defense: Burst & Strip",technique:"Defense against Rifle/Bayonet Stab—Live Side / Dead Side / Shotgun",conditioning:"10 Burpees",condType:"Burpees",
+goal:"Train the two-handed rifle defense against the highest-stakes weapon threat. Elevated heart rate from burpees forces the burst to be mechanical, not thought-out.",
+duration:"5 min",intensity:4,intensityLabel:"High",
+steps:["10 burpees — stand immediately. Partner holds training rifle at low-ready pointed at your chest.",
+"Dead-side burst: offline left, redirect muzzle with both hands. One hand on barrel, one near receiver. Do not let go.",
+"Live-side burst: step right into the attacker's body, redirect muzzle away.",
+"Bayonet stab: partner thrusts forward. Parry the barrel offline and burst into their body simultaneously.",
+"Strip and disengage: deliver a knee strike and rip the weapon. Create distance immediately."],
+tags:["rifle defense","long gun","burst","muzzle control","burpees"]},
+
+{id:60,belt:"Brown Belt",category:"Self-Defense",title:"Full Nelson: Throw or Sweep",technique:"Defense against Full Nelson: Forward Throw / Sweep",conditioning:"15 Hindu Squats",condType:"Hindu Squats",
+goal:"Train both Full Nelson escapes — reading the attacker's weight to select the correct counter. Hindu squats build the grounded base that resists the initial lift.",
+duration:"4 min",intensity:3,intensityLabel:"Moderate",
+steps:["15 Hindu squats — particularly the hip loading at the bottom of each rep. A low base resists the Nelson lift.",
+"Partner applies full nelson. Tuck chin immediately — protect the neck.",
+"Partner leans forward (forward pressure): bridge forward, drop center of gravity — forward throw.",
+"Partner leans back: hook inside leg and drop backward — sweep.",
+"Partner randomizes lean direction. Read weight distribution and apply the correct response."],
+tags:["full nelson","throw","sweep","Hindu squats"]},
+
+// ═══ STRESS / SCENARIO ═══
+{id:61,belt:"Yellow Belt",category:"Combination",title:"First Day Scenario",technique:"Multiple Yellow Belt Techniques",conditioning:"Royal Court + Sprint 15 yards",condType:"Hindu Squats",
+goal:"The defining stress test for new students — face all Yellow Belt threats in an unscripted scenario with no preparation and maximum physical stress.",
+duration:"6 min",intensity:5,intensityLabel:"Max Effort",
+steps:["Royal Court: 25 Hindu squats → 10 Hindu push-ups → 20-sec bridge. Immediately sprint 15 yards and turn.",
+"Three partners rotate through random Yellow Belt attacks: choke from front, wrist grab, straight punch, push, bearhug.",
+"One attack at a time, no pause, no warning between rounds.",
+"Two pad holders provide constant pushing and shoving throughout.",
+"Coaching: if technique fails, correct and re-run. This drill reveals what is truly learned vs. merely practiced."],
+tags:["yellow belt","scenario","stress inoculation","multi-threat","royal court"]},
+
+{id:62,belt:"Orange Belt",category:"Combination",title:"Knockout Conditioning Circuit",technique:"Combinations / Fall Breaks / Mount Escapes",conditioning:"2 Rounds Royal Court",condType:"Hindu Squats",
+goal:"Train Orange Belt techniques through two full Royal Courts — the second round must produce the same technique quality as the first, simulating a prolonged physical engagement.",
+duration:"8 min",intensity:5,intensityLabel:"Max Effort",
+steps:["Royal Court Round 1: 25 Hindu squats → 10 Hindu push-ups → 20-sec bridge → immediately drill.",
+"3 minutes of combination pad work: jab/cross/hook/uppercut, slipping incoming hooks.",
+"Drop to ground — partner mounts. Escape, get to feet.",
+"Royal Court Round 2: repeat full circuit at the same rep count. Do NOT reduce.",
+"3 more minutes of combinations under the second round of fatigue. Coach observes quality degradation."],
+tags:["orange belt","royal court","conditioning circuit","endurance","max intensity"]},
+
+{id:63,belt:"Green Belt",category:"Combination",title:"Ground & Pound Survival",technique:"Multiple Green Belt Groundfighting Techniques",conditioning:"Royal Court + 20 Mountain Climbers",condType:"Hindu Squats",
+goal:"Survive the worst-case ground scenario — mounted by a striker, fatigued, with a standing threat. The Royal Court ensures genuine fatigue before the ground fight begins.",
+duration:"6 min",intensity:5,intensityLabel:"Max Effort",
+steps:["Royal Court: 25 Hindu squats → 10 Hindu push-ups → 20-sec bridge → 20 mountain climbers. Drop to floor.",
+"Partner mounts and delivers light strikes. Third partner stands nearby and may kick (controlled, to legs only).",
+"Escape mount, get to feet, address the standing attacker before the mounted partner recovers.",
+"20-second timer: if not escaped mount, scenario resets. Track improvement over sessions.",
+"The standing attacker is the PRIORITY — escape from ground is urgent, not gradual."],
+tags:["groundfighting","multi-attacker","survival","royal court","max intensity"]},
+
+{id:64,belt:"Blue Belt",category:"Combination",title:"Lights Out Blind Defense",technique:"Multiple Blue Belt Techniques",conditioning:"Royal Court + Sprint 15 yards",condType:"Hindu Squats",
+goal:"Train all Blue Belt defenses from zero warning in a high-fatigue, low-information state — the most realistic condition for a real attack.",
+duration:"8 min",intensity:5,intensityLabel:"Max Effort",
+steps:["Royal Court + 15-yard sprint. Stop, eyes closed, passive stance.",
+"Partner delivers any Blue Belt attack — gun, stick, punch, grab — without announcing it.",
+"React to contact. Defend correctly and counterattack. Eyes open only after the defense fires.",
+"Second partner adds pad hits throughout for balance disruption.",
+"Coaching: in this state, trained instinct is the ONLY thing that works. This drill reveals it."],
+tags:["blind drill","Blue Belt","stress inoculation","royal court","max intensity"]},
+
+{id:65,belt:"Brown Belt",category:"Combination",title:"Alley Scenario",technique:"Multiple Brown Belt Techniques",conditioning:"2 Rounds Royal Court",condType:"Hindu Squats",
+goal:"Simulate a realistic ambush — approached from behind, one attacker with a knife, restricted space, no time to prepare, maximum physical exhaustion.",
+duration:"8 min",intensity:5,intensityLabel:"Max Effort",
+steps:["2 full Royal Courts in sequence. No rest between them.",
+"Defender walks a narrow corridor (marked by cones). Two attackers trail behind.",
+"On cue: one applies choke or bearhug from behind, the other presents a knife from the front.",
+"Escape the grab first, create space, address the knife.",
+"Rule: defender must exit the corridor immediately. Staying static in a confined space is a failure condition."],
+tags:["scenario","multi-attacker","knife","restricted space","royal court","max intensity"]}
+];
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let activeBelt='all', activeCat='all', activeCond='all', searchTerm='';
+
+function beltClass(belt){ return 'belt-'+belt.split(' ')[0].toLowerCase(); }
+
+function getFiltered(){
+  return DRILLS.filter(d=>{
+    const bOk = activeBelt==='all'||d.belt===activeBelt;
+    const cOk  = activeCat==='all'||d.category===activeCat;
+    const coOk = activeCond==='all'||d.condType===activeCond;
+    const s=searchTerm.toLowerCase();
+    const tOk=!s||d.title.toLowerCase().includes(s)||d.technique.toLowerCase().includes(s)||d.conditioning.toLowerCase().includes(s)||(d.tags||[]).join(' ').toLowerCase().includes(s);
+    return bOk&&cOk&&coOk&&tOk;
+  });
+}
+
+function cardHTML(d,index){
+  const steps=(d.steps||[]).map((s,i)=>`<li><span class="sn">${String(i+1).padStart(2,'0')}.</span><span>${s}</span></li>`).join('');
+  const tags=(d.tags||[]).map(t=>`<span class="tag ${t.includes('max')||t.includes('stress')||t.includes('safety')?'red':''}">${t}</span>`).join('');
+  return `<div class="drill-card ${beltClass(d.belt)}" style="animation-delay:${Math.min(index,15)*0.03}s">
+    <div class="belt-stripe"></div>
+    <div class="card-head">
+      <div>
+        <div class="card-meta">${d.belt} // ${d.category}</div>
+        <div class="card-title">${d.title}</div>
+        <div class="card-tags">${tags}</div>
+      </div>
+      <div class="dur-box"><span class="dur-label">DURATION</span><div class="dur-val">${d.duration}</div></div>
+    </div>
+    <div class="cond-block">
+      <span class="cond-icon">💪</span>
+      <span class="cond-label">CONDITIONING //</span>
+      <span class="cond-exercise">${d.conditioning}</span>
+    </div>
+    <div class="card-body">
+      <div><div class="sec-lbl">Objective</div><div class="goal-txt">${d.goal}</div></div>
+      <div><div class="sec-lbl">Execution</div><ol class="steps">${steps}</ol></div>
+      <div><div class="sec-lbl">Intensity</div>
+        <div class="intensity-row">
+          <div class="int-bar"><div class="int-fill" style="width:${d.intensity/5*100}%"></div></div>
+          <div class="int-lbl">${d.intensityLabel}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function render(){
+  const filtered=getFiltered();
+  const grid=document.getElementById('drillGrid');
+  document.getElementById('shownCount').textContent=filtered.length;
+  document.getElementById('shownCount2').textContent=filtered.length;
+  if(!filtered.length){grid.innerHTML='<div class="no-results">NO DRILLS MATCH THIS FILTER</div>';return;}
+  grid.innerHTML=filtered.map((d,i)=>cardHTML(d,i)).join('');
+}
+
+function setFilter(type,val,btn){
+  if(type==='belt'){activeBelt=val;document.querySelectorAll('#beltFilters .filter-btn').forEach(b=>b.classList.remove('active'));}
+  else if(type==='cat'){activeCat=val;document.querySelectorAll('#catFilters .filter-btn').forEach(b=>b.classList.remove('active'));}
+  else{activeCond=val;document.querySelectorAll('#condFilters .filter-btn').forEach(b=>b.classList.remove('active'));}
+  btn.classList.add('active'); render();
+}
+
+function onSearch(input){searchTerm=input.value.trim();document.getElementById('searchClear').style.display=searchTerm?'block':'none';render();}
+function clearSearch(){document.getElementById('searchBox').value='';searchTerm='';document.getElementById('searchClear').style.display='none';render();}
+
+function openRandom(){const p=getFiltered();showRandomDrill((p.length?p:DRILLS)[Math.floor(Math.random()*(p.length||DRILLS.length))]);document.getElementById('randomModal').classList.add('open');}
+function closeRandom(){document.getElementById('randomModal').classList.remove('open');}
+function reshuffleDrill(){const p=getFiltered();showRandomDrill((p.length?p:DRILLS)[Math.floor(Math.random()*(p.length||DRILLS.length))]);}
+function showRandomDrill(d){document.getElementById('randomBody').innerHTML=cardHTML(d,0)+`<button class="modal-reshuffle" onclick="reshuffleDrill()">🎲 ANOTHER RANDOM DRILL</button>`;}
+function showDrillInModal(id){const d=DRILLS.find(x=>x.id===id);if(d){showRandomDrill(d);document.getElementById('randomModal').classList.add('open');}}
+
+function openPlanner(){document.getElementById('plannerOverlay').classList.add('open');}
+function closePlanner(){document.getElementById('plannerOverlay').classList.remove('open');}
+
+function parseDuration(str){
+  const mxSec=str.match(/(\d+)\s*x\s*(\d+)\s*sec/i); if(mxSec) return Math.ceil((+mxSec[1]*+mxSec[2])/60);
+  const mxMin=str.match(/(\d+)\s*x\s*(\d+)\s*min/i); if(mxMin) return +mxMin[1]*+mxMin[2];
+  const mxB=str.match(/(\d+)\s*x\s*(\d+)(?!\s*s)/i); if(mxB) return Math.ceil((+mxB[1]*+mxB[2])/60);
+  const mn=str.match(/(\d+)\s*min/i); if(mn) return +mn[1];
+  const sc=str.match(/(\d+)\s*sec/i); if(sc) return Math.ceil(+sc[1]/60);
+  return 4;
+}
+
+function buildSession(){
+  const totalMin=+document.getElementById('planDuration').value;
+  const beltFocus=document.getElementById('planBelt').value;
+  const catFocus=document.getElementById('planCat').value;
+  const warmupMin=totalMin>=60?10:5, cooldownMin=totalMin>=60?8:5;
+  const drillTime=totalMin-warmupMin-cooldownMin;
+  let pool=DRILLS.filter(d=>(beltFocus==='all'||d.belt===beltFocus)&&(catFocus==='all'||d.category===catFocus));
+  if(pool.length<3) pool=DRILLS;
+  const shuffled=[...pool].sort(()=>Math.random()-.5);
+  const phaseOrder=catFocus==='all'?['Strike','Defense','Self-Defense','Combination','Groundfighting','Weapon Defense']:[catFocus,'Combination','Strike','Defense','Self-Defense','Groundfighting','Weapon Defense'];
+  const chosen=[]; const usedIds=new Set(); let timeLeft=drillTime;
+  for(const cat of phaseOrder){if(timeLeft<=0)break;const pick=shuffled.find(d=>d.category===cat&&!usedIds.has(d.id));if(pick){const dur=parseDuration(pick.duration);if(dur<=timeLeft+2){chosen.push(pick);usedIds.add(pick.id);timeLeft-=dur;}}}
+  for(const d of shuffled){if(timeLeft<=1)break;if(usedIds.has(d.id))continue;const dur=parseDuration(d.duration);if(dur<=timeLeft+1){chosen.push(d);usedIds.add(d.id);timeLeft-=dur;}}
+  chosen.sort((a,b)=>a.intensity-b.intensity);
+  const phases=[{name:'WARM-UP',time:warmupMin,drills:[],note:'Royal Court warm-up: 15 Hindu squats → 8 Hindu push-ups → 15-sec bridge. Joint circles, footwork, passive stance review.'}];
+  const t=chosen.filter(d=>d.intensity<=2),m=chosen.filter(d=>d.intensity===3),h=chosen.filter(d=>d.intensity>=4);
+  if(t.length)phases.push({name:'TECHNIQUE',drills:t});
+  if(m.length)phases.push({name:'DRILLING',drills:m});
+  if(h.length)phases.push({name:'PRESSURE TRAINING',drills:h});
+  phases.push({name:'COOL-DOWN',time:cooldownMin,drills:[],note:"Light stretching, Furey bridging hold 30 sec, breathing reset, debrief of key corrections from today's session."});
+  phases.forEach(p=>{if(!p.time)p.time=p.drills.reduce((s,d)=>s+parseDuration(d.duration),0);});
+  let clock=0; const fmt=m=>`${String(Math.floor(m)).padStart(2,'0')}:00`;
+  let html=`<div class="session-hdr"><div class="session-title">CLASS SESSION PLAN</div><div class="session-meta"><div class="smeta">DURATION: <span>${totalMin} MIN</span></div><div class="smeta">BELT: <span>${beltFocus==='all'?'ALL LEVELS':beltFocus.toUpperCase()}</span></div><div class="smeta">FOCUS: <span>${catFocus==='all'?'BALANCED':catFocus.toUpperCase()}</span></div><div class="smeta">DRILLS: <span>${chosen.length}</span></div></div></div>`;
+  phases.forEach((phase,pi)=>{
+    const start=fmt(clock); clock+=phase.time; const end=fmt(clock);
+    html+=`<div class="session-phase"><div class="phase-hdr"><div class="phase-num">${String(pi+1).padStart(2,'0')}</div><div class="phase-name">${phase.name}</div><div class="phase-time">${start} → ${end} (${phase.time} MIN)</div></div>`;
+    if(phase.note)html+=`<div style="font-size:.78rem;color:var(--muted);font-style:italic;padding:7px 0 4px;">${phase.note}</div>`;
+    if(phase.drills&&phase.drills.length){let phaseClk=clock-phase.time;phase.drills.forEach(d=>{const dur=parseDuration(d.duration);html+=`<div class="sdr ${beltClass(d.belt)}" onclick="showDrillInModal(${d.id})"><div class="sdr-time">${fmt(phaseClk)}</div><div class="sdr-info"><div class="sdr-title">${d.title}</div><div class="sdr-sub">${d.technique} · ${d.belt} · 💪 ${d.conditioning}</div></div><div class="sdr-dur">${d.duration}</div></div>`;phaseClk+=dur;});}
+    html+=`</div>`;
+  });
+  html+=`<button class="btn-print-session" onclick="printSession()">⎙ PRINT SESSION PLAN</button>`;
+  document.getElementById('sessionOutput').innerHTML=html;
+}
+
+function printSession(){
+  const content=document.getElementById('sessionOutput').innerHTML;
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>KM Session Plan</title><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Barlow:wght@400;600&display=swap" rel="stylesheet"><style>body{font-family:Barlow,sans-serif;background:white;color:#111;padding:24px}.session-hdr{border:1px solid #ccc;padding:12px 16px;margin-bottom:20px}.session-title{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:3px;color:#b8930a}.session-meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}.smeta{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:#666}.smeta span{color:#111}.phase-hdr{display:flex;align-items:center;gap:10px;border-bottom:1px solid #ccc;padding-bottom:6px;margin-bottom:10px}.phase-num{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:#b8930a}.phase-name{font-family:'Bebas Neue',sans-serif;font-size:1.1rem}.phase-time{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:#888;margin-left:auto}.session-phase{margin-bottom:18px;page-break-inside:avoid}.sdr{border:1px solid #ddd;border-left:3px solid #b8930a;padding:8px 12px;margin-bottom:6px;display:flex;gap:10px}.sdr-time{font-family:'Bebas Neue',sans-serif;font-size:.95rem;color:#b8930a;min-width:48px}.sdr-title{font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:1px}.sdr-sub{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:#888}.sdr-dur{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:#888;margin-left:auto}.btn-build,.btn-print-session,.modal-close{display:none}</style></head><body>${content}</body></html>`);
+  win.document.close(); win.focus(); setTimeout(()=>win.print(),400);
+}
+
+document.getElementById('totalCount').textContent=DRILLS.length;
+document.getElementById('totalCount2').textContent=DRILLS.length;
+render();
+</script>
+</body>
+</html>
