@@ -142,6 +142,9 @@ header { background:var(--surface); border-bottom:2px solid var(--accent); paddi
   .card-title,.cond-exercise{color:#000}
   .belt-stripe{print-color-adjust:exact;-webkit-print-color-adjust:exact}
 }
+.mode-both.active  { background:#2a4a2a; border-color:#3a7a3a; color:#8aca8a; }
+.mode-krav.active  { background:#2a1a1a; border-color:#8a3a2a; color:#e07060; }
+.mode-cond.active  { background:#1a2535; border-color:#2a50aa; color:var(--cond-text); }
 ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-thumb{background:var(--border)}
 </style>
 </head>
@@ -161,6 +164,12 @@ header { background:var(--surface); border-bottom:2px solid var(--accent); paddi
 </header>
 
 <div class="controls">
+  <div class="filter-group" id="modeFilters">
+    <button class="filter-btn mode-both active" onclick="setMode('both',this)">⚡ BOTH</button>
+    <button class="filter-btn mode-krav" onclick="setMode('krav',this)">🥋 KRAV ONLY</button>
+    <button class="filter-btn mode-cond" onclick="setMode('conditioning',this)">💪 CONDITIONING ONLY</button>
+  </div>
+  <div class="divider"></div>
   <div class="filter-group" id="beltFilters">
     <button class="filter-btn active" onclick="setFilter('belt','all',this)">ALL</button>
     <button class="filter-btn belt-yellow" onclick="setFilter('belt','Yellow Belt',this)">YELLOW</button>
@@ -910,6 +919,8 @@ tags:["scenario","multi-attacker","knife","restricted space","royal court","max 
 
 // ─── STATE ──────────────────────────────────────────────────────────────────
 let activeBelt='all', activeCat='all', activeCond='all', searchTerm='';
+let activeMode='both'; // 'both' | 'krav' | 'conditioning'
+let lastRandomId = -1;
 
 function beltClass(belt){ return 'belt-'+belt.split(' ')[0].toLowerCase(); }
 
@@ -927,6 +938,35 @@ function getFiltered(){
 function cardHTML(d,index){
   const steps=(d.steps||[]).map((s,i)=>`<li><span class="sn">${String(i+1).padStart(2,'0')}.</span><span>${s}</span></li>`).join('');
   const tags=(d.tags||[]).map(t=>`<span class="tag ${t.includes('max')||t.includes('stress')||t.includes('safety')?'red':''}">${t}</span>`).join('');
+  const showCond  = activeMode==='both' || activeMode==='conditioning';
+  const showKrav  = activeMode==='both' || activeMode==='krav';
+  const condBlock = showCond ? `
+    <div class="cond-block">
+      <span class="cond-icon">💪</span>
+      <span class="cond-label">CONDITIONING //</span>
+      <span class="cond-exercise">${d.conditioning}</span>
+    </div>` : '';
+  const condOnlyNote = activeMode==='conditioning' ? `
+    <div class="card-body">
+      <div><div class="sec-lbl">Paired Technique</div><div class="goal-txt">${d.technique}</div></div>
+      <div><div class="sec-lbl">Intensity</div>
+        <div class="intensity-row">
+          <div class="int-bar"><div class="int-fill" style="width:${d.intensity/5*100}%"></div></div>
+          <div class="int-lbl">${d.intensityLabel}</div>
+        </div>
+      </div>
+    </div>` : '';
+  const fullBody = showKrav ? `
+    <div class="card-body">
+      <div><div class="sec-lbl">Objective</div><div class="goal-txt">${d.goal}</div></div>
+      <div><div class="sec-lbl">Execution</div><ol class="steps">${steps}</ol></div>
+      <div><div class="sec-lbl">Intensity</div>
+        <div class="intensity-row">
+          <div class="int-bar"><div class="int-fill" style="width:${d.intensity/5*100}%"></div></div>
+          <div class="int-lbl">${d.intensityLabel}</div>
+        </div>
+      </div>
+    </div>` : condOnlyNote;
   return `<div class="drill-card ${beltClass(d.belt)}" style="animation-delay:${Math.min(index,15)*0.03}s">
     <div class="belt-stripe"></div>
     <div class="card-head">
@@ -937,21 +977,8 @@ function cardHTML(d,index){
       </div>
       <div class="dur-box"><span class="dur-label">DURATION</span><div class="dur-val">${d.duration}</div></div>
     </div>
-    <div class="cond-block">
-      <span class="cond-icon">💪</span>
-      <span class="cond-label">CONDITIONING //</span>
-      <span class="cond-exercise">${d.conditioning}</span>
-    </div>
-    <div class="card-body">
-      <div><div class="sec-lbl">Objective</div><div class="goal-txt">${d.goal}</div></div>
-      <div><div class="sec-lbl">Execution</div><ol class="steps">${steps}</ol></div>
-      <div><div class="sec-lbl">Intensity</div>
-        <div class="intensity-row">
-          <div class="int-bar"><div class="int-fill" style="width:${d.intensity/5*100}%"></div></div>
-          <div class="int-lbl">${d.intensityLabel}</div>
-        </div>
-      </div>
-    </div>
+    ${condBlock}
+    ${fullBody}
   </div>`;
 }
 
@@ -974,11 +1001,25 @@ function setFilter(type,val,btn){
 function onSearch(input){searchTerm=input.value.trim();document.getElementById('searchClear').style.display=searchTerm?'block':'none';render();}
 function clearSearch(){document.getElementById('searchBox').value='';searchTerm='';document.getElementById('searchClear').style.display='none';render();}
 
-function openRandom(){const p=getFiltered();showRandomDrill((p.length?p:DRILLS)[Math.floor(Math.random()*(p.length||DRILLS.length))]);document.getElementById('randomModal').classList.add('open');}
+function pickRandom(){
+  const p=getFiltered().length?getFiltered():DRILLS;
+  if(p.length===1) return p[0];
+  let pick, attempts=0;
+  do { pick=p[Math.floor(Math.random()*p.length)]; attempts++; }
+  while(pick.id===lastRandomId && attempts<10);
+  return pick;
+}
+function openRandom(){const d=pickRandom();lastRandomId=d.id;showRandomDrill(d);document.getElementById('randomModal').classList.add('open');}
 function closeRandom(){document.getElementById('randomModal').classList.remove('open');}
-function reshuffleDrill(){const p=getFiltered();showRandomDrill((p.length?p:DRILLS)[Math.floor(Math.random()*(p.length||DRILLS.length))]);}
+function reshuffleDrill(){const d=pickRandom();lastRandomId=d.id;showRandomDrill(d);}
 function showRandomDrill(d){document.getElementById('randomBody').innerHTML=cardHTML(d,0)+`<button class="modal-reshuffle" onclick="reshuffleDrill()">🎲 ANOTHER RANDOM DRILL</button>`;}
 function showDrillInModal(id){const d=DRILLS.find(x=>x.id===id);if(d){showRandomDrill(d);document.getElementById('randomModal').classList.add('open');}}
+function setMode(val,btn){
+  activeMode=val;
+  document.querySelectorAll('#modeFilters .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
 
 function openPlanner(){document.getElementById('plannerOverlay').classList.add('open');}
 function closePlanner(){document.getElementById('plannerOverlay').classList.remove('open');}
