@@ -178,6 +178,7 @@ header { background:var(--surface); border-bottom:2px solid var(--accent); paddi
     <button class="filter-btn belt-blue"   onclick="setFilter('belt','Blue Belt',this)">BLUE</button>
     <button class="filter-btn belt-brown"  onclick="setFilter('belt','Brown Belt',this)">BROWN</button>
   </div>
+  <div id="catFilterRow" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
   <div class="divider"></div>
   <div class="filter-group" id="catFilters">
     <button class="filter-btn active" onclick="setFilter('cat','all',this)">ALL TYPES</button>
@@ -188,6 +189,8 @@ header { background:var(--surface); border-bottom:2px solid var(--accent); paddi
     <button class="filter-btn" onclick="setFilter('cat','Combination',this)">COMBOS</button>
     <button class="filter-btn" onclick="setFilter('cat','Self-Defense',this)">SELF-DEF</button>
   </div>
+  </div>
+  <div id="condFilterRow" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
   <div class="divider"></div>
   <div class="filter-group" id="condFilters">
     <button class="filter-btn active" onclick="setFilter('cond','all',this)">ALL CONDITIONING</button>
@@ -196,6 +199,7 @@ header { background:var(--surface); border-bottom:2px solid var(--accent); paddi
     <button class="filter-btn" onclick="setFilter('cond','Bridge',this)">BRIDGE</button>
     <button class="filter-btn" onclick="setFilter('cond','Sprint',this)">SPRINT</button>
     <button class="filter-btn" onclick="setFilter('cond','Burpees',this)">BURPEES</button>
+  </div>
   </div>
   <div class="search-wrap">
     <input type="text" id="searchBox" placeholder="SEARCH..." oninput="onSearch(this)">
@@ -936,37 +940,65 @@ function getFiltered(){
 }
 
 function cardHTML(d,index){
-  const steps=(d.steps||[]).map((s,i)=>`<li><span class="sn">${String(i+1).padStart(2,'0')}.</span><span>${s}</span></li>`).join('');
-  const tags=(d.tags||[]).map(t=>`<span class="tag ${t.includes('max')||t.includes('stress')||t.includes('safety')?'red':''}">${t}</span>`).join('');
-  const showCond  = activeMode==='both' || activeMode==='conditioning';
-  const showKrav  = activeMode==='both' || activeMode==='krav';
-  const condBlock = showCond ? `
+  // Step[0] is always the conditioning exercise; steps[1..N] are krav technique steps
+  const allSteps   = d.steps || [];
+  const condStep   = allSteps[0] || '';
+  const kravSteps  = allSteps.slice(1);
+  const tags = (d.tags||[]).map(t=>`<span class="tag ${t.includes('max')||t.includes('stress')||t.includes('safety')?'red':''}">${t}</span>`).join('');
+
+  const intensityBar = `
+    <div class="sec-lbl">Intensity</div>
+    <div class="intensity-row">
+      <div class="int-bar"><div class="int-fill" style="width:${d.intensity/5*100}%"></div></div>
+      <div class="int-lbl">${d.intensityLabel}</div>
+    </div>`;
+
+  let body = '';
+
+  if(activeMode === 'conditioning'){
+    // Conditioning block + conditioning step only
+    body = `
     <div class="cond-block">
       <span class="cond-icon">💪</span>
       <span class="cond-label">CONDITIONING //</span>
       <span class="cond-exercise">${d.conditioning}</span>
-    </div>` : '';
-  const condOnlyNote = activeMode==='conditioning' ? `
+    </div>
     <div class="card-body">
       <div><div class="sec-lbl">Paired Technique</div><div class="goal-txt">${d.technique}</div></div>
-      <div><div class="sec-lbl">Intensity</div>
-        <div class="intensity-row">
-          <div class="int-bar"><div class="int-fill" style="width:${d.intensity/5*100}%"></div></div>
-          <div class="int-lbl">${d.intensityLabel}</div>
-        </div>
+      <div>
+        <div class="sec-lbl">How To</div>
+        <ol class="steps"><li><span class="sn">01.</span><span>${condStep}</span></li></ol>
       </div>
-    </div>` : '';
-  const fullBody = showKrav ? `
+      <div>${intensityBar}</div>
+    </div>`;
+
+  } else if(activeMode === 'krav'){
+    // No conditioning block, no conditioning step — pure krav technique only
+    const kravHTML = kravSteps.map((s,i)=>`<li><span class="sn">${String(i+1).padStart(2,'0')}.</span><span>${s}</span></li>`).join('');
+    body = `
+    <div class="card-body">
+      <div><div class="sec-lbl">Technique</div><div class="goal-txt">${d.technique}</div></div>
+      <div><div class="sec-lbl">Objective</div><div class="goal-txt">${d.goal}</div></div>
+      <div><div class="sec-lbl">Execution</div><ol class="steps">${kravHTML}</ol></div>
+      <div>${intensityBar}</div>
+    </div>`;
+
+  } else {
+    // BOTH — full card: conditioning block + all steps
+    const allHTML = allSteps.map((s,i)=>`<li><span class="sn">${String(i+1).padStart(2,'0')}.</span><span>${s}</span></li>`).join('');
+    body = `
+    <div class="cond-block">
+      <span class="cond-icon">💪</span>
+      <span class="cond-label">CONDITIONING //</span>
+      <span class="cond-exercise">${d.conditioning}</span>
+    </div>
     <div class="card-body">
       <div><div class="sec-lbl">Objective</div><div class="goal-txt">${d.goal}</div></div>
-      <div><div class="sec-lbl">Execution</div><ol class="steps">${steps}</ol></div>
-      <div><div class="sec-lbl">Intensity</div>
-        <div class="intensity-row">
-          <div class="int-bar"><div class="int-fill" style="width:${d.intensity/5*100}%"></div></div>
-          <div class="int-lbl">${d.intensityLabel}</div>
-        </div>
-      </div>
-    </div>` : condOnlyNote;
+      <div><div class="sec-lbl">Execution</div><ol class="steps">${allHTML}</ol></div>
+      <div>${intensityBar}</div>
+    </div>`;
+  }
+
   return `<div class="drill-card ${beltClass(d.belt)}" style="animation-delay:${Math.min(index,15)*0.03}s">
     <div class="belt-stripe"></div>
     <div class="card-head">
@@ -977,8 +1009,7 @@ function cardHTML(d,index){
       </div>
       <div class="dur-box"><span class="dur-label">DURATION</span><div class="dur-val">${d.duration}</div></div>
     </div>
-    ${condBlock}
-    ${fullBody}
+    ${body}
   </div>`;
 }
 
@@ -1018,6 +1049,28 @@ function setMode(val,btn){
   activeMode=val;
   document.querySelectorAll('#modeFilters .filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  // KRAV ONLY: conditioning filter irrelevant — reset it and hide it
+  // CONDITIONING ONLY: category filter irrelevant — reset it and hide it
+  // BOTH: show everything
+  const condRow = document.getElementById('condFilterRow');
+  const catRow  = document.getElementById('catFilterRow');
+  if(val==='krav'){
+    condRow.style.display='none';
+    catRow.style.display='';
+    // reset any active cond filter
+    activeCond='all';
+    document.querySelectorAll('#condFilters .filter-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector('#condFilters .filter-btn').classList.add('active');
+  } else if(val==='conditioning'){
+    condRow.style.display='';
+    catRow.style.display='none';
+    activeCat='all';
+    document.querySelectorAll('#catFilters .filter-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector('#catFilters .filter-btn').classList.add('active');
+  } else {
+    condRow.style.display='';
+    catRow.style.display='';
+  }
   render();
 }
 
@@ -1047,20 +1100,38 @@ function buildSession(){
   for(const cat of phaseOrder){if(timeLeft<=0)break;const pick=shuffled.find(d=>d.category===cat&&!usedIds.has(d.id));if(pick){const dur=parseDuration(pick.duration);if(dur<=timeLeft+2){chosen.push(pick);usedIds.add(pick.id);timeLeft-=dur;}}}
   for(const d of shuffled){if(timeLeft<=1)break;if(usedIds.has(d.id))continue;const dur=parseDuration(d.duration);if(dur<=timeLeft+1){chosen.push(d);usedIds.add(d.id);timeLeft-=dur;}}
   chosen.sort((a,b)=>a.intensity-b.intensity);
-  const phases=[{name:'WARM-UP',time:warmupMin,drills:[],note:'Royal Court warm-up: 15 Hindu squats → 8 Hindu push-ups → 15-sec bridge. Joint circles, footwork, passive stance review.'}];
+  const isKravOnly = activeMode === 'krav';
+  const isCondOnly = activeMode === 'conditioning';
+  const warmupNote = isKravOnly
+    ? 'Warm-up: joint circles, wrist/shoulder mobility, footwork patterns, passive stance review.'
+    : isCondOnly
+      ? 'Royal Court warm-up: 15 Hindu squats → 8 Hindu push-ups → 15-sec bridge. Focus on full range and breathing.'
+      : 'Royal Court warm-up: 15 Hindu squats → 8 Hindu push-ups → 15-sec bridge. Joint circles, footwork, passive stance review.';
+  const cooldownNote = isKravOnly
+    ? 'Light stretching, breathing reset, technique corrections debrief.'
+    : "Light stretching, Furey bridging hold 30 sec, breathing reset, debrief of key corrections from today's session.";
+  const modeLabel = isKravOnly ? 'KRAV ONLY' : isCondOnly ? 'CONDITIONING ONLY' : 'BOTH';
+
+  const phases=[{name:'WARM-UP',time:warmupMin,drills:[],note:warmupNote}];
   const t=chosen.filter(d=>d.intensity<=2),m=chosen.filter(d=>d.intensity===3),h=chosen.filter(d=>d.intensity>=4);
   if(t.length)phases.push({name:'TECHNIQUE',drills:t});
   if(m.length)phases.push({name:'DRILLING',drills:m});
   if(h.length)phases.push({name:'PRESSURE TRAINING',drills:h});
-  phases.push({name:'COOL-DOWN',time:cooldownMin,drills:[],note:"Light stretching, Furey bridging hold 30 sec, breathing reset, debrief of key corrections from today's session."});
+  phases.push({name:'COOL-DOWN',time:cooldownMin,drills:[],note:cooldownNote});
   phases.forEach(p=>{if(!p.time)p.time=p.drills.reduce((s,d)=>s+parseDuration(d.duration),0);});
   let clock=0; const fmt=m=>`${String(Math.floor(m)).padStart(2,'0')}:00`;
-  let html=`<div class="session-hdr"><div class="session-title">CLASS SESSION PLAN</div><div class="session-meta"><div class="smeta">DURATION: <span>${totalMin} MIN</span></div><div class="smeta">BELT: <span>${beltFocus==='all'?'ALL LEVELS':beltFocus.toUpperCase()}</span></div><div class="smeta">FOCUS: <span>${catFocus==='all'?'BALANCED':catFocus.toUpperCase()}</span></div><div class="smeta">DRILLS: <span>${chosen.length}</span></div></div></div>`;
+  let html=`<div class="session-hdr"><div class="session-title">CLASS SESSION PLAN</div><div class="session-meta"><div class="smeta">DURATION: <span>${totalMin} MIN</span></div><div class="smeta">BELT: <span>${beltFocus==='all'?'ALL LEVELS':beltFocus.toUpperCase()}</span></div><div class="smeta">FOCUS: <span>${catFocus==='all'?'BALANCED':catFocus.toUpperCase()}</span></div><div class="smeta">MODE: <span>${modeLabel}</span></div><div class="smeta">DRILLS: <span>${chosen.length}</span></div></div></div>`;
   phases.forEach((phase,pi)=>{
     const start=fmt(clock); clock+=phase.time; const end=fmt(clock);
     html+=`<div class="session-phase"><div class="phase-hdr"><div class="phase-num">${String(pi+1).padStart(2,'0')}</div><div class="phase-name">${phase.name}</div><div class="phase-time">${start} → ${end} (${phase.time} MIN)</div></div>`;
     if(phase.note)html+=`<div style="font-size:.78rem;color:var(--muted);font-style:italic;padding:7px 0 4px;">${phase.note}</div>`;
-    if(phase.drills&&phase.drills.length){let phaseClk=clock-phase.time;phase.drills.forEach(d=>{const dur=parseDuration(d.duration);html+=`<div class="sdr ${beltClass(d.belt)}" onclick="showDrillInModal(${d.id})"><div class="sdr-time">${fmt(phaseClk)}</div><div class="sdr-info"><div class="sdr-title">${d.title}</div><div class="sdr-sub">${d.technique} · ${d.belt} · 💪 ${d.conditioning}</div></div><div class="sdr-dur">${d.duration}</div></div>`;phaseClk+=dur;});}
+    if(phase.drills&&phase.drills.length){let phaseClk=clock-phase.time;phase.drills.forEach(d=>{const dur=parseDuration(d.duration);
+      const sub = isKravOnly
+        ? `${d.technique} · ${d.belt}`
+        : isCondOnly
+          ? `💪 ${d.conditioning} · ${d.belt}`
+          : `${d.technique} · ${d.belt} · 💪 ${d.conditioning}`;
+      html+=`<div class="sdr ${beltClass(d.belt)}" onclick="showDrillInModal(${d.id})"><div class="sdr-time">${fmt(phaseClk)}</div><div class="sdr-info"><div class="sdr-title">${d.title}</div><div class="sdr-sub">${sub}</div></div><div class="sdr-dur">${d.duration}</div></div>`;phaseClk+=dur;});}
     html+=`</div>`;
   });
   html+=`<button class="btn-print-session" onclick="printSession()">⎙ PRINT SESSION PLAN</button>`;
